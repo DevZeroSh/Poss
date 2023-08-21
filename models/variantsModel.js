@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
-const categoryShcma = new mongoose.Schema({
-  name: {
+const variantSchema = new mongoose.Schema({
+  variant: {
     type: String,
     require: true,
     unique: [true, "Category must be unique"],
@@ -15,11 +15,12 @@ const categoryShcma = new mongoose.Schema({
     minlength: [9, "too short brand description"],
     maxlength: [100, "too long brand description"],
   },
-  parentCategory: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Category",
-  },
+  value:[
+    {
+        type:String,
+    }
+  ]
 });
 
-const categoryModel = mongoose.model("Category", categoryShcma);
-module.exports = categoryModel;
+const variantModel = mongoose.model("Variant", variantSchema);
+module.exports = variantModel;

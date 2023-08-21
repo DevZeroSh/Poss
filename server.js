@@ -11,6 +11,7 @@ const roleRout = require("./routes/roleRout");
 const userRout = require("./routes/userRout");
 const cors = require("cors");
 const morgan = require("morgan");
+const variantRout = require("./routes/variantRout");
 
 dotenv.config({ path: "config.env" });
 
@@ -30,6 +31,7 @@ app.use("/api/brand", brandRout);
 app.use("/api/category", categoryRout);
 app.use("/api/role", roleRout);
 app.use("/api/user", userRout);
+app.use("/api/variant", variantRout);
 
 const p = 8000;
 const server = app.listen(p, () => {

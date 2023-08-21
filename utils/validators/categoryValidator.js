@@ -15,7 +15,6 @@ exports.createCategoryVlaidator = [
     .withMessage("too short category description")
     .isLength({ max: 100 })
     .withMessage("too long category description"),
-  check("parentCategory").isMongoId().withMessage("Invalid Category id format"),
 
   validatorMiddleware,
 ];

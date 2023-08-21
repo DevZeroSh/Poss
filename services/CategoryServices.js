@@ -3,7 +3,10 @@ const categoryModel = require("../models/CategoryModel");
 const ApiError = require("../utils/apiError");
 
 exports.getCategories = asyncHandler(async (req, res, next) => {
-  const category = await categoryModel.find();
+  const category = await categoryModel.find().populate({
+    path: "parentCategory",
+    select: "name _id",
+  });
   res.status(200).json({ results: category.length, data: category });
 });
 
