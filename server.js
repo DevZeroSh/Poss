@@ -42,6 +42,9 @@ app.use("/api/variant", variantRout);
 app.use("/api/variant2", variantNameRout);
 app.use("/api/customars",customarRoute);
 
+app.use("/api/subvariant", variantNameRout);
+
+
 
 const PORT =process.env.PORT || 4000;
 const server = app.listen(PORT, () => {

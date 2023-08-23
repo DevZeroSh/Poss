@@ -47,18 +47,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 });
 
 exports.createProduct = asyncHandler(async (req, res, next) => {
-  const {
-    name,
-    description,
-    sold,
-    price,
-    priceAftereDiscount,
-    qr,
-    sku,
-    serialNumber,
-    brand,
-    category,
-  } = req.body;
+
   const product = await productModel.create(req.body);
   res.status(201).json({ data: product });
 });
