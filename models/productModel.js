@@ -59,18 +59,21 @@ const productSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-const setImageURl = (doc) => {
+
+const setImageURL=(doc)=>{
   if (doc.image) {
     const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
   }
-};
+}
 productSchema.post("init", (doc) => {
-  setImageURl(doc);
+  setImageURL(doc)
 });
+//Create
 productSchema.post("save", (doc) => {
-  setImageURl(doc);
+  setImageURL(doc)
 });
+
 
 const productModel = mongoose.model("Product", productSchema);
 

@@ -42,7 +42,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .find({})
     .populate({ path: "category", select: "name -_id" })
     .populate({ path: "brand", select: "name -_id" })
-    .populate({ path: "variant", select: "name -_id" });
+    .populate({ path: "variant", select: "variant  -_id" });
   res.status(200).json({ results: product.length, data: product });
 });
 
