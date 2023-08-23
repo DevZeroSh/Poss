@@ -33,7 +33,7 @@ app.use("/api/category", categoryRout);
 app.use("/api/role", roleRout);
 app.use("/api/user", userRout);
 app.use("/api/variant", variantRout);
-app.use("/api/variant2", variantNameRout);
+app.use("/api/subvariant", variantNameRout);
 
 const p = 8000;
 const server = app.listen(p, () => {

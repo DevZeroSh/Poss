@@ -1,20 +1,20 @@
 const asyncHandler = require("express-async-handler");
-const variantModel = require("../models/variantsModel");
+const variantElmentModel = require("../models/variantElmentModel");
 const ApiError = require("../utils/apiError");
 
 exports.getVariantsName = asyncHandler(async (req, res, next) => {
-  const variant = await variantModel.find();
+  const variant = await variantElmentModel.find();
   res.status(200).json({ results: variant.length, data: variant });
 });
 
 exports.createVariantName = asyncHandler(async (req, res, next) => {
-  const variant = await variantModel.create(req.body);
+  const variant = await variantElmentModel.create(req.body);
   res.status(201).json({ data: variant });
 });
 
 exports.getVariantName = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const variant = await variantModel.findById(id);
+  const variant = await variantElmentModel.findById(id);
   if (!variant) {
     return next(new ApiError(`No Variant for this id ${id}`, 404));
   }
@@ -23,7 +23,7 @@ exports.getVariantName = asyncHandler(async (req, res, next) => {
 
 exports.updataeVariantName = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const variant = await variantModel.findByIdAndUpdate(id, res.body, {
+  const variant = await variantElmentModel.findByIdAndUpdate(id, res.body, {
     new: true,
   });
   if (!variant) {
@@ -33,7 +33,7 @@ exports.updataeVariantName = asyncHandler(async (req, res, next) => {
 });
 exports.deleteVariantName = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const variant = await variantModel.findByIdAndDelete(id);
+  const variant = await variantElmentModel.findByIdAndDelete(id);
   if (!variant) {
     return next(new ApiError(`No Variant for this id ${id}`, 404));
   }

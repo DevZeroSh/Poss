@@ -1,8 +1,12 @@
 const express = require("express");
 
-
-
-const { getVariantsName, createVariantName, getVariantName, updataeVariantName, deleteVariantName } = require("../services/variantItemName");
+const {
+  getVariantsName,
+  createVariantName,
+  getVariantName,
+  updataeVariantName,
+  deleteVariantName,
+} = require("../services/variantItemName");
 
 const variantNameRout = express.Router();
 
