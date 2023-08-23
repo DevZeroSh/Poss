@@ -2,7 +2,6 @@ const { check, body, param } = require("express-validator");
 const validatorMiddleware = require("../../middlewares/validatorMiddleware");
 
 
-
 exports.createCustomarVlaidator = [
     check('name')
         .notEmpty().withMessage('The name can not be empty')
