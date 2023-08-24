@@ -9,6 +9,8 @@ const variantItemShcma = new mongoose.Schema({
   varuant: {
     type: mongoose.Schema.ObjectId,
     ref: "Variant",
+    unique: [true, "variant must be unique"],
+
   },
 });
 

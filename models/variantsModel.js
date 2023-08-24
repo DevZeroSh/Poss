@@ -4,7 +4,7 @@ const variantSchema = new mongoose.Schema({
   variant: {
     type: String,
     require: true,
-    unique: [true, "Category must be unique"],
+    unique: [true, "variant must be unique"],
   },
   slug: {
     type: String,
