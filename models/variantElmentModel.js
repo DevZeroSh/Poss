@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
 
 const variantItemShcma = new mongoose.Schema({
-  variantName:String,
+  variantName: [String],
   slug: {
     type: String,
     lowercase: true,
+  },
+  varuant: {
+    type: mongoose.Schema.ObjectId,
+    ref: "Variant",
   },
 });
 

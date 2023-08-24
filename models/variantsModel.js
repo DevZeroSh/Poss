@@ -15,7 +15,6 @@ const variantSchema = new mongoose.Schema({
     minlength: [9, "too short brand description"],
     maxlength: [100, "too long brand description"],
   },
-  value:[String]
 });
 
 const variantModel = mongoose.model("Variant", variantSchema);

@@ -3,7 +3,9 @@ const variantElmentModel = require("../models/variantElmentModel");
 const ApiError = require("../utils/apiError");
 
 exports.getVariantsName = asyncHandler(async (req, res, next) => {
-  const variant = await variantElmentModel.find();
+  const variant = await variantElmentModel
+    .find()
+    .populate({ path: "varuant", select: "variant  -_id" });
   res.status(200).json({ results: variant.length, data: variant });
 });
 
