@@ -3,7 +3,7 @@ const variantModel = require("../models/variantsModel");
 const ApiError = require("../utils/apiError");
 
 exports.getVariants = asyncHandler(async (req, res, next) => {
-  const variant = await variantModel.find()
+  const variant = await variantModel.find();
   res.status(200).json({ results: variant.length, data: variant });
 });
 

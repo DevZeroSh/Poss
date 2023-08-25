@@ -9,8 +9,7 @@ exports.craeteProductValidator = [
     .notEmpty()
     .withMessage("Product required"),
 
-  check("description")
-    .optional(),
+  check("description").optional(),
 
   check("sold")
     .optional()

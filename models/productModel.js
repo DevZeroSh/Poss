@@ -56,24 +56,24 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Variant",
     },
+    value: [String],
   },
   { timestamps: true }
 );
 
-const setImageURL=(doc)=>{
+const setImageURL = (doc) => {
   if (doc.image) {
     const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
   }
-}
+};
 productSchema.post("init", (doc) => {
-  setImageURL(doc)
+  setImageURL(doc);
 });
 //Create
 productSchema.post("save", (doc) => {
-  setImageURL(doc)
+  setImageURL(doc);
 });
-
 
 const productModel = mongoose.model("Product", productSchema);
 
