@@ -15,7 +15,6 @@ const roleRout = require("./routes/roleRout");
 const userRout = require("./routes/userRout");
 const variantRout = require("./routes/variantRout");
 const customarRoute = require('./routes/customarRoute');
-const variantNameRout = require("./routes/variantNameRout");
 
 
 const app = express();
@@ -39,7 +38,6 @@ app.use("/api/category", categoryRout);
 app.use("/api/role", roleRout);
 app.use("/api/user", userRout);
 app.use("/api/variant", variantRout);
-app.use("/api/variantvalue", variantNameRout);
 app.use("/api/customars",customarRoute);
 
 
