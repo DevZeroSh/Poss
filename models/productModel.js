@@ -57,6 +57,13 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value: [String],
+
+    variant2: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Variant",
+    },
+    value2: [String],
+
   },
   { timestamps: true }
 );
