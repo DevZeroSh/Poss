@@ -23,7 +23,7 @@ const customarSchema = new mongoose.Schema({
     sex:{
         type:String,
         enum:["male","female"],
-        default:"male"
+        default:""
     },
     birthData:Date,
     country:String,
