@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const categoryShcma = new mongoose.Schema({
+const categorySchema = new mongoose.Schema({
   name: {
     type: String,
-    require: true,
+    required: true,
     unique: [true, "Category must be unique"],
   },
   slug: {
@@ -21,5 +21,5 @@ const categoryShcma = new mongoose.Schema({
   },
 });
 
-const categoryModel = mongoose.model("Category", categoryShcma);
+const categoryModel = mongoose.model("Category", categorySchema);
 module.exports = categoryModel;
