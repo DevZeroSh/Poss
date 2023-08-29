@@ -6,7 +6,7 @@ exports.getCategories = asyncHandler(async (req, res, next) => {
   const category = await categoryModel.find().populate({
     path: "parentCategory",
     select: "name _id",
-  });
+  })
   res.status(200).json({ results: category.length, data: category });
 });
 
@@ -27,7 +27,7 @@ exports.getCategory = asyncHandler(async (req, res, next) => {
 
 exports.updateCategory = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const category = await categoryModel.findByIdAndUpdate(id, res.body, {
+  const category = await categoryModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
   if (!category) {

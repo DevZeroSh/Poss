@@ -16,7 +16,7 @@ const categoryRout = express.Router();
 categoryRout
   .route("/")
   .get(getCategories)
-  .post(createCategoryVlaidator, createCategory);
+  .post(createCategory);
 
 categoryRout
   .route("/:id")
