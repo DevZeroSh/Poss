@@ -64,11 +64,13 @@ exports.updataCustomarVlaidator = [
     validatorMiddleware,
 ];
 
+//Validator to id when get one customar
 exports.getCustomarVlaidator = [
     check('id').isMongoId().withMessage("Invalid customar id"),
     validatorMiddleware,
 ];
 
+//Validator to id when delete an customar
 exports.deleteCustomarVlaidator = [
     check('id').isMongoId().withMessage("Invalid customar id"),
     validatorMiddleware,
