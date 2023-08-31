@@ -1,6 +1,8 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
+const ApiError = require('./utils/apiError');
+const globalError = require('./middlewares/errorMiddleware');
 const cors = require("cors");
 const morgan = require("morgan");
 
@@ -41,11 +43,23 @@ app.use("/api/variant", variantRout);
 app.use("/api/customars",customarRoute);
 
 
+app.all("*",(req,res,next)=>{
+  //Create Error And Send it to error handling middleware
+  next(new ApiError(`Can't find this route:${req.originalUrl}`,400));
+});
 
-
-
+//Global error handling middleware for express
+app.use(globalError);
 
 const PORT =process.env.PORT || 4000;
 const server = app.listen(PORT, () => {
   console.log(`app running on port ${PORT}`);
+});
+
+process.on("unhandledRejection",(err)=>{
+  console.error(`unhandledRejection Errors:${err.name} | ${err.message}`);
+  server.close(()=>{
+      console.error(`Shutting down....`);
+      process.exit(1);
+  });
 });
