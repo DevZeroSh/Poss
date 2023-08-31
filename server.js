@@ -17,6 +17,7 @@ const roleRout = require("./routes/roleRout");
 const userRout = require("./routes/userRout");
 const variantRout = require("./routes/variantRout");
 const customarRoute = require('./routes/customarRoute');
+const supplierRoute = require('./routes/supplierRoute');
 
 
 const app = express();
@@ -41,7 +42,7 @@ app.use("/api/role", roleRout);
 app.use("/api/user", userRout);
 app.use("/api/variant", variantRout);
 app.use("/api/customars",customarRoute);
-
+app.use("/api/suppliers",supplierRoute);
 
 app.all("*",(req,res,next)=>{
   //Create Error And Send it to error handling middleware

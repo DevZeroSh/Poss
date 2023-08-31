@@ -37,6 +37,7 @@ exports.updataCustomarVlaidator = [
 
     param("id").isMongoId().withMessage("Invalid customar id"),
     check("name")
+        .optional()
         .notEmpty().withMessage("The name can not be empty")
         .isLength({ min: 3 })
         .withMessage("The name is too short")
@@ -46,15 +47,17 @@ exports.updataCustomarVlaidator = [
         .optional()
         .isMobilePhone(["tr-TR"])
         .withMessage("Invalid phone number Only accepted turkey phone numbers"),
-    check("email")
+    body("email")
+        .optional()
         .notEmpty()
         .withMessage("The email can not be empty")
         .isEmail()
         .withMessage("Invalid email address")
-        .custom((val) => Customar.findOne({ email: val }).then((customar) => {
-                if (customar) {
-                    return Promise.reject(new Error("Email already in customar"));
-                }
+        .custom((val,{req}) => Customar.findOne({ email: val, _id: { $ne: req.params.id }}).then((customar) => {
+         
+            if (customar) {
+              return Promise.reject(new Error("Email already in customar"));
+            }
         }) 
         ),
 
