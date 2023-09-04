@@ -2,11 +2,9 @@ const { check, body, param } = require("express-validator");
 const validatorMiddleware = require("../../middlewares/validatorMiddleware");
 const Supplier = require("../../models/suppliersModel");
 
-
-
 //validator for create one supplier
 exports.createSupplierValidator = [
-  check("name")
+  check("supplierName")
     .notEmpty()
     .withMessage("The name can not be empty")
     .isLength({ min: 3 })
@@ -78,8 +76,5 @@ exports.deleteSupplierVlaidator = [
     check('id').isMongoId().withMessage("Invalid supplier id"),
     validatorMiddleware,
 ];
-
-
-
 
 
