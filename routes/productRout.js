@@ -20,7 +20,12 @@ const productRout = express.Router();
 productRout
   .route("/")
   .get(getProduct)
-  .post(uploadProductImage, resizerImage,createProduct);
+  .post(
+    uploadProductImage,
+    resizerImage,
+    craeteProductValidator,
+    createProduct
+  );
 
 productRout
   .route("/:id")
