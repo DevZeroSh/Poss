@@ -74,9 +74,11 @@ const setImageURL = (doc) => {
     doc.image = imageUrl;
   }
 };
+
 productSchema.post("init", (doc) => {
   setImageURL(doc);
 });
+
 //Create
 productSchema.post("save", (doc) => {
   setImageURL(doc);
