@@ -55,7 +55,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 // @route Post /api/product
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
-
+  req.body.slug = slugify(req.body.name);
   const product = await productModel.create(req.body);
   res
     .status(201)
@@ -127,5 +127,5 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 exports.deleteProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const product = await productModel.findByIdAndDelete(id);
-  res.status(200).json({ status: "true", message: "product Deleted" });
+  res.status(200).json({ status: "true", message: "Product Deleted" });
 });

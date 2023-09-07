@@ -44,6 +44,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       require: true,
     },
+
     brand: {
       type: mongoose.Schema.ObjectId,
       ref: "Brand",
@@ -63,7 +64,6 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value2: [String],
-
   },
   { timestamps: true }
 );
