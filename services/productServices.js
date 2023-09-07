@@ -55,6 +55,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 // @route Post /api/product
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
+
   const product = await productModel.create(req.body);
   res
     .status(201)
