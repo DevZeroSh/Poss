@@ -15,7 +15,7 @@ exports.getBrands = asyncHandler(async (req, res, next) => {
 exports.createBrand = asyncHandler(async (req, res, next) => {
   const brand = await brandModel.create(req.body);
   res
-    .status(201)
+    .status(200)
     .json({ status: "true", message: "Brand Inserted", data: brand });
 });
 //@desc GEtspecific Brand by id
