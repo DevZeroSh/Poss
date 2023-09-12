@@ -1,20 +1,28 @@
 const mongoose = require("mongoose");
 
-const roleShcema = new mongoose.Schema({
+const rolesShcema = new mongoose.Schema({
   name: {
     type: String,
-    require: [true, " role name is require"],
+    require: [true, " Role name is require"],
     unique: true,
-  },
-  slug: {
-    type: String,
-    lowercase: true,
   },
   description: {
     type: String,
   },
+  rolesDashboard: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "RoleDashboard",
+    },
+  ],
+  rolesPos: [
+    {
+      type: mongoose.Schema.ObjectId,
+      ref: "RolePos",
+    },
+  ],
 });
 
-const roleModel = mongoose.model("Role", roleShcema);
+const roleModel = mongoose.model("Roles", rolesShcema);
 
 module.exports = roleModel;

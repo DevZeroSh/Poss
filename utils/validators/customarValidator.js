@@ -20,7 +20,6 @@ exports.createCustomarVlaidator = [
     .withMessage("The email can not be empty")
     .isEmail()
     .withMessage("Invalid email address")
-
     .custom((val) =>
     Customar.findOne({ email: val }).then((customar) => {
         if (customar) {

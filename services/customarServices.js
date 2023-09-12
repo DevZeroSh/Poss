@@ -38,6 +38,7 @@ exports.getCustomar = asyncHandler(async(req,res,next)=>{
 //Update one Customar
 //@rol: who has rol can update the Customar's Data
 exports.updataCustomar = asyncHandler(async (req,res,next)=>{
+    
     const {id} = req.params;
     const customar = await customarModel.findByIdAndUpdate(id,req.body,{new:true});
 

@@ -7,6 +7,6 @@ const roleDashboardSchema = new mongoose.Schema(
     }
 )
 
-const roleDashboardModel = mongoose.model("roleDashboard",roleDashboardSchema);
+const roleDashboardModel = mongoose.model("RoleDashboard",roleDashboardSchema);
 
 module.exports = roleDashboardModel;
