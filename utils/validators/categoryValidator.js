@@ -10,11 +10,11 @@ exports.createCategoryVlaidator = [
       req.body.slug = slugify(val);
       return true;
     }),
-  check("description")
-    .isLength({ min: 9 })
-    .withMessage("too short category description")
-    .isLength({ max: 100 })
-    .withMessage("too long category description"),
+  // check("description")
+  //   .isLength({ min: 9 })
+  //   .withMessage("too short category description")
+  //   .isLength({ max: 100 })
+  //   .withMessage("too long category description"),
 
   validatorMiddleware,
 ];

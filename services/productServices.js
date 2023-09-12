@@ -55,6 +55,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 // @route Post /api/product
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
+  req.body.slug = slugify(req.body.name);
   const product = await productModel.create(req.body);
   res
     .status(201)
@@ -68,9 +69,9 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const product = await productModel
     .findById(id)
-    .populate({ path: "category", select: "name -_id" })
-    .populate({ path: "brand", select: "name -_id" })
-    .populate({ path: "variant", select: "name -_id" });
+    .populate({ path: "category", select: "name _id" })
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "variant", select: "name _id" });
   res.status(200).json({ data: product });
 });
 
@@ -79,39 +80,13 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.updateProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const {
-    name,
-    description,
-    sold,
-    price,
-    priceAftereDiscount,
-    qr,
-    sku,
-    serialNumber,
-    brand,
-    category,
-  } = req.body;
+  req.body.slug = slugify(req.body.name);
+
   const product = await productModel
-    .findByIdAndUpdate(
-      { _id: id },
-      {
-        name,
-        slug: slugify(name),
-        description,
-        sold,
-        price,
-        priceAftereDiscount,
-        qr,
-        sku,
-        serialNumber,
-        brand,
-        category,
-      },
-      { new: true }
-    )
-    .populate({ path: "category", select: "name -_id" })
-    .populate({ path: "brand", select: "name -_id" })
-    .populate({ path: "variant", select: "name -_id" });
+    .findByIdAndUpdate({ _id: id }, req.body, { new: true })
+    .populate({ path: "category", select: "name _id" })
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "variant", select: "name _id" });
   if (!product) {
     return next(new ApiError(`No Product for this id ${req.params.id}`, 404));
   }
@@ -126,5 +101,5 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 exports.deleteProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const product = await productModel.findByIdAndDelete(id);
-  res.status(200).json({ status: "true", message: "product Deleted" });
+  res.status(200).json({ status: "true", message: "Product Deleted" });
 });
