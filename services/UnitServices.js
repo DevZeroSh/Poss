@@ -28,9 +28,10 @@ exports.createUnit = asyncHandler(async (req, res) => {
 // @access priveta
 exports.getUnit = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const unit = await UnitModel
-    .findById(id)
-    .populate({ path: "role", select: "name -_id" });
+  const unit = await UnitModel.findById(id).populate({
+    path: "role",
+    select: "name -_id",
+  });
   if (!unit) {
     return next(new ApiError(`No unit by this id ${id}`, 404));
   }
@@ -38,16 +39,16 @@ exports.getUnit = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataUnit = asyncHandler(async (req, res, next) => {
-    const unit = await UnitModel.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!unit) {
-      return next(new ApiError(`No Brand for this id ${req.params.id}`, 404));
-    }
-    res
-      .status(200)
-      .json({ status: "true", message: "Brand updated", data: brand });
+  const unit = await UnitModel.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
   });
+  if (!unit) {
+    return next(new ApiError(`No Brand for this id ${req.params.id}`, 404));
+  }
+  res
+    .status(200)
+    .json({ status: "true", message: "Brand updated", data: brand });
+});
 
 //@desc Delete specific Unit
 // @rout Delete /api/unit/:id
@@ -58,5 +59,5 @@ exports.deleteUnit = asyncHandler(async (req, res, next) => {
   if (!unit) {
     return next(new ApiError(`No Unit by this id ${id}`, 404));
   }
-  res.status(204).json({ status: "true", message: "Unit Deleted" });
+  res.status(200).json({ status: "true", message: "Unit Deleted" });
 });
