@@ -28,10 +28,7 @@ exports.createUnit = asyncHandler(async (req, res) => {
 // @access priveta
 exports.getUnit = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const unit = await UnitModel.findById(id).populate({
-    path: "role",
-    select: "name -_id",
-  });
+  const unit = await UnitModel.findById(id);
   if (!unit) {
     return next(new ApiError(`No unit by this id ${id}`, 404));
   }
@@ -43,11 +40,9 @@ exports.updataUnit = asyncHandler(async (req, res, next) => {
     new: true,
   });
   if (!unit) {
-    return next(new ApiError(`No Brand for this id ${req.params.id}`, 404));
+    return next(new ApiError(`No unit for this id ${req.params.id}`, 404));
   }
-  res
-    .status(200)
-    .json({ status: "true", message: "Brand updated", data: brand });
+  res.status(200).json({ status: "true", message: "unit updated", data: unit });
 });
 
 //@desc Delete specific Unit
