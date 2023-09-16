@@ -25,6 +25,9 @@ const productSchema = new mongoose.Schema(
       require: [true, "product price is required"],
       trim: true,
     },
+    buyingprice: {
+      type: Number,
+    },
 
     priceAftereDiscount: {
       type: Number,

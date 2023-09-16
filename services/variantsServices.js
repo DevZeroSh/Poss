@@ -16,7 +16,7 @@ exports.getVariants = asyncHandler(async (req, res, next) => {
 exports.createVariant = asyncHandler(async (req, res, next) => {
   const variant = await variantModel.create(req.body);
   res
-    .status(201)
+    .status(200)
     .json({ status: "true", message: "variant Inserted", data: variant });
 });
 

@@ -16,11 +16,8 @@ exports.getTax = asyncHandler(async (req, res) => {
 // @rout Post /api/tax
 // @access priveta
 exports.createTax = asyncHandler(async (req, res) => {
-  req.body.slug = slugify(req.body.name);
   const tax = await TaxModel.create(req.body);
-  res
-    .status(201)
-    .json({ status: "true", message: "tax Inserted", data: tax });
+  res.status(201).json({ status: "true", message: "tax Inserted", data: tax });
 });
 
 //@desc get specific tax by id

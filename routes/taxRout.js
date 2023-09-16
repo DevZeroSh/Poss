@@ -5,7 +5,7 @@ const {
   getOneTax,
   updataTax,
   deleteTax,
-} = require("../services/taxModel");
+} = require("../services/taxServices");
 
 const taxRout = express.Router();
 taxRout.route("/").get(getTax).post(createTax);
