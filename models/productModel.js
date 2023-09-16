@@ -64,6 +64,11 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value2: [String],
+    alarm: String,
+    tax: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Tax",
+    },
   },
   { timestamps: true }
 );

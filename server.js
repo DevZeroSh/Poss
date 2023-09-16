@@ -22,6 +22,7 @@ const RolePosRoute = require("./routes/rolePosRoute");
 const roleRoute = require("./routes/roleRoute");
 const employeeRoute = require("./routes/employeeRoute");
 const unitRout = require("./routes/unitRout");
+const taxRout = require("./routes/taxRout");
 
 const app = express();
 app.use(express.json());
@@ -49,6 +50,7 @@ app.use("/api/rolepos", RolePosRoute);
 app.use("/api/role", roleRoute);
 app.use("/api/employee", employeeRoute);
 app.use("/api/unit", unitRout);
+app.use("/api/tax", taxRout);
 
 app.all("*", (req, res, next) => {
   //Create Error And Send it to error handling middleware
