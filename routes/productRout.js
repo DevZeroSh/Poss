@@ -17,15 +17,12 @@ const {
 
 const productRout = express.Router();
 
-productRout
-  .route("/")
-  .get(getProduct)
-  .post(
-    uploadProductImage,
-    resizerImage,
-    craeteProductValidator,
-    createProduct
-  );
+productRout.route("/").get(getProduct).post(
+  uploadProductImage,
+  resizerImage,
+
+  createProduct
+);
 
 productRout
   .route("/:id")

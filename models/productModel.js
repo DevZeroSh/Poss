@@ -19,7 +19,7 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-
+    quantity: Number,
     price: {
       type: Number,
       require: [true, "product price is required"],
@@ -67,7 +67,7 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value2: [String],
-    alarm: String,
+    alarm: Number,
     tax: {
       type: mongoose.Schema.ObjectId,
       ref: "Tax",
