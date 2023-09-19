@@ -29,7 +29,9 @@ exports.getVariant = asyncHandler(async (req, res, next) => {
   if (!variant) {
     return next(new ApiError(`No Variant for this id ${id}`, 404));
   }
-  res.status(200).json({ data: variant });
+  res
+    .status(200)
+    .json({ status: "true", message: "variant Inserted", data: variant });
 });
 
 // @desc Update specific Variant
