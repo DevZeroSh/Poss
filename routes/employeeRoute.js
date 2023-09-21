@@ -5,6 +5,6 @@ const { createEmployeeValidator, updateEmployeeValidator, getEmployeeVlaidator, 
 const employeeRoute = express.Router();
 
 employeeRoute.route("/").get(getEmployees).post(createEmployeeValidator,createEmployee);
-employeeRoute.route("/:id").delete(deleteEmployeeVlaidator,deleteEmployee).get(getEmployeeVlaidator,getEmployee).put(updateEmployeeValidator,updateEmployee);
+employeeRoute.route("/:id").delete(deleteEmployeeVlaidator,deleteEmployee).get(getEmployeeVlaidator,getEmployee).put(updateEmployee);
 
 module.exports = employeeRoute;

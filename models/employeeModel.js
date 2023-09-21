@@ -9,7 +9,7 @@ const emoloyeeShcema = new mongoose.Schema(
     email: {
       type: String,
       require: [true, "email is require"],
-      unique: true,
+      unique: [true,"email is u"],
       lowercase: true,
     },
     pin: {
@@ -28,6 +28,11 @@ const emoloyeeShcema = new mongoose.Schema(
         ref: "Roles",
       },
     ],
+    archives: {
+      type: String,
+      enum: ["true", "false"],
+      default: "false",
+    },
   },
   { timestamps: true }
 );

@@ -16,8 +16,7 @@ exports.createSupplierValidator = [
     .isMobilePhone(["tr-TR"])
     .withMessage("Invalid phone number Only accepted turkey phone numbers"),
   check("email")
-    .notEmpty()
-    .withMessage("The email can not be empty")
+    .optional()
     .isEmail()
     .withMessage("Invalid email address")
     .custom((val) =>
@@ -48,11 +47,10 @@ exports.updataSupplierVlaidator = [
     .withMessage("Invalid phone number Only accepted turkey phone numbers"),
   body("email")
     .optional()
-    .notEmpty()
-    .withMessage("The email can not be empty")
     .isEmail()
     .withMessage("Invalid email address")
     .custom((val, { req }) =>
+    
       Supplier.findOne({ email: val, _id: { $ne: req.params.id } }).then(
         (supplier) => {
           if (supplier) {

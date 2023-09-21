@@ -16,10 +16,7 @@ exports.createCustomarVlaidator = [
     .isMobilePhone(["tr-TR"])
     .withMessage("Invalid phone number Only accepted turkey phone numbers"),
   check("email")
-    .notEmpty()
-    .withMessage("The email can not be empty")
-    .isEmail()
-    .withMessage("Invalid email address")
+    .optional()
     .custom((val) =>
     Customar.findOne({ email: val }).then((customar) => {
         if (customar) {
@@ -48,10 +45,6 @@ exports.updataCustomarVlaidator = [
         .withMessage("Invalid phone number Only accepted turkey phone numbers"),
     body("email")
         .optional()
-        .notEmpty()
-        .withMessage("The email can not be empty")
-        .isEmail()
-        .withMessage("Invalid email address")
         .custom((val,{req}) => Customar.findOne({ email: val, _id: { $ne: req.params.id }}).then((customar) => {
          
             if (customar) {

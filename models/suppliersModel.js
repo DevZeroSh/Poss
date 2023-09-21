@@ -8,10 +8,12 @@ const supplierSchema = new mongoose.Schema({
         minlength:[3,'Too short supplier name'],
         maxlength:[30,'Too long supplier name'],
     },
-    phoneNumber:Number,
+    phoneNumber:{
+        type:String,
+        unique: true,
+    },
     email:{
         type:String,
-        required: [true, "email is required"],
         unique: true,
         trim:true,
         lowercase: true,
@@ -19,6 +21,11 @@ const supplierSchema = new mongoose.Schema({
     companyName:String,
     address:String,
     note:String,
+    archives:{
+        type:String,
+        enum:["true","false"],
+        default:"false",
+    },
 
 },{timestamps:true});
 
