@@ -56,6 +56,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
   req.body.slug = slugify(req.body.name);
+
   const product = await productModel.create(req.body);
   res
     .status(201)
