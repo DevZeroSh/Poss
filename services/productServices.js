@@ -44,7 +44,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .find({})
     .populate({ path: "category", select: "name -_id" })
     .populate({ path: "brand", select: "name -_id" })
-    .populate({ path: "variant", select: "variant  -_id" });
+    .populate({ path: "variant", select: "variant  -_id" })
+    .populate({ path: "tax", select: "tax  _id" });
   res
     .status(200)
     .json({ status: "true", results: product.length, data: product });
@@ -70,7 +71,8 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     .findById(id)
     .populate({ path: "category", select: "name _id" })
     .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "name _id" });
+    .populate({ path: "variant", select: "name _id" })
+    .populate({ path: "tax", select: "tax  _id" });
   res.status(200).json({ data: product });
 });
 
