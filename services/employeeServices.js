@@ -86,14 +86,14 @@ exports.updateEmployee = asyncHandler(async (req, res, next) => {
   }
 });
 
-//@desc Delete specific employee
+//@desc Delete specific employee(put it in archives)
 // @rout Delete /api/employee/:id
 // @access priveta
 exports.deleteEmployee = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  const employee = await employeeModel.findByIdAndDelete(id);
+  const employee = await employeeModel.findByIdAndUpdate(id,{archives:"true"});
   if (!employee) {
     return next(new ApiError(`No employee by this id ${id}`, 404));
   }
-  res.status(204).json({ status: "true", message: "Employee Deleted" });
+  res.status(200).json({ status: "true", message: "Employee Deleted" });
 });

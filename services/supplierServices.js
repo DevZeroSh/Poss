@@ -48,12 +48,12 @@ exports.updataSupplier = asyncHandler(async (req,res,next)=>{
 });
 
 
-//Delete One Supplier
+//Delete One Supplier(Put it in archives)
 //@rol:who has rol can Delete the Supplier
 exports.deleteSupplier = asyncHandler(async (req,res,next)=>{
 
     const {id}     = req.params;
-    const supplier = await suppliersModel.findByIdAndDelete(id);
+    const supplier = await suppliersModel.findByIdAndUpdate(id,{archives:"true"},{new:true});
 
     if (!supplier) {
         return next(new ApiError(`There is no supplier with this id ${id}`, 404));

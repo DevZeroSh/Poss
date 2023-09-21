@@ -50,13 +50,13 @@ exports.updateEmployeeValidator = [
         .isEmail()
         .withMessage("Invalid email address")
 
-        .custom((val) =>
-        Employee.findOne({ email: val }).then((employee) => {
+        .custom((val,{req}) =>{
+        Employee.findOne({ email: val, _id: { $ne: req.params.id } }).then((employee) => {
             if (employee) {
                 return Promise.reject(new Error("Email already in employee"));
             }
         })
-        ),
+    }),
     check("selectedRoles").custom((value)=>{
 
         // Check if value is an array

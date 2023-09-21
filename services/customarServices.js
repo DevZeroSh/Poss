@@ -50,12 +50,12 @@ exports.updataCustomar = asyncHandler(async (req,res,next)=>{
 });
 
 
-//Delete One Customar
+//Delete One Customar(Put it in archives)
 //@rol:who has rol can Delete the Customar
 exports.deleteCustomar = asyncHandler(async (req,res,next)=>{
 
     const {id}     = req.params;
-    const customar = await customarModel.findByIdAndDelete(id);
+    const customar = await customarModel.findByIdAndUpdate(id,{archives:"true"},{new:true});
 
     if (!customar) {
         return next(new ApiError(`There is no customer with this id ${id}`, 404));

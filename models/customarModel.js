@@ -8,10 +8,12 @@ const customarSchema = new mongoose.Schema({
         minlength:[3,'Too short customar name'],
         maxlength:[30,'Too long customar name'],
     },
-    phoneNumber:String,
+    phoneNumber:{
+        type:String,
+        unique: true,
+    },
     email:{
         type:String,
-        required: [true, "email is required"],
         unique: true,
         trim:true,
         lowercase: true,
@@ -22,8 +24,8 @@ const customarSchema = new mongoose.Schema({
     },
     sex:{
         type:String,
-        enum:["male","female"],
-        default:""
+        enum:["male","female",""],
+        default:"unknow"
     },
     birthData:Date,
     country:String,
@@ -36,6 +38,11 @@ const customarSchema = new mongoose.Schema({
     },
     taxNumber:Number,
     taxAdministration:String,
+    archives:{
+        type:String,
+        enum:["true","false"],
+        default:"false",
+    },
 
 },{timestamps:true});
 
