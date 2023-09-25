@@ -23,6 +23,7 @@ const roleRoute = require("./routes/roleRoute");
 const employeeRoute = require("./routes/employeeRoute");
 const unitRout = require("./routes/unitRout");
 const taxRout = require("./routes/taxRout");
+const discountRoute = require("./routes/discountRoute");
 
 const app = express();
 app.use(express.json());
@@ -49,6 +50,7 @@ app.use("/api/roledashboard", RoleDashboardRoute);
 app.use("/api/rolepos", RolePosRoute);
 app.use("/api/role", roleRoute);
 app.use("/api/employee", employeeRoute);
+app.use("/api/discount", discountRoute);
 app.use("/api/unit", unitRout);
 app.use("/api/tax", taxRout);
 
