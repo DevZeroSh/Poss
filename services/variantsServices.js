@@ -13,10 +13,10 @@ exports.getVariants = asyncHandler(async (req, res, next) => {
 // @desc Create  Variant
 // @route Post /api/variant
 // @access Private
-exports.createVariant = asyncHandler(async (req, res, next) => {
+exports.createVariant = asyncHandler(async (req, res) => {
   const variant = await variantModel.create(req.body);
   res
-    .status(200)
+    .status(201)
     .json({ status: "true", message: "variant Inserted", data: variant });
 });
 
