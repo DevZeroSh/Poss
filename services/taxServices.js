@@ -16,6 +16,8 @@ exports.getTax = asyncHandler(async (req, res) => {
 // @rout Post /api/tax
 // @access priveta
 exports.createTax = asyncHandler(async (req, res) => {
+  req.body.slug = slugify(req.body.name);
+
   const tax = await TaxModel.create(req.body);
   res.status(201).json({ status: "true", message: "tax Inserted", data: tax });
 });
@@ -33,6 +35,8 @@ exports.getOneTax = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataTax = asyncHandler(async (req, res, next) => {
+  req.body.slug = slugify(req.body.name);
+
   const tax = await TaxModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });

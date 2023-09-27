@@ -43,8 +43,9 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   const product = await productModel
     .find({})
     .populate({ path: "category", select: "name -_id" })
-    .populate({ path: "brand", select: "name -_id" })
-    .populate({ path: "variant", select: "variant  -_id" })
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "variant", select: "variant  _id" })
+    .populate({ path: "unit", select: "name code  _id" })
     .populate({ path: "tax", select: "tax  _id" });
   res
     .status(200)
@@ -82,13 +83,12 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.updateProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
-  req.body.slug = slugify(req.body.name);
-
-  const product = await productModel
-    .findByIdAndUpdate({ _id: id }, req.body, { new: true })
-    .populate({ path: "category", select: "name _id" })
-    .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "name _id" });
+  if (req.body.name) {
+    req.body.slug = slugify(req.body.name);
+  }
+  const product = await productModel.findByIdAndUpdate({ _id: id }, req.body, {
+    new: true,
+  });
   if (!product) {
     return next(new ApiError(`No Product for this id ${req.params.id}`, 404));
   }
@@ -100,7 +100,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 // @desc Delete specific product
 // @route Delete /api/product/:id
 // @access Private
-exports.deleteProduct = asyncHandler(async (req, res, next) => {
+exports.deleteProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const product = await productModel.findByIdAndDelete(id);
   res.status(200).json({ status: "true", message: "Product Deleted" });

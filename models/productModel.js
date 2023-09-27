@@ -59,6 +59,10 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Category",
     },
+    unit: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Unit",
+    },
     variant: {
       type: mongoose.Schema.ObjectId,
       ref: "Variant",
@@ -75,6 +79,7 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Tax",
     },
+    taxPrice: Number,
   },
   { timestamps: true }
 );
