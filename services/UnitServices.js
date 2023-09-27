@@ -49,10 +49,13 @@ exports.updataUnit = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/unit/:id
 // @access priveta
 exports.deleteUnit = asyncHandler(async (req, res, next) => {
+
   const { id } = req.params;
   const unit = await UnitModel.findByIdAndDelete(id);
+
   if (!unit) {
     return next(new ApiError(`No Unit by this id ${id}`, 404));
   }
+  
   res.status(200).json({ status: "true", message: "Unit Deleted" });
 });
