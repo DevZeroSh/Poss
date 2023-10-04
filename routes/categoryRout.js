@@ -5,7 +5,7 @@ const {
   getCategory,
   updateCategory,
   deleteCategory,
-} = require("../services/CategoryServices");
+} = require("../services/categoryServices");
 const {
   createCategoryVlaidator,
   updateCategoryValidator,
