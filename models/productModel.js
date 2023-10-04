@@ -79,6 +79,10 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Tax",
     },
+    label: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Labels",
+    },
     taxPrice: Number,
   },
   { timestamps: true }
@@ -101,5 +105,4 @@ productSchema.post("save", (doc) => {
 });
 
 const productModel = mongoose.model("Product", productSchema);
-
 module.exports = productModel;
