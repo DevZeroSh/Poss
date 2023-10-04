@@ -62,8 +62,8 @@ exports.updataRole = asyncHandler(async (req, res, next) => {
 
 
 //@desc Delete specific Role
-// @rout Delete /api/role/:id
-// @access priveta
+//@rout Delete /api/role/:id
+//@access priveta
 exports.deleteRole = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
