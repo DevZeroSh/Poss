@@ -46,7 +46,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })
-    .populate({ path: "tax", select: "tax  _id" });
+    .populate({ path: "tax", select: "tax  _id" })
+    .populate({ path: "label", select: "name  _id" });
   res
     .status(200)
     .json({ status: "true", results: product.length, data: product });
