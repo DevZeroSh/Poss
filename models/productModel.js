@@ -84,6 +84,11 @@ const productSchema = new mongoose.Schema(
       ref: "Labels",
     },
     taxPrice: Number,
+    archives:{
+      type:String,
+      enum:["true","false"],
+      default:"false",
+  },
   },
   { timestamps: true }
 );
