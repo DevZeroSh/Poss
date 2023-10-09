@@ -10,10 +10,6 @@ const {
 const paymentTypes = express.Router();
 
 paymentTypes.route("/").get(getPaymentTypes).post(createPaymentType);
-paymentTypes
-    .route("/:id")
-    .post(getOnePaymentType)
-    .put(updataPaymentType)
-    .delete(deleteOnePaymentType);
+paymentTypes.route("/:id").get(getOnePaymentType).put(updataPaymentType).delete(deleteOnePaymentType);
 
 module.exports = paymentTypes;
