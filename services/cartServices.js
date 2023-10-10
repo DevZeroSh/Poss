@@ -28,7 +28,9 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     // If no cart exists, create a new one
     console.log("test1");
     cart = await CartModel.create({
-      cartItems: [{ prodcut: prodcut, price: prodcut.price }],
+      cartItems: [
+        { prodcut: prodcut, price: prodcut.price, name: prodcut.name },
+      ],
     });
   } else {
     console.log("test2");
@@ -44,7 +46,11 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       cart.cartItems[productIndex] = cartItem;
     } else {
       // Product not exists in the cart, update the product quantity or other details
-      cart.cartItems.push({ prodcut: prodcut, price: prodcut.price });
+      cart.cartItems.push({
+        prodcut: prodcut,
+        price: prodcut.price,
+        name: prodcut.name,
+      });
     }
   }
   // Calculate Total cart Price
