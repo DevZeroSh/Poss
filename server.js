@@ -27,6 +27,7 @@ const discountRoute = require("./routes/discountRoute");
 const paymentTypes = require("./routes/paymentTypesRoute");
 const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
+const authRoute = require("./routes/authRoute");
 
 const app = express();
 app.use(express.json());
@@ -59,6 +60,7 @@ app.use("/api/tax", taxRout);
 app.use("/api/paymenttype", paymentTypes);
 app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
+app.use("/api/auth", authRoute);
 
 app.all("*", (req, res, next) => {
   //Create Error And Send it to error handling middleware

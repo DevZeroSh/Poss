@@ -15,7 +15,9 @@ const {
   deleteProductValdiator,
 } = require("../utils/validators/productValidator");
 
+const authService = require('../services/authService');
 const productRout = express.Router();
+productRout.use(authService.protect);
 
 productRout.route("/").get(getProduct).post(
   uploadProductImage,

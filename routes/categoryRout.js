@@ -13,7 +13,9 @@ const {
   deleteCategoryValidator,
 } = require("../utils/validators/categoryValidator");
 
+const authService = require('../services/authService');
 const categoryRout = express.Router();
+categoryRout.use(authService.protect);
 
 categoryRout
   .route("/")

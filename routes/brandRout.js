@@ -13,7 +13,10 @@ const {
   deleteBrandValidator,
 } = require("../utils/validators/brandValidator");
 
+const authService = require('../services/authService');
+
 const brandRout = express.Router();
+brandRout.use(authService.protect);
 
 brandRout.route("/").get(getBrands).post(createBrandValidator, createBrand);
 brandRout
