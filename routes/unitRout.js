@@ -14,7 +14,10 @@ const {
   deleteUnitValidator,
 } = require("../utils/validators/unitValidator");
 
+const authService = require('../services/authService');
 const unitRout = express.Router();
+unitRout.use(authService.protect);
+
 unitRout.route("/").get(getUnits).post(createUnitValidator, createUnit);
 unitRout
   .route("/:id")

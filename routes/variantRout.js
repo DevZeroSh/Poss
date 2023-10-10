@@ -7,8 +7,9 @@ const {
   deleteVariant,
   createVariant,
 } = require("../services/variantsServices");
-
+const authService = require('../services/authService');
 const variantRout = express.Router();
+variantRout.use(authService.protect);
 
 variantRout.route("/").get(getVariants).post(createVariant);
 
