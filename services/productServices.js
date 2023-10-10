@@ -40,14 +40,29 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 // @route Get /api/product
 // @access Private
 exports.getProduct = asyncHandler(async (req, res, next) => {
-  const product = await productModel
-    .find({})
+  // Search for product or qr
+  let mongooseQuery = productModel.find({});
+
+  if (req.query.keyword) {
+    const query = {
+      $or: [
+        { name: { $regex: req.query.keyword, $options: "i" } },
+        { qr: { $regex: req.query.keyword, $options: "i" } },
+      ],
+    };
+    mongooseQuery = mongooseQuery.find(query);
+  }
+
+  // Show the all proporty
+  const product = await mongooseQuery
     .populate({ path: "category", select: "name -_id" })
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })
     .populate({ path: "tax", select: "tax  _id" })
-    .populate({ path: "label", select: "name  _id" });
+    .populate({ path: "label", select: "name  _id" })
+    .exec();
+
   res
     .status(200)
     .json({ status: "true", results: product.length, data: product });
@@ -103,6 +118,13 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.deleteProduct = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const product = await productModel.findByIdAndDelete(id);
+  const product = await productModel.findByIdAndUpdate(
+    id,
+    { archives: "true" },
+    { new: true }
+  );
+  if (!product) {
+    return next(new ApiError(`No Product for this id ${req.params.id}`, 404));
+  }
   res.status(200).json({ status: "true", message: "Product Deleted" });
 });
