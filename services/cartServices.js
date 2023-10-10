@@ -29,7 +29,12 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     console.log("test1");
     cart = await CartModel.create({
       cartItems: [
-        { prodcut: prodcut, price: prodcut.price, name: prodcut.name },
+        {
+          prodcut: prodcut,
+          price: prodcut.price,
+          name: prodcut.name,
+          qr: prodcut.qr,
+        },
       ],
     });
   } else {
@@ -50,6 +55,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         prodcut: prodcut,
         price: prodcut.price,
         name: prodcut.name,
+        qr: prodcut.qr,
       });
     }
   }
@@ -77,7 +83,7 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
 
   if (!cart) {
     return next(
-      new ApiError(`There is no cart for this user id: ${req.user._id}`)
+      new ApiError(`There is no cart for this user id: {req.user._id}`)
     );
   }
 
@@ -127,9 +133,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   const { quantity } = req.body;
   const cart = await CartModel.findOne({}); /*user:req.user/_id*/
   if (!cart) {
-    return next(
-      new ApiError(`there is no cart for user ${req.user._id} `, 404)
-    );
+    return next(new ApiError(`there is no cart for user {req.user._id} `, 404));
   }
   const itemIndex = cart.cartItems.findIndex(
     (item) => item._id.toString() === req.params.itemId
