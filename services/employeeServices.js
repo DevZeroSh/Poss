@@ -1,10 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const employeeModel = require("../models/employeeModel");
+const RoleModel = require("../models/roleModel");
 const ApiError = require("../utils/apiError");
 const generatePassword = require("../utils/tools/generatePassword");
 //Tools
 const sendEmail = require("../utils/sendEmail");
 const isEmail = require("../utils/tools/isEmail");
+const { getDashboardRoles } = require("./roleDashboardServices");
+const { getPosRoles } = require("./rolePosServices");
 
 //@desc Get list of employee
 // @rout Get /api/user
@@ -64,11 +67,25 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const employee = await employeeModel
         .findById(id)
-        .populate({ path: "selectedRoles", select: "name -_id" });
+        .populate({ path: "selectedRoles", select: "name _id" });
     if (!employee) {
         return next(new ApiError(`No employee by this id ${id}`, 404));
+    } else {
+        //4-get all roles
+        const roles = await RoleModel.findById(employee.selectedRoles[0]);
+        const dashboardRolesIds = roles.rolesDashboard;
+        const posRolesIds = roles.rolesPos;
+
+        const dashRoleName = await getDashboardRoles(dashboardRolesIds);
+        const poseRoleName = await getPosRoles(posRolesIds);
+
+        res.status(200).json({
+            status: "true",
+            data: employee,
+            dashBoardRoles: dashRoleName,
+            posRolesName: poseRoleName,
+        });
     }
-    res.status(200).json({ status: "true", data: employee });
 });
 
 //@desc update specific Employee by id

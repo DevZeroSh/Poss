@@ -6,13 +6,16 @@ const createToken = require("../utils/createToken");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 
 exports.login = asyncHandler(async (req, res, next) => {
     const user = await Employee.findOne({ email: req.body.email });
 
+    console.log(await bcrypt.hash(req.body.password, 12));
+
     if (!user) {
         return next(new ApiError("Incorrect email", 401));
-    } else if (user.password != req.body.password) {
+    } else if (!(await bcrypt.compare(req.body.password, user.password))) {
         return next(new ApiError("Incorrect Password", 401));
     } else if (user.archives == "true") {
         return next(new ApiError("The account is not active", 401));
@@ -20,21 +23,10 @@ exports.login = asyncHandler(async (req, res, next) => {
         //3-generate JWT
         const token = createToken(user._id);
 
-        //4-get all roles
-        const roles = await RoleModel.findById(user.selectedRoles[0]);
-
-        const dashboardRolesIds = roles.rolesDashboard;
-        const posRolesIds = roles.rolesPos;
-
-        const dashRoleName = await getDashboardRoles(dashboardRolesIds);
-        const poseRoleName = await getPosRoles(posRolesIds);
-
-        //5-send response to client side
+        //4-send response to client side
         res.status(200).json({
             status: "true",
             data: user,
-            dashBoardRoles: dashRoleName,
-            posRolesName: poseRoleName,
             token,
         });
     }
@@ -53,34 +45,48 @@ exports.protect = asyncHandler(async (req, res, next) => {
 
     if (!token) {
         return next(new ApiError("Not login", 401));
+    } else {
+        try {
+            //2- Verify token (no change happens, expired token)
+            const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+            //3-Check if user exists
+            const curentUser = await Employee.findById(decoded.userId);
+            if (!curentUser) {
+                return next(new ApiError("The user doesnot exit", 401));
+            }
+            //4-Check if user change his password after token created
+            // if (curentUser.passwordChangedAt) {
+            //     const passwordChangedTimestamp = parseInt(
+            //         curentUser.passwordChangedAt.getTime() / 1000,
+            //         10
+            //     );
+
+            //     //Password changed after token created (Error)
+            //     if (passwordChangedTimestamp > decoded.iat) {
+            //         return next(
+            //             new ApiError(
+            //                 "User recently changed his password. Please login again..",
+            //                 401
+            //             )
+            //         );
+            //     }
+            // }
+            req.user = curentUser;
+            next();
+        } catch (error) {
+            // Token verification failed
+            console.error("JWT Error:", error.message);
+            return next(new ApiError("Not login", 401));
+            // if (error.name === "JsonWebTokenError") {
+            //     // JWT is malformed or invalid
+            //     return next(new ApiError("Invalid token", 401));
+            // } else if (error.name === "TokenExpiredError") {
+            //     // JWT has expired
+            //     return next(new ApiError("Token expired", 401));
+            // } else {
+            //     // Other errors
+            //     return next(new ApiError("Authentication error", 401));
+            // }
+        }
     }
-
-    //2- Verify token (no change happens, expired token)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
-    console.log(decoded);
-    //3-Check if user exists
-    const curentUser = await Employee.findById(decoded.userId);
-    if (!curentUser) {
-        return next(new ApiError("The user doesnot exit", 401));
-    }
-
-    //4-Check if user change his password after token created
-    // if (curentUser.passwordChangedAt) {
-    //     const passwordChangedTimestamp = parseInt(
-    //         curentUser.passwordChangedAt.getTime() / 1000,
-    //         10
-    //     );
-
-    //     //Password changed after token created (Error)
-    //     if (passwordChangedTimestamp > decoded.iat) {
-    //         return next(
-    //             new ApiError(
-    //                 "User recently changed his password. Please login again..",
-    //                 401
-    //             )
-    //         );
-    //     }
-    // }
-    req.user = curentUser;
-    next();
 });
