@@ -11,13 +11,14 @@ const cartSchema = new mongoose.Schema(
         quantity: { type: Number, default: 1 },
         price: Number,
         name: String,
+        qr:String
       },
     ],
     totalCartPrice: Number,
     totalPriceAfterDiscount: Number,
-    user: {
+    employee: {
       type: mongoose.Schema.ObjectId,
-      ref: "User",
+      ref: "Employee",
     },
   },
   { timestamps: true }

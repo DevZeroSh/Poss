@@ -18,43 +18,59 @@ const calclatTotalCartPrice = (cart) => {
 //@route GEt /api/cart
 //@accsess private/User
 exports.addProductToCart = asyncHandler(async (req, res, next) => {
-  const { productId } = req.body;
+  const { qr } = req.body; // Get the QR code from the request body
 
-  const prodcut = await productModel.findById(productId);
+  // Find the product associated with the provided QR code
+  const product = await productModel.findOne({ qr: qr });
 
-  // 1) Get Cart for logged user
-  let cart = await CartModel.findOne({}); /*.findOne({user:req.user._id})*/
+  if (!product) {
+    return res.status(404).json({
+      status: "Error",
+      message: "Product not found with the provided QR code.",
+    });
+  }
+
+  // 1) Get Cart for the logged-in user
+  let cart = await CartModel.findOne({ employee: req.user._id });
+
   if (!cart) {
     // If no cart exists, create a new one
-    console.log("test1");
     cart = await CartModel.create({
+      employee: req.user._id,
       cartItems: [
-        { prodcut: prodcut, price: prodcut.price, name: prodcut.name },
+        {
+          product: product,
+          price: product.price,
+          name: product.name,
+          qr: product.qr, // Include the "qr" field from the product
+          quantity: 1, // Initialize the quantity as 1
+        },
       ],
     });
   } else {
-    console.log("test2");
-    // Product exists in the cart, update the product quantity or other details
+    // Check if the product is already in the cart
     const productIndex = cart.cartItems.findIndex(
-      (item) => item.prodcut.toString() === productId
+      (item) => item && item.qr.toString() === product.qr.toString()
     );
+
     if (productIndex > -1) {
-      console.log("test3");
-      console.log(cart.cartItems);
+      // Product exists in the cart, update the product quantity
       const cartItem = cart.cartItems[productIndex];
       cartItem.quantity += 1;
       cart.cartItems[productIndex] = cartItem;
     } else {
-      // Product not exists in the cart, update the product quantity or other details
+      // Product does not exist in the cart, so add it
       cart.cartItems.push({
-        prodcut: prodcut,
-        price: prodcut.price,
-        name: prodcut.name,
+        product: product,
+        price: product.price,
+        name: product.name,
+        qr: product.qr, // Include the "qr" field from the product
+        quantity: 1, // Initialize the quantity as 1
       });
     }
   }
-  // Calculate Total cart Price
 
+  // Calculate Total cart Price
   calclatTotalCartPrice(cart);
 
   await cart.save();
@@ -62,7 +78,6 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: "Success",
     numberCartItems: cart.cartItems.length,
-
     message: "Product added to cart successfully",
     data: cart,
   });
@@ -73,7 +88,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
 //@accsess private/User
 
 exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
-  const cart = await CartModel.findOne({}); /*user:req.user._id*/
+  const cart = await CartModel.findOne({ employee: req.user._id });
 
   if (!cart) {
     return next(
@@ -94,7 +109,7 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
 
 exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
   const cart = await CartModel.findOneAndUpdate(
-    {},
+    { employee: req.user._id },
     { $pull: { cartItems: { _id: req.params.itemId } } },
     { new: true }
   ); /*user:req.user._id*/
@@ -114,7 +129,7 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
 //@accsess private/User
 
 exports.clearCart = asyncHandler(async (req, res, next) => {
-  await CartModel.findOneAndDelete({}); /*user:req.user._id*/
+  await CartModel.findOneAndDelete({ employee: req.user._id });
 
   res.status(200).send();
 });
@@ -125,7 +140,7 @@ exports.clearCart = asyncHandler(async (req, res, next) => {
 
 exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   const { quantity } = req.body;
-  const cart = await CartModel.findOne({}); /*user:req.user/_id*/
+  const cart = await CartModel.findOne({ employee: req.user._id });
   if (!cart) {
     return next(
       new ApiError(`there is no cart for user ${req.user._id} `, 404)

@@ -22,7 +22,6 @@ productRout.use(authService.protect);
 productRout.route("/").get(getProduct).post(
   uploadProductImage,
   resizerImage,
-
   createProduct
 );
 

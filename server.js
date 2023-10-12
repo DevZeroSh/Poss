@@ -62,10 +62,7 @@ app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 
-app.all("*", (req, res, next) => {
-  //Create Error And Send it to error handling middleware
-  next(new ApiError(`Can't find this route:${req.originalUrl}`, 400));
-});
+
 
 //Global error handling middleware for express
 app.use(globalError);
