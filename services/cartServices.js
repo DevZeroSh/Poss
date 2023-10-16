@@ -7,7 +7,7 @@ const calclatTotalCartPrice = (cart) => {
   // Calculate Total cart Price
   let totalPrice = 0;
   cart.cartItems.forEach((item) => {
-    totalPrice += item.quantity * item.price;
+    totalPrice += item.quantity * item.taxPrice;
   });
   cart.totalCartPrice = totalPrice;
 
@@ -40,7 +40,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       cartItems: [
         {
           product: product,
-          price: product.price,
+          taxPrice: product.taxPrice,
           name: product.name,
           qr: product.qr, // Include the "qr" field from the product
           quantity: 1, // Initialize the quantity as 1
@@ -62,7 +62,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       // Product does not exist in the cart, so add it
       cart.cartItems.push({
         product: product,
-        price: product.price,
+        taxPrice: product.taxPrice,
         name: product.name,
         qr: product.qr, // Include the "qr" field from the product
         quantity: 1, // Initialize the quantity as 1
