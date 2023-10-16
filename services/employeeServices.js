@@ -65,9 +65,7 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
 // @access priveta
 exports.getEmployee = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const employee = await employeeModel
-        .findById(id)
-        .populate({ path: "selectedRoles", select: "name _id" });
+    const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
     if (!employee) {
         return next(new ApiError(`No employee by this id ${id}`, 404));
     } else {

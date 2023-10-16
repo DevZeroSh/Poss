@@ -6,7 +6,13 @@ const authService = require('../services/authService');
 const router = express.Router();
 router.use(authService.protect);
 
-router.route('/').post(createSupplierValidator,createSupplier).get(getSuppliers);
-router.route('/:id').get(getSupplierVlaidator,getSupplier).put(updataSupplierVlaidator,updataSupplier).delete(deleteSupplierVlaidator,deleteSupplier);
+router.route('/')
+    .post(authService.allowedTo("new supllier"),createSupplierValidator,createSupplier)
+    .get(authService.allowedTo("supllier"),getSuppliers);
+    
+router.route('/:id')
+    .get(authService.allowedTo("supllier"),getSupplierVlaidator,getSupplier)
+    .put(authService.allowedTo("edit supllier"),updataSupplierVlaidator,updataSupplier)
+    .delete(authService.allowedTo("delete supllier"),deleteSupplierVlaidator,deleteSupplier);
 
 module.exports = router;

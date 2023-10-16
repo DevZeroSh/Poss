@@ -13,7 +13,6 @@ const dbContacion = require("./config/database");
 const productRout = require("./routes/productRout");
 const brandRout = require("./routes/brandRout");
 const categoryRout = require("./routes/categoryRout");
-const userRout = require("./routes/userRout");
 const variantRout = require("./routes/variantRout");
 const customarRoute = require("./routes/customarRoute");
 const supplierRoute = require("./routes/supplierRoute");
@@ -46,7 +45,6 @@ if (process.env.NODE_ENV === "development") {
 app.use("/api/product", productRout);
 app.use("/api/brand", brandRout);
 app.use("/api/category", categoryRout);
-app.use("/api/user", userRout);
 app.use("/api/variant", variantRout);
 app.use("/api/customars", customarRoute);
 app.use("/api/suppliers", supplierRoute);
@@ -61,7 +59,6 @@ app.use("/api/paymenttype", paymentTypes);
 app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
-
 
 
 //Global error handling middleware for express

@@ -7,6 +7,8 @@ const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const roleModel = require("../models/roleModel");
+const employeeModel = require("../models/employeeModel");
 
 exports.login = asyncHandler(async (req, res, next) => {
     const user = await Employee.findOne({ email: req.body.email });
@@ -90,3 +92,37 @@ exports.protect = asyncHandler(async (req, res, next) => {
         }
     }
 });
+
+//Permissions
+//Verify user permissions
+exports.allowedTo = (role) =>
+    asyncHandler(async (req, res, next) => {
+        const id = req.user._id;
+
+        //get all user's roles
+        const employee = await employeeModel
+            .findById(id)
+            .populate({ path: "selectedRoles", select: "name _id" });
+
+        if (!employee) {
+            return next(new ApiError(`No employee by this id ${id}`, 404));
+        } else {
+            //4-get all roles
+            const roles = await RoleModel.findById(employee.selectedRoles[0]);
+            const dashboardRolesIds = roles.rolesDashboard;
+            const posRolesIds = roles.rolesPos;
+
+            let dashRoleName = await getDashboardRoles(dashboardRolesIds);
+            let poseRoleName = await getPosRoles(posRolesIds);
+
+            let allUserRoles = [...dashRoleName, ...poseRoleName];
+
+            console.log(allUserRoles);
+            console.log(role);
+
+            if (!allUserRoles.includes(role)) {
+                return next(new ApiError("Block access", 403));
+            }
+        }
+        next();
+    });
