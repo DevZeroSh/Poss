@@ -7,7 +7,13 @@ const employeeRoute = express.Router();
 
 employeeRoute.use(authService.protect);
 
-employeeRoute.route("/").get(getEmployees).post(createEmployeeValidator,createEmployee);
-employeeRoute.route("/:id").delete(deleteEmployeeVlaidator,deleteEmployee).get(getEmployeeVlaidator,getEmployee).put(updateEmployee);
+employeeRoute.route("/")
+    .get(authService.allowedTo("employee"),getEmployees)
+    .post(authService.allowedTo("new employee"),createEmployeeValidator,createEmployee);
+    
+employeeRoute.route("/:id")
+    .delete(authService.allowedTo("delete employee"),deleteEmployeeVlaidator,deleteEmployee)
+    .get(authService.allowedTo("employee"),getEmployeeVlaidator,getEmployee)
+    .put(authService.allowedTo("edit employee"),updateEmployee);
 
 module.exports = employeeRoute;

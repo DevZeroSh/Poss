@@ -5,7 +5,8 @@ const {getRole,createRole,getRoles,updataRole,deleteRole,} = require("../service
 
 const authService = require('../services/authService');
 const roleRout = express.Router();
-roleRout.use(authService.protect);
+
+roleRout.use(authService.protect,authService.allowedTo("roles"));
 
 roleRout.route("/").get(getRoles).post(createRoleVlaidator,createRole);
 

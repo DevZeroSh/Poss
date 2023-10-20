@@ -14,14 +14,16 @@ const authService = require("../services/authService");
 const variantNameRout = express.Router();
 variantNameRout.use(authService.protect);
 
-variantNameRout
-    .route("/")
-    .get(createFilterObj, getVariantsName)
-    .post(setCategoryIdToBody, createVariantName);
+variantNameRout.route("/")
+    .get(authService.allowedTo("variant"), createFilterObj, getVariantsName)
+    .post(
+        authService.allowedTo("new variant"),
+        setCategoryIdToBody,
+        createVariantName
+    );
 
-variantNameRout
-    .route("/:id")
-    .get(getVariantName)
-    .put(updataeVariantName)
-    .delete(deleteVariantName);
+variantNameRout.route("/:id")
+    .get(authService.allowedTo("variant"), getVariantName)
+    .put(authService.allowedTo("edit variant"), updataeVariantName)
+    .delete(authService.allowedTo("delete variant"), deleteVariantName);
 module.exports = variantNameRout;

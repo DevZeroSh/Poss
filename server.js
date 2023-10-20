@@ -60,7 +60,6 @@ app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 
 
-
 //Global error handling middleware for express
 app.use(globalError);
 
