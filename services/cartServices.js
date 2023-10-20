@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const CartModel = require("../models/cartModel");
 const productModel = require("../models/productModel");
+const CouponModel = require("../models/discountModel");
 
 const calclatTotalCartPrice = (cart) => {
   // Calculate Total cart Price
@@ -13,7 +14,23 @@ const calclatTotalCartPrice = (cart) => {
 
   return totalPrice;
 };
+const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
+  let totalPriceAfterDiscount;
+  console.log(cart.totalCartPrice);
+  let totalPrice = cart.totalCartPrice;
+  if (coupon.discountType === "Percentages") {
+    console.log(totalPrice);
+    totalPriceAfterDiscount = (
+      totalPrice -
+      (totalPrice * coupon.quantity) / 100
+    ).toFixed(2);
+  } else {
+    totalPriceAfterDiscount = (totalPrice - coupon.quantity).toFixed(2);
 
+    console.log(totalPriceAfterDiscount);
+  }
+  cart.totalPriceAfterDiscount = totalPriceAfterDiscount;
+};
 //@desc Add product to Cart
 //@route GEt /api/cart
 //@accsess private/User
@@ -29,7 +46,6 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       message: "Product not found with the provided QR code.",
     });
   }
-
   // 1) Get Cart for the logged-in user
   let cart = await CartModel.findOne({ employee: req.user._id });
 
@@ -69,10 +85,14 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       });
     }
   }
-
   // Calculate Total cart Price
-  calclatTotalCartPrice(cart);
-
+  if (cart.coupon !== "" && cart.coupon !== undefined) {
+    calclatTotalCartPrice(cart);
+    const coupon = await CouponModel.findOne({ discountName: cart.coupon });
+    calclatTotalCartPriceAfterDiscont(coupon, cart);
+  } else {
+    calclatTotalCartPrice(cart);
+  }
   await cart.save();
 
   res.status(200).json({
@@ -95,10 +115,9 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
       new ApiError(`There is no cart for this user id: ${req.user._id}`)
     );
   }
-
   res.status(200).json({
-    status: "Success",
-    numberCartItems: cart.cartItems.length,
+    status: "success",
+    numOfCartItems: cart.cartItems.length,
     data: cart,
   });
 });
@@ -112,11 +131,15 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
     { employee: req.user._id },
     { $pull: { cartItems: { _id: req.params.itemId } } },
     { new: true }
-  ); /*user:req.user._id*/
-
-  calclatTotalCartPrice(cart);
+  );
+  if (cart.coupon !== "" && cart.coupon !== undefined) {
+    calclatTotalCartPrice(cart);
+    const coupon = await CouponModel.findOne({ discountName: cart.coupon });
+    calclatTotalCartPriceAfterDiscont(coupon, cart);
+  } else {
+    calclatTotalCartPrice(cart);
+  }
   cart.save();
-
   res.status(200).json({
     status: "Success",
     numberCartItems: cart.cartItems.length,
@@ -130,6 +153,23 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
 
 exports.clearCart = asyncHandler(async (req, res, next) => {
   await CartModel.findOneAndDelete({ employee: req.user._id });
+
+  res.status(200).send();
+});
+
+exports.clearCoupon = asyncHandler(async (req, res, next) => {
+  const cart = await CartModel.findOneAndUpdate({ employee: req.user._id });
+
+  if (cart.coupon !== undefined && cart.coupon !== "") {
+    cart.coupon = undefined;
+  }
+  if (
+    cart.totalPriceAfterDiscount !== undefined &&
+    cart.totalPriceAfterDiscount !== ""
+  ) {
+    cart.totalPriceAfterDiscount = undefined;
+  }
+  await cart.save();
 
   res.status(200).send();
 });
@@ -159,12 +199,49 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
       new ApiError(`there is no item for this id: ${req.params.itemId}`, 404)
     );
   }
-  calclatTotalCartPrice(cart);
+  if (cart.coupon !== "" && cart.coupon !== undefined) {
+    calclatTotalCartPrice(cart);
+    const coupon = await CouponModel.findOne({ discountName: cart.coupon });
+    calclatTotalCartPriceAfterDiscont(coupon, cart);
+  } else {
+    calclatTotalCartPrice(cart);
+  }
 
   await cart.save();
   res.status(200).json({
     status: "success",
     numberCartItems: cart.cartItems.length,
+    data: cart,
+  });
+});
+
+//@desc Apply coupon on logged user cart
+//@route Put /api/cart/applycoupon
+//@accsess private/User
+exports.applyeCoupon = asyncHandler(async (req, res, next) => {
+  const { couponName } = req.body;
+  // 2) Get logged user cart to get total cart price
+
+  const cart = await CartModel.findOne({ employee: req.user._id });
+  // 1) Get coupon based on coupon name
+  const coupon = await CouponModel.findOne({ discountName: couponName });
+
+  if (!coupon) {
+    cart.totalPriceAfterDiscount = undefined;
+    cart.coupon = undefined;
+    await cart.save();
+    return next(new ApiError(`Coupon is Invalid or expired`));
+  }
+  console.log(cart);
+  // 3) calclate price after discount
+  calclatTotalCartPriceAfterDiscont(coupon, cart);
+
+  cart.coupon = coupon.discountName;
+  await cart.save();
+  res.status(200).json({
+    status: "success",
+    numberCartItems: cart.cartItems.length,
+    coupon: coupon.discountName,
     data: cart,
   });
 });

@@ -11,9 +11,10 @@ const cartSchema = new mongoose.Schema(
         quantity: { type: Number, default: 1 },
         taxPrice: Number,
         name: String,
-        qr:String
+        qr: String,
       },
     ],
+    coupon: String,
     totalCartPrice: Number,
     totalPriceAfterDiscount: Number,
     employee: {

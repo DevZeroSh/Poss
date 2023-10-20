@@ -1,7 +1,6 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
-const ApiError = require("./utils/apiError");
 const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -13,7 +12,6 @@ const dbContacion = require("./config/database");
 const productRout = require("./routes/productRout");
 const brandRout = require("./routes/brandRout");
 const categoryRout = require("./routes/categoryRout");
-const userRout = require("./routes/userRout");
 const variantRout = require("./routes/variantRout");
 const customarRoute = require("./routes/customarRoute");
 const supplierRoute = require("./routes/supplierRoute");
@@ -46,7 +44,6 @@ if (process.env.NODE_ENV === "development") {
 app.use("/api/product", productRout);
 app.use("/api/brand", brandRout);
 app.use("/api/category", categoryRout);
-app.use("/api/user", userRout);
 app.use("/api/variant", variantRout);
 app.use("/api/customars", customarRoute);
 app.use("/api/suppliers", supplierRoute);

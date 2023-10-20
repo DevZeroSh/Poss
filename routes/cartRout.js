@@ -5,6 +5,8 @@ const {
   removeSpecifcCartItem,
   clearCart,
   updateCartItemQuantity,
+  applyeCoupon,
+  clearCoupon,
 } = require("../services/cartServices");
 const authService = require("../services/authService");
 
@@ -16,6 +18,9 @@ cartRout
   .post(addProductToCart)
   .get(getLoggedUserCart)
   .delete(clearCart);
+
+cartRout.put("/applycoupon", applyeCoupon);
+cartRout.put("/disapplycoupon", clearCoupon);
 cartRout
   .route("/:itemId")
   .put(updateCartItemQuantity)
