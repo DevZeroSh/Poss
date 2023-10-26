@@ -1,6 +1,7 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
+const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
 const dbContacion = require("./config/database");
@@ -27,6 +28,7 @@ const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
+const OrderRout = require("./routes/orderRout");
 
 const app = express();
 // Middleware
@@ -57,10 +59,7 @@ app.use("/api/paymenttype", paymentTypes);
 app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
-app.use("/api/currency", currencyRoute);
-
-//Connection to DataBase
-dbContacion();
+app.use("/api/orders", OrderRout);
 
 //Global error handling middleware for express
 app.use(globalError);

@@ -9,8 +9,8 @@ const {
 
 const authService = require("../services/authService");
 const LabelRout = express.Router();
-LabelRout.use(authService.protect);
-
+// LabelRout.use(authService.protect);
+// authService.allowedTo("label"),
 LabelRout.route("/")
     .get(getLabels)
     .post(authService.allowedTo("new label"),createLabel);
