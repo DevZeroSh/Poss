@@ -112,7 +112,7 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
 
   if (!cart) {
     return next(
-      new ApiError(`There is no cart for this user id: ${req.user._id}`)
+      new ApiError(`There is no cart for this user id: ${req.user._id}`, 404)
     );
   }
   res.status(200).json({
@@ -237,11 +237,16 @@ exports.applyeCoupon = asyncHandler(async (req, res, next) => {
   calclatTotalCartPriceAfterDiscont(coupon, cart);
 
   cart.coupon = coupon.discountName;
+  cart.couponCount = coupon.quantity;
+  cart.couponType = coupon.discountType;
+
   await cart.save();
   res.status(200).json({
     status: "success",
     numberCartItems: cart.cartItems.length,
     coupon: coupon.discountName,
+    couponType:coupon.discountType,
+    couponCount:coupon.quantity,
     data: cart,
   });
 });

@@ -26,6 +26,7 @@ const paymentTypes = require("./routes/paymentTypesRoute");
 const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
+const OrderRout = require("./routes/orderRout");
 
 const app = express();
 app.use(express.json());
@@ -58,7 +59,7 @@ app.use("/api/paymenttype", paymentTypes);
 app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
-
+app.use("/api/orders", OrderRout);
 
 //Global error handling middleware for express
 app.use(globalError);

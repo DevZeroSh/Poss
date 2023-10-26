@@ -4,7 +4,7 @@ const cartSchema = new mongoose.Schema(
   {
     cartItems: [
       {
-        prodcut: {
+        product: {
           type: mongoose.Schema.ObjectId,
           ref: "Product",
         },
@@ -17,6 +17,8 @@ const cartSchema = new mongoose.Schema(
     coupon: String,
     totalCartPrice: Number,
     totalPriceAfterDiscount: Number,
+    couponCount: String,
+    couponType: String,
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
