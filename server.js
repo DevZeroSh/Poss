@@ -5,7 +5,6 @@ const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
 const dbContacion = require("./config/database");
-const globalError = require("./middlewares/errorMiddleware");
 
 dotenv.config({ path: "config.env" });
 
@@ -41,6 +40,8 @@ if (process.env.NODE_ENV === "development") {
   console.log(`mode: ${process.env.NODE_ENV}`);
 }
 
+dbContacion()
+
 //Routes' links
 app.use("/api/product", productRout);
 app.use("/api/brand", brandRout);
@@ -60,6 +61,8 @@ app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 app.use("/api/orders", OrderRout);
+
+
 
 //Global error handling middleware for express
 app.use(globalError);
