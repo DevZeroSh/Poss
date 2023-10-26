@@ -15,7 +15,7 @@ const variantNameRout = express.Router();
 variantNameRout.use(authService.protect);
 
 variantNameRout.route("/")
-    .get(authService.allowedTo("variant"), createFilterObj, getVariantsName)
+    .get(createFilterObj, getVariantsName)
     .post(
         authService.allowedTo("new variant"),
         setCategoryIdToBody,
@@ -23,7 +23,7 @@ variantNameRout.route("/")
     );
 
 variantNameRout.route("/:id")
-    .get(authService.allowedTo("variant"), getVariantName)
+    .get(getVariantName)
     .put(authService.allowedTo("edit variant"), updataeVariantName)
     .delete(authService.allowedTo("delete variant"), deleteVariantName);
 module.exports = variantNameRout;

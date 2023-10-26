@@ -8,10 +8,10 @@ router.use(authService.protect);
 
 router.route('/')
     .post(authService.allowedTo("new supllier"),createSupplierValidator,createSupplier)
-    .get(authService.allowedTo("supllier"),getSuppliers);
+    .get(getSuppliers);
     
 router.route('/:id')
-    .get(authService.allowedTo("supllier"),getSupplierVlaidator,getSupplier)
+    .get(getSupplierVlaidator,getSupplier)
     .put(authService.allowedTo("edit supllier"),updataSupplierVlaidator,updataSupplier)
     .delete(authService.allowedTo("delete supllier"),deleteSupplierVlaidator,deleteSupplier);
 

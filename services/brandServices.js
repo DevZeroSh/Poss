@@ -10,16 +10,16 @@ exports.getBrands = asyncHandler(async (req, res, next) => {
   const brand = await brandModel.find();
   res.status(200).json({ status: "true", results: brand.length, data: brand });
 });
+
 //@desc Create Brand
 //@route Post /api/brand
 //@access Private
 exports.createBrand = asyncHandler(async (req, res, next) => {
   req.body.slug = slugify(req.body.name);
   const brand = await brandModel.create(req.body);
-  res
-    .status(200)
-    .json({ status: "true", message: "Brand Inserted", data: brand });
+  res.status(200).json({ status: "true", message: "Brand Inserted", data: brand });
 });
+
 //@desc GEtspecific Brand by id
 //@route Get /api/brand/:id
 //@access Public
@@ -31,6 +31,7 @@ exports.getBrand = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: "true", data: brand });
 });
+
 // @desc Update specific Breand
 // @route Put /api/brand/:id
 // @access Private
@@ -45,6 +46,7 @@ exports.updataBrand = asyncHandler(async (req, res, next) => {
     .status(200)
     .json({ status: "true", message: "Brand updated", data: brand });
 });
+
 //@desc Delete specific brand
 // @rout Delete /api/brand/:id
 // @access priveta

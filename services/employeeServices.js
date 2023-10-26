@@ -69,6 +69,10 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
     if (!employee) {
         return next(new ApiError(`No employee by this id ${id}`, 404));
     } else {
+        employee.password = undefined;
+        employee.pin = undefined;
+        employee.createdAt = undefined;
+        employee.updatedAt = undefined;
         //4-get all roles
         const roles = await RoleModel.findById(employee.selectedRoles[0]);
         const dashboardRolesIds = roles.rolesDashboard;
@@ -76,7 +80,7 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
 
         const dashRoleName = await getDashboardRoles(dashboardRolesIds);
         const poseRoleName = await getPosRoles(posRolesIds);
-
+        
         res.status(200).json({
             status: "true",
             data: employee,

@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const RoleDashboardModel = require("../models/roleDashboardModel");
-const ApiError = require("../utils/apiError");
+
 
 //get all roles dashboard
 //admin

@@ -20,7 +20,7 @@ brandRout.use(authService.protect);
 
 brandRout
     .route("/")
-    .get(authService.allowedTo("brand"), getBrands)
+    .get(getBrands)
     .post(
         authService.allowedTo("new brand"),
         createBrandValidator,
@@ -28,7 +28,7 @@ brandRout
     );
 brandRout
     .route("/:id")
-    .get(authService.allowedTo("brand"),getBrandValidator, getBrand)
+    .get(getBrandValidator, getBrand)
     .put(authService.allowedTo("edit brand"),updataBrandValidator, updataBrand)
     .delete(authService.allowedTo("delete brand"),deleteBrandValidator, deleteBrand);
 

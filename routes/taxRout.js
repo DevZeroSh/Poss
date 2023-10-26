@@ -13,11 +13,11 @@ taxRout.use(authService.protect);
 
 taxRout
     .route("/")
-    .get(authService.allowedTo("tax"), getTax)
+    .get(getTax)
     .post(authService.allowedTo("new tax"), createTax);
 taxRout
     .route("/:id")
-    .get(authService.allowedTo("tax"), getOneTax)
+    .get(getOneTax)
     .put(authService.allowedTo("edit tax"), updataTax)
     .delete(authService.allowedTo("delete tax"), deleteTax);
 

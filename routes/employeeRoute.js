@@ -8,12 +8,12 @@ const employeeRoute = express.Router();
 employeeRoute.use(authService.protect);
 
 employeeRoute.route("/")
-    .get(authService.allowedTo("employee"),getEmployees)
+    .get(getEmployees)
     .post(authService.allowedTo("new employee"),createEmployeeValidator,createEmployee);
     
 employeeRoute.route("/:id")
     .delete(authService.allowedTo("delete employee"),deleteEmployeeVlaidator,deleteEmployee)
-    .get(authService.allowedTo("employee"),getEmployeeVlaidator,getEmployee)
+    .get(getEmployeeVlaidator,getEmployee)
     .put(authService.allowedTo("edit employee"),updateEmployee);
 
 module.exports = employeeRoute;

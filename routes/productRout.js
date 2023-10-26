@@ -20,11 +20,11 @@ const productRout = express.Router();
 productRout.use(authService.protect);
 
 productRout.route("/")
-  .get(authService.allowedTo("product"),getProduct)
+  .get(getProduct)
   .post(authService.allowedTo("new product"),uploadProductImage,resizerImage,createProduct);
 
 productRout.route("/:id")
-  .get(authService.allowedTo("product"),getProdictValidator, getOneProduct)
+  .get(getProdictValidator, getOneProduct)
   .put(authService.allowedTo("edit product"),uploadProductImage, resizerImage, updateProductValidator, updateProduct)
   .delete(authService.allowedTo("delete product"),deleteProductValdiator, deleteProduct);
 

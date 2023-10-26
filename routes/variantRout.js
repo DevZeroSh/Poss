@@ -12,11 +12,11 @@ const variantRout = express.Router();
 variantRout.use(authService.protect);
 
 variantRout.route("/")
-    .get(authService.allowedTo("variant"), getVariants)
+    .get(getVariants)
     .post(authService.allowedTo("new variant"), createVariant);
 
 variantRout.route("/:id")
-    .get(authService.allowedTo("variant"), getVariant)
+    .get(getVariant)
     .put(authService.allowedTo("edit variant"), updataeVariant)
     .delete(authService.allowedTo("delete variant"), deleteVariant);
     

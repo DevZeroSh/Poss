@@ -1,15 +1,14 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
-const ApiError = require("./utils/apiError");
-const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
+const dbContacion = require("./config/database");
+const globalError = require("./middlewares/errorMiddleware");
 
 dotenv.config({ path: "config.env" });
 
 //Routes
-const dbContacion = require("./config/database");
 const productRout = require("./routes/productRout");
 const brandRout = require("./routes/brandRout");
 const categoryRout = require("./routes/categoryRout");
@@ -27,15 +26,14 @@ const paymentTypes = require("./routes/paymentTypesRoute");
 const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
+const currencyRoute = require("./routes/currencyRoute");
 
 const app = express();
+// Middleware
 app.use(express.json());
 app.use(cors());
-
-//Connection to DataBase
-dbContacion();
-
 app.use(express.static(path.join(__dirname, "uploads")));
+
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
   console.log(`mode: ${process.env.NODE_ENV}`);
@@ -59,7 +57,10 @@ app.use("/api/paymenttype", paymentTypes);
 app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
+app.use("/api/currency", currencyRoute);
 
+//Connection to DataBase
+dbContacion();
 
 //Global error handling middleware for express
 app.use(globalError);

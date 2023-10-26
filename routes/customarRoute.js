@@ -1,4 +1,6 @@
 const express = require("express");
+const router = express.Router();
+const authService = require("../services/authService");
 const {
     createCustomar,
     getCustomars,
@@ -13,15 +15,13 @@ const {
     deleteCustomarVlaidator,
 } = require("../utils/validators/customarValidator");
 
-const authService = require("../services/authService");
-const router = express.Router();
 router.use(authService.protect);
 
 router.route("/")
     .post(authService.allowedTo("new customer"),createCustomarVlaidator,createCustomar)
-    .get(authService.allowedTo("customer"), getCustomars);
+    .get(getCustomars);
 router.route("/:id")
-    .get(authService.allowedTo("customer"), getCustomarVlaidator, getCustomar)
+    .get(getCustomarVlaidator, getCustomar)
     .put(authService.allowedTo("edit customer"),updataCustomarVlaidator,updataCustomar)
     .delete(authService.allowedTo("delete customer"),deleteCustomarVlaidator,deleteCustomar);
 

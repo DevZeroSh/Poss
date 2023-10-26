@@ -13,10 +13,10 @@ const paymentTypes = express.Router();
 paymentTypes.use(authService.protect);
 
 paymentTypes.route("/")
-    .get(authService.allowedTo("payment"),getPaymentTypes)
+    .get(getPaymentTypes)
     .post(authService.allowedTo("new payment"),createPaymentType);
 paymentTypes.route("/:id")
-    .get(authService.allowedTo("payment"),getOnePaymentType)
+    .get(getOnePaymentType)
     .put(authService.allowedTo("edit payment"),updataPaymentType)
     .delete(authService.allowedTo("delete payment"),deleteOnePaymentType);
 

@@ -15,10 +15,10 @@ discountRoute.use(authService.protect);
 
 discountRoute.route("/")
     .post(authService.allowedTo("new discount"), createDiscount)
-    .get(authService.allowedTo("discount"),getDiscounts);
+    .get(getDiscounts);
     
 discountRoute.route("/:id")
-    .get(authService.allowedTo("discount"),getOneDiscount)
+    .get(getOneDiscount)
     .put(authService.allowedTo("edit discount"),updateDiscount)
     .delete(authService.allowedTo("delete discount"),deleteDiscount);
 

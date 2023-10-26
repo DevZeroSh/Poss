@@ -19,10 +19,10 @@ const unitRout = express.Router();
 unitRout.use(authService.protect);
 
 unitRout.route("/")
-    .get(authService.allowedTo("unit"), getUnits)
+    .get(getUnits)
     .post(authService.allowedTo("new unit"), createUnitValidator, createUnit);
 unitRout.route("/:id")
-    .get(authService.allowedTo("unit"), getUnitValidator, getUnit)
+    .get(getUnitValidator, getUnit)
     .put(authService.allowedTo("edit unit"), updataUnitValidator, updataUnit)
     .delete(
         authService.allowedTo("delete unit"),
