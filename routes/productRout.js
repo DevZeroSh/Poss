@@ -25,7 +25,7 @@ productRout.route("/")
 
 productRout.route("/:id")
   .get(getProdictValidator, getOneProduct)
-  .put(authService.allowedTo("edit product"),uploadProductImage, resizerImage, updateProductValidator, updateProduct)
+  .put(uploadProductImage, resizerImage, updateProductValidator, updateProduct)
   .delete(authService.allowedTo("delete product"),deleteProductValdiator, deleteProduct);
 
 module.exports = productRout;
