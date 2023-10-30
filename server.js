@@ -28,6 +28,7 @@ const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
 const OrderRout = require("./routes/orderRout");
+const financialFundsRoute = require("./routes/financialFundsRoute");
 
 const app = express();
 // Middleware
@@ -61,7 +62,8 @@ app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 app.use("/api/orders", OrderRout);
-
+app.use("/api/currency", currencyRoute);
+app.use("/api/financialfunds", financialFundsRoute);
 
 
 //Global error handling middleware for express
