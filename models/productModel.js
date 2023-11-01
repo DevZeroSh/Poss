@@ -43,9 +43,13 @@ const productSchema = new mongoose.Schema(
     sku: {
       type: String,
     },
-    serialNumber: {
-      type: String,
-    },
+    serialNumber: [
+      {
+        type: String,
+        unique: [true, "serialNumber must be unique"],
+        index: true,
+      },
+    ],
     image: {
       type: String,
       require: true,
@@ -84,11 +88,11 @@ const productSchema = new mongoose.Schema(
       ref: "Labels",
     },
     taxPrice: Number,
-    archives:{
-      type:String,
-      enum:["true","false"],
-      default:"false",
-  },
+    archives: {
+      type: String,
+      enum: ["true", "false"],
+      default: "false",
+    },
   },
   { timestamps: true }
 );
