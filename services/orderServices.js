@@ -92,8 +92,8 @@ exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   }
   next();
 });
-// @desc    Get All coder
-// @route   POST /api/orders/cartId
+// @desc    Get All order
+// @route   Get /api/orders/cartId
 // @access  privet/All
 exports.findAllOrder = asyncHandler(async (req, res, next) => {
   const order = await Order.find();

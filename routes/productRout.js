@@ -14,18 +14,29 @@ const {
   updateProductValidator,
   deleteProductValdiator,
 } = require("../utils/validators/productValidator");
-
+``;
 const authService = require("../services/authService");
 const productRout = express.Router();
 productRout.use(authService.protect);
 
-productRout.route("/")
+productRout
+  .route("/")
   .get(getProduct)
-  .post(authService.allowedTo("new product"),uploadProductImage,resizerImage,createProduct);
+  .post(
+    authService.allowedTo("new product"),
+    uploadProductImage,
+    resizerImage,
+    createProduct
+  );
 
-productRout.route("/:id")
+productRout
+  .route("/:id")
   .get(getProdictValidator, getOneProduct)
-  .put(authService.allowedTo("edit product"),uploadProductImage, resizerImage, updateProductValidator, updateProduct)
-  .delete(authService.allowedTo("delete product"),deleteProductValdiator, deleteProduct);
+  .put(uploadProductImage, resizerImage, updateProductValidator, updateProduct)
+  .delete(
+    authService.allowedTo("delete product"),
+    deleteProductValdiator,
+    deleteProduct
+  );
 
 module.exports = productRout;
