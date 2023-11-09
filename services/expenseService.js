@@ -7,8 +7,15 @@ const { v4: uuidv4 } = require("uuid");
 
 const multerStorage = multer.diskStorage({
     filename: function (req, file, callback) {
-        // Specify the filename for the uploaded file
-        const filename = `expenses-${uuidv4()}-${Date.now()}-${file.originalname}`;
+        /*Specify the filename for the uploaded file*/
+        //get file extension
+        const originalname = file.originalname;
+        const lastDotIndex = originalname.lastIndexOf(".");
+        const fileExtension = lastDotIndex !== -1 ? originalname.slice(lastDotIndex + 1) : "";
+        const filename = `ex-${uuidv4()}-${Date.now()}-${
+            Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1
+        }.${fileExtension}`;
+
         callback(null, filename);
     },
     destination: function (req, file, callback) {
@@ -36,7 +43,6 @@ exports.uploadFiles = upload.any();
 exports.createExpenses = asyncHandler(async (req, res, next) => {
     try {
         const uploadedFiles = req.files.map((file) => `${file.filename}`);
-
         const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
         // Find the financial fund by ID
@@ -95,7 +101,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 exports.deleteExpense = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
-    const expense = await expensesModel.findByIdAndUpdate(id, { archives: "true" }, { new: true });
+    const expense = await expensesModel.findByIdAndDelete(id);
 
     if (!expense) {
         return next(new ApiError(`There is no expense with this id ${id}`, 404));
