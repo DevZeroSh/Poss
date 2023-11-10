@@ -14,10 +14,10 @@ const expensesSchema = new mongoose.Schema({
         type: Number,
         require: true,
     },
-    expenseCurrency: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Currency",
-    },
+    // expenseCategory: {
+    //     type: mongoose.Schema.ObjectId,
+    //     ref: "Currency",
+    // },
     expenseTax: {
         type: mongoose.Schema.ObjectId,
         ref: "Tax",

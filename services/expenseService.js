@@ -70,10 +70,9 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
 //Get All Expenses
 //@rol: who has rol can Get Expenses Data
-exports.getExpenses = asyncHandler(async (req, res, next) => {
+exports.getExpenses = asyncHandler(async (req, res, next) => {//.populate({ path: "expenseCurrency", select: "currencyName _id" })
     const expenses = await expensesModel
         .find()
-        .populate({ path: "expenseCurrency", select: "currencyName _id" })
         .populate({ path: "expenseTax", select: "tax _id" })
         .populate({ path: "expenseFinancialFund", select: "fundName _id" });
     res.status(200).json({ status: "true", data: expenses });
@@ -81,11 +80,10 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
 
 //Get One Expense
 //@rol: who has rol can Get the Expense's Data
-exports.getExpense = asyncHandler(async (req, res, next) => {
+exports.getExpense = asyncHandler(async (req, res, next) => {// .populate({ path: "expenseCurrency", select: "currencyName _id" })
     const { id } = req.params;
     const expense = await expensesModel
         .findById(id)
-        .populate({ path: "expenseCurrency", select: "currencyName _id" })
         .populate({ path: "expenseTax", select: "tax _id" })
         .populate({ path: "expenseFinancialFund", select: "fundName _id" });
 
