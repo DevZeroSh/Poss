@@ -4,56 +4,113 @@ const productModel = require("../models/productModel");
 const PurchaseInvoicesModel = require("../models/purchaseinvoicesModel");
 const Supplier = require("../models/suppliersModel");
 exports.getProductInvoices = asyncHandler(async (req, res, next) => {
-  const { qr, quantity, serialNumber, id } = req.body;
-  const product = await productModel.findOne({ qr: qr });
-  const sup = await Supplier.findById(id);
-  console.log(sup);
-  if (!product) {
-    return next(new ApiError("Product not found", 404));
-  }
+  // app settings
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = date_ob.getDate();
+  let month = date_ob.getMonth() + 1;
+  let year = date_ob.getFullYear();
+  let hours = date_ob.getHours();
+  let minutes = date_ob.getMinutes();
+  let seconds = date_ob.getSeconds();
+  const dates =
+    date +
+    "-" +
+    month +
+    "-" +
+    year +
+    "-" +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
 
-  // Create a new purchase invoice
-  const newPurchaseInvoice = new PurchaseInvoicesModel({
-    invoices: [
-      {
-        product: product._id,
-        quantity: quantity,
-        name: product.name,
-        qr: product.qr,
-        taxPrice: product.taxPrice,
-        tax: "Tax Type 1",
-        price: product.price,
-        serialNumber: serialNumber,
+  const { invoices, supid, totalPriceWithTax, totalPriceWitheAoutTax } =
+    req.body;
+
+  // Find the supplier
+  const sup = await Supplier.findById(supid);
+
+  // Create an array to store the invoice items
+  const invoiceItems = [];
+  let bulkOption;
+
+  for (const item of invoices) {
+    const { quantity, qr, serialNumber, price, totalPrice, taxRate } = item;
+    console.log(quantity);
+    // Find the product based on the  QR code
+    const productDoc = await productModel.findOne({ qr });
+
+    if (!productDoc) {
+      console.log(`Product not found for QR code: ${qr}`);
+      continue;
+    }
+    // Create an invoice item
+    const invoiceItem = {
+      product: productDoc._id,
+      quantity,
+      taxPrice: 0,
+      buyingprice: price,
+      name: productDoc.name,
+      taxRate: taxRate,
+      serialNumber: serialNumber,
+      qr,
+      supplier: sup,
+      tax: 0,
+      totalPrice: totalPrice,
+    };
+
+    invoiceItems.push(invoiceItem);
+  }
+  console.log(invoiceItems);
+
+  bulkOption = invoiceItems.map((item) => ({
+    updateOne: {
+      filter: { _id: item.product },
+      update: {
+        $inc: { quantity: +item.quantity },
+        $set: { serialNumber: item.serialNumber, price: item.price },
       },
-    ],
-    totalPrice: 250.0,
-    totalPriceAfterDiscount: 225.0,
+    },
+  }));
+  await productModel.bulkWrite(bulkOption, {});
+
+  // Create a new purchase invoice with all the invoice items
+  const newPurchaseInvoice = new PurchaseInvoicesModel({
+    invoices: invoiceItems,
+    paidAt: dates,
     supplier: sup,
+    totalPriceWithTax: totalPriceWithTax,
+    totalPriceWitheOutTax: 0,
     employee: req.user._id,
   });
 
   // Save the new purchase invoice to the database
   const savedInvoice = await newPurchaseInvoice.save();
 
-  // Update the product quantities and set the filtered serial numbers
-  const bulkOption = savedInvoice.invoices.map((item) => ({
-    updateOne: {
-      filter: { _id: item.product },
-      update: {
-        $inc: { quantity: +item.quantity },
-        $set: { serialNumber: serialNumber },
-      },
-    },
-  }));
-  await productModel.bulkWrite(bulkOption, {});
-
+  // Respond with the created invoice
   res.status(201).json({ status: "success", data: savedInvoice });
 });
 
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
-  const purchase = await PurchaseInvoicesModel.find();
-  res.status(200).json({ status: "true", results: purchase.length, data: purchase });
+  const ProductInvoices = await PurchaseInvoicesModel.find();
+  res.status(200).json({
+    status: "true",
+    results: ProductInvoices.length,
+    data: ProductInvoices,
+  });
 });
+exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const ProductInvoices = await PurchaseInvoicesModel.findById(id);
+  console.log(ProductInvoices);
+  if (!ProductInvoices) {
+    return next(new ApiError(`No ProductInvoices for this id ${id}`, 404));
+  }
+  res.status(200).json({ status: "true", data: ProductInvoices });
+});
+
 exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
   const { quantity } = req.body;
   const cart = await PurchaseInvoicesModel.findOne({ employee: req.user._id });
