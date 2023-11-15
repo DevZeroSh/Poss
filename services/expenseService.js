@@ -12,9 +12,7 @@ const multerStorage = multer.diskStorage({
         const originalname = file.originalname;
         const lastDotIndex = originalname.lastIndexOf(".");
         const fileExtension = lastDotIndex !== -1 ? originalname.slice(lastDotIndex + 1) : "";
-        const filename = `ex-${uuidv4()}-${Date.now()}-${
-            Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1
-        }.${fileExtension}`;
+        const filename = `ex-${uuidv4()}-${Date.now()}-${Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1}.${fileExtension}`;
 
         callback(null, filename);
     },
@@ -70,9 +68,11 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
 //Get All Expenses
 //@rol: who has rol can Get Expenses Data
-exports.getExpenses = asyncHandler(async (req, res, next) => {//.populate({ path: "expenseCurrency", select: "currencyName _id" })
+exports.getExpenses = asyncHandler(async (req, res, next) => {
+    //.populate({ path: "expenseCurrency", select: "currencyName _id" })
     const expenses = await expensesModel
         .find()
+        .populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" })
         .populate({ path: "expenseTax", select: "tax _id" })
         .populate({ path: "expenseFinancialFund", select: "fundName _id" });
     res.status(200).json({ status: "true", data: expenses });
@@ -80,10 +80,12 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {//.populate({ path
 
 //Get One Expense
 //@rol: who has rol can Get the Expense's Data
-exports.getExpense = asyncHandler(async (req, res, next) => {// .populate({ path: "expenseCurrency", select: "currencyName _id" })
+exports.getExpense = asyncHandler(async (req, res, next) => {
+    // .populate({ path: "expenseCurrency", select: "currencyName _id" })
     const { id } = req.params;
     const expense = await expensesModel
         .findById(id)
+        .populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" })
         .populate({ path: "expenseTax", select: "tax _id" })
         .populate({ path: "expenseFinancialFund", select: "fundName _id" });
 
@@ -115,11 +117,7 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
     const uploadedFiles = req.files.map((file) => `${file.filename}`);
-    const expense = await expensesModel.findByIdAndUpdate(
-        { _id: id },
-        { ...req.body, expenseFile: uploadedFiles },
-        { new: true }
-    );
+    const expense = await expensesModel.findByIdAndUpdate({ _id: id }, { ...req.body, expenseFile: uploadedFiles }, { new: true });
 
     if (!expense) {
         return next(new ApiError(`No expense for this id ${req.params.id}`, 404));
