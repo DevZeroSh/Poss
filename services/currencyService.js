@@ -39,7 +39,7 @@ exports.getCurrency = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.updataCurrency = asyncHandler(async (req, res, next) => {
 
-    if (!req.body.is_primary || req.body.is_primary == "" || req.body.is_primary == "false") {
+    if (!req.body.is_primary || req.body.is_primary == "" || req.body.is_primary == "false" ||req.body.is_primary === undefined) {
 
         const currency = await currencyModel.findByIdAndUpdate(req.params.id,req.body,{ new: true });
         if (!currency) {

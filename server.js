@@ -29,7 +29,9 @@ const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
 const OrderRout = require("./routes/orderRout");
 const financialFundsRoute = require("./routes/financialFundsRoute");
+const expensesRoute = require("./routes/expensesRoute");
 const productInvoicesRout = require("./routes/purchaseInvoices");
+const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 
 const app = express();
 // Middleware
@@ -38,11 +40,11 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "uploads")));
 
 if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
-  console.log(`mode: ${process.env.NODE_ENV}`);
+    app.use(morgan("dev"));
+    console.log(`mode: ${process.env.NODE_ENV}`);
 }
 
-dbContacion()
+dbContacion();
 
 //Routes' links
 app.use("/api/product", productRout);
@@ -65,21 +67,22 @@ app.use("/api/auth", authRoute);
 app.use("/api/orders", OrderRout);
 app.use("/api/currency", currencyRoute);
 app.use("/api/financialfunds", financialFundsRoute);
+app.use("/api/expenses", expensesRoute);
 app.use("/api/productinvoices", productInvoicesRout);
-
+app.use("/api/expenseCategories", expenseCategoriesRoute);
 
 //Global error handling middleware for express
 app.use(globalError);
 
 const PORT = process.env.PORT || 4000;
 const server = app.listen(PORT, () => {
-  console.log(`app running on port ${PORT}`);
+    console.log(`app running on port ${PORT}`);
 });
 
 process.on("unhandledRejection", (err) => {
-  console.error(`unhandledRejection Errors:${err.name} | ${err.message}`);
-  server.close(() => {
-    console.error(`Shutting down....`);
-    process.exit(1);
-  });
+    console.error(`unhandledRejection Errors:${err.name} | ${err.message}`);
+    server.close(() => {
+        console.error(`Shutting down....`);
+        process.exit(1);
+    });
 });
