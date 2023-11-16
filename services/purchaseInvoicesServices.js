@@ -26,8 +26,15 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     ":" +
     seconds;
 
-  const { invoices, supid, totalPriceWithTax, totalPriceWitheAoutTax } =
-    req.body;
+  const {
+    invoices,
+    supid,
+    totalProductTax,
+    totalPriceWitheOutTax,
+    finalPrice,
+    totalQuantity,
+    totalbuyingprice,
+  } = req.body;
 
   // Find the supplier
   const sup = await Supplier.findById(supid);
@@ -37,8 +44,16 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   let bulkOption;
 
   for (const item of invoices) {
-    const { quantity, qr, serialNumber, price, totalPrice, taxRate } = item;
-    console.log(quantity);
+    const {
+      quantity,
+      qr,
+      serialNumber,
+      buyingprice,
+      totalPrice,
+      taxRate,
+      taxPrice,
+      totalTax,
+    } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
 
@@ -49,22 +64,19 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     // Create an invoice item
     const invoiceItem = {
       product: productDoc._id,
-      quantity,
-      taxPrice: 0,
-      buyingprice: price,
       name: productDoc.name,
-      taxRate: taxRate,
-      serialNumber: serialNumber,
+      quantity,
       qr,
-      supplier: sup,
-      tax: 0,
+      serialNumber: serialNumber,
+      buyingprice: buyingprice,
+      taxPrice: taxPrice,
+      taxRate: taxRate,
+      totalTax: totalTax,
       totalPrice: totalPrice,
     };
 
     invoiceItems.push(invoiceItem);
   }
-  console.log(invoiceItems);
-
   bulkOption = invoiceItems.map((item) => ({
     updateOne: {
       filter: { _id: item.product },
@@ -81,8 +93,11 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     invoices: invoiceItems,
     paidAt: dates,
     supplier: sup,
-    totalPriceWithTax: totalPriceWithTax,
-    totalPriceWitheOutTax: 0,
+    totalProductTax: totalProductTax,
+    totalPriceWitheOutTax: totalPriceWitheOutTax,
+    totalbuyingprice: totalbuyingprice,
+    finalPrice: finalPrice,
+    totalQuantity: totalQuantity,
     employee: req.user._id,
   });
 
