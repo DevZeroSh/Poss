@@ -35,7 +35,7 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
 //@route GEt /api/cart
 //@accsess private/User
 exports.addProductToCart = asyncHandler(async (req, res, next) => {
-  const { qr } = req.body; // Get the QR code from the request body
+  const { qr, quantity } = req.body; // Get the QR code from the request body
 
   // Find the product associated with the provided QR code
   const product = await productModel.findOne({ qr: qr });
@@ -59,7 +59,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
           taxPrice: product.taxPrice,
           name: product.name,
           qr: product.qr, // Include the "qr" field from the product
-          quantity: 1, // Initialize the quantity as 1
+          quantity: quantity, // Initialize the quantity as 1
         },
       ],
     });
@@ -72,7 +72,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     if (productIndex > -1) {
       // Product exists in the cart, update the product quantity
       const cartItem = cart.cartItems[productIndex];
-      cartItem.quantity += 1;
+      cartItem.quantity = quantity;
       cart.cartItems[productIndex] = cartItem;
     } else {
       // Product does not exist in the cart, so add it
@@ -81,7 +81,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         taxPrice: product.taxPrice,
         name: product.name,
         qr: product.qr, // Include the "qr" field from the product
-        quantity: 1, // Initialize the quantity as 1
+        quantity: quantity, // Initialize the quantity as 1
       });
     }
   }
@@ -245,8 +245,8 @@ exports.applyeCoupon = asyncHandler(async (req, res, next) => {
     status: "success",
     numberCartItems: cart.cartItems.length,
     coupon: coupon.discountName,
-    couponType:coupon.discountType,
-    couponCount:coupon.quantity,
+    couponType: coupon.discountType,
+    couponCount: coupon.quantity,
     data: cart,
   });
 });
