@@ -56,7 +56,9 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
         // Save the updated financial fund
         await financialFund.save();
 
-        const expense = await expensesModel.create({ ...req.body, expenseFile: uploadedFiles });
+        const nextCounter = (await expensesModel.countDocuments()) + 1;
+
+        const expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
 
         res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
     } catch (error) {
