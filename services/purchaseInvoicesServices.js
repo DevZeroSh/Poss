@@ -86,6 +86,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
         $set: {
           serialNumber: item.serialNumber,
           buyingprice: item.buyingprice,
+          tax: item.taxRate,
         },
       },
     },
@@ -93,7 +94,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOption, {});
 
   // Get the next counter value
-  const nextCounter = await PurchaseInvoicesModel.countDocuments() + 1;
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new PurchaseInvoicesModel({
     invoices: invoiceItems,
@@ -107,7 +108,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     counter: nextCounter,
   });
-console.log(newPurchaseInvoice)
+  console.log(newPurchaseInvoice);
   // Save the new purchase invoice to the database
   const savedInvoice = await newPurchaseInvoice.save();
 
