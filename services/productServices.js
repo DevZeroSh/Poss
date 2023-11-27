@@ -66,7 +66,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
-      notices.push(` ${element.qr} is low on stock.`);
+      if (element.archives !== "true")
+        notices.push(` ${element.qr} is low on stock.`);
     }
   });
   res
