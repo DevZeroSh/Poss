@@ -22,6 +22,7 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    SerialNumber: [{ type: String }],
     quantity: Number,
     price: {
       type: Number,
@@ -43,13 +44,7 @@ const productSchema = new mongoose.Schema(
     sku: {
       type: String,
     },
-    serialNumber: [
-      {
-        type: String,
-        unique: [true, "serialNumber must be unique"],
-        index: true,
-      },
-    ],
+
     image: {
       type: String,
       require: true,
