@@ -22,12 +22,18 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    paymentMethodType: { type: String, default: "Nakit" },
+    // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
     isPadid: {
       type: Boolean,
       default: false,
     },
+    financialFunds: 
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "FinancialFunds",
+      },
+    
     paidAt: String,
     coupon: String,
     couponCount: String,

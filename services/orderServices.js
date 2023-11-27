@@ -6,6 +6,7 @@ const Cart = require("../models/cartModel");
 const Order = require("../models/orderModel");
 const roleModel = require("../models/roleModel");
 const { getDashboardRoles } = require("./roleDashboardServices");
+const FinancialFunds = require("../models/financialFundsModel");
 
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -41,20 +42,39 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       new ApiError(`There is no such cart with id ${req.params.cartId}`, 404)
     );
   }
+  const financialFundsId = req.body.financialFunds;
+
+  // 1) Find the financial funds document based on the provided ID
+  const financialFunds = await FinancialFunds.findById(financialFundsId);
+
+  if (!financialFunds) {
+    return next(
+      new ApiError(
+        `There is no such financial funds with id ${financialFundsId}`,
+        404
+      )
+    );
+  }
   // 2) Get order price depend on cart price "Check if coupon apply"
   const cartPrice = cart.totalPriceAfterDiscount
     ? cart.totalPriceAfterDiscount
     : cart.totalCartPrice;
 
   const totalOrderPrice = cartPrice + taxPrice + shippingPrice;
-  const paymentMethodType = req.body.paymentMethodType;
+  console.log(totalOrderPrice);
+  // const paymentMethodType = req.body.paymentMethodType;
+
+  // 2) Update the money property of the financial funds (increase the money value)
+  financialFunds.fundBalance += totalOrderPrice;
+  await financialFunds.save();
   // 3) Create order with default paymentMethodType cash
   const order = await Order.create({
     employee: req.user._id,
     cartItems: cart.cartItems,
     shippingAddress: req.body.shippingAddress,
     totalOrderPrice,
-    paymentMethodType,
+    // paymentMethodType,
+    financialFunds: financialFundsId,
     paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
