@@ -22,7 +22,12 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    SerialNumber: [{ type: String }],
+    serialNumber: [
+      {
+        type:  String ,
+        default: "undefined",
+      },
+    ],
     quantity: Number,
     price: {
       type: Number,
@@ -35,7 +40,7 @@ const productSchema = new mongoose.Schema(
 
     priceAftereDiscount: {
       type: Number,
-      default: null, 
+      default: null,
     },
     qr: {
       type: String,
