@@ -35,7 +35,7 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
 //@route GEt /api/cart
 //@accsess private/User
 exports.addProductToCart = asyncHandler(async (req, res, next) => {
-  const { qr, quantity } = req.body; // Get the QR code from the request body
+  const { qr, quantity, taxRate, taxs, price } = req.body; // Get the QR code from the request body
 
   // Find the product associated with the provided QR code
   const product = await productModel.findOne({ qr: qr });
@@ -60,6 +60,9 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
           name: product.name,
           qr: product.qr, // Include the "qr" field from the product
           quantity: quantity, // Initialize the quantity as 1
+          taxRate: taxRate,
+          taxs: taxs,
+          price: price,
         },
       ],
     });
@@ -82,6 +85,9 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         name: product.name,
         qr: product.qr, // Include the "qr" field from the product
         quantity: quantity, // Initialize the quantity as 1
+        taxRate: taxRate,
+        taxs: taxs,
+        price: price,
       });
     }
   }

@@ -94,6 +94,11 @@ const productSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
+    serialNumberType:{
+      type: String,
+      enum: ["true", "false"],
+      default: "false",
+    }
   },
   { timestamps: true }
 );

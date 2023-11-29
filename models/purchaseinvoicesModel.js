@@ -11,10 +11,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         quantity: Number,
         name: String,
         qr: String,
-        taxRate: {
-          type: mongoose.Schema.ObjectId,
-          ref: "Tax",
-        },
+        taxRate: Number,
         buyingprice: Number,
         totalTax: Number,
         priceAfterPrice: Number,
@@ -30,10 +27,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     finalPrice: Number,
     totalQuantity: Number,
     totalbuyingprice: Number,
-    supplier: {
-      type: mongoose.Schema.ObjectId,
-      ref: "Supplier",
-    },
+    supplier: String,
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
@@ -50,9 +44,7 @@ PurchaseInvoicesSchema.pre(/^find/, function (next) {
   this.populate({
     path: "supplier",
     select: "supplierName companyName phoneNumber email address tax",
-  })
-    .populate({ path: "employee", select: "name profileImg email phone" })
-    .populate({ path: "invoices.taxRate", select: "tax -_id" });
+  }).populate({ path: "employee", select: "name profileImg email phone" });
 
   next();
 });

@@ -66,19 +66,27 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   // 2) Update the money property of the financial funds (increase the money value)
   financialFunds.fundBalance += totalOrderPrice;
+  const nextCounter = (await Order.countDocuments()) + 1;
+
   await financialFunds.save();
   // 3) Create order with default paymentMethodType cash
+  console.log(cart)
   const order = await Order.create({
     employee: req.user._id,
     cartItems: cart.cartItems,
     shippingAddress: req.body.shippingAddress,
     totalOrderPrice,
     // paymentMethodType,
+    // quantity: req.body.quantity,
+    taxs: req.body.taxs,
+    price: req.body.price,
+    taxRate: req.body.taxRate,
     financialFunds: financialFundsId,
     paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
     couponType: cart.couponType,
+    counter: nextCounter,
   });
 
   // 4) After creating order, decrement product quantity, increment product sold

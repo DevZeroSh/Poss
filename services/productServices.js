@@ -62,6 +62,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .populate({ path: "tax", select: "tax  _id" })
     .populate({ path: "label", select: "name  _id" })
     .exec();
+
+    
   const notices = [];
 
   product.forEach((element) => {

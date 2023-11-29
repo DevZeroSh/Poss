@@ -14,6 +14,9 @@ const orderSchema = new mongoose.Schema(
         },
         quantity: Number,
         taxPrice: Number,
+        taxRate: Number,
+        taxs: Number,
+        price: Number,
         name: String,
         qr: String,
       },
@@ -28,16 +31,20 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    financialFunds: 
-      {
-        type: mongoose.Schema.ObjectId,
-        ref: "FinancialFunds",
-      },
-    
+    financialFunds: {
+      type: mongoose.Schema.ObjectId,
+      ref: "FinancialFunds",
+    },
+    quantity: Number,
     paidAt: String,
     coupon: String,
     couponCount: String,
     couponType: String,
+    counter: {
+      type: Number,
+      default: 0,
+      unique: true,
+    },
   },
   { timestamps: true }
 );
