@@ -61,7 +61,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     : cart.totalCartPrice;
 
   const totalOrderPrice = cartPrice + taxPrice + shippingPrice;
-  console.log(totalOrderPrice);
   // const paymentMethodType = req.body.paymentMethodType;
 
   // 2) Update the money property of the financial funds (increase the money value)
@@ -70,7 +69,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   await financialFunds.save();
   // 3) Create order with default paymentMethodType cash
-  console.log(cart)
   const order = await Order.create({
     employee: req.user._id,
     cartItems: cart.cartItems,
@@ -110,7 +108,6 @@ exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const roles = await roleModel.findById(req.user.selectedRoles[0]);
   const dashboardRolesIds = roles.rolesDashboard;
   let dashRoleName = await getDashboardRoles(dashboardRolesIds);
-  console.log(dashRoleName);
 
   let allUserRoles = [...dashRoleName];
 

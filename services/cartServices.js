@@ -11,7 +11,6 @@ const calclatTotalCartPrice = (cart) => {
     totalPrice += item.quantity * item.taxPrice;
   });
   cart.totalCartPrice = totalPrice;
-
   return totalPrice;
 };
 const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
@@ -35,11 +34,9 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
 //@route GEt /api/cart
 //@accsess private/User
 exports.addProductToCart = asyncHandler(async (req, res, next) => {
-  const { qr, quantity, taxRate, taxs, price } = req.body; // Get the QR code from the request body
-
+  const { qr, quantity, taxRate, taxs, price, taxPrice } = req.body; // Get the QR code from the request body
   // Find the product associated with the provided QR code
   const product = await productModel.findOne({ qr: qr });
-
   if (!product) {
     return res.status(404).json({
       status: "Error",
@@ -53,10 +50,11 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     // If no cart exists, create a new one
     cart = await CartModel.create({
       employee: req.user._id,
+
       cartItems: [
         {
           product: product,
-          taxPrice: product.taxPrice,
+          taxPrice: taxPrice,
           name: product.name,
           qr: product.qr, // Include the "qr" field from the product
           quantity: quantity, // Initialize the quantity as 1
@@ -73,15 +71,16 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     );
 
     if (productIndex > -1) {
-      // Product exists in the cart, update the product quantity
       const cartItem = cart.cartItems[productIndex];
       cartItem.quantity = quantity;
+      cartItem.taxPrice = taxPrice; // Set the taxPrice here
+
       cart.cartItems[productIndex] = cartItem;
     } else {
       // Product does not exist in the cart, so add it
       cart.cartItems.push({
         product: product,
-        taxPrice: product.taxPrice,
+        taxPrice: taxPrice,
         name: product.name,
         qr: product.qr, // Include the "qr" field from the product
         quantity: quantity, // Initialize the quantity as 1
@@ -100,7 +99,6 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     calclatTotalCartPrice(cart);
   }
   await cart.save();
-
   res.status(200).json({
     status: "Success",
     numberCartItems: cart.cartItems.length,
@@ -185,7 +183,7 @@ exports.clearCoupon = asyncHandler(async (req, res, next) => {
 //@accsess private/User
 
 exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
-  const { quantity } = req.body;
+  const { quantity, taxPrice } = req.body;
   const cart = await CartModel.findOne({ employee: req.user._id });
   if (!cart) {
     return next(
@@ -199,6 +197,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   if (itemIndex > -1) {
     const cartItem = cart.cartItems[itemIndex];
     cartItem.quantity = quantity;
+    cartItem.taxPrice = taxPrice;
     cart.cartItems[itemIndex] = cartItem;
   } else {
     return next(
@@ -238,7 +237,6 @@ exports.applyeCoupon = asyncHandler(async (req, res, next) => {
     await cart.save();
     return next(new ApiError(`Coupon is Invalid or expired`));
   }
-  console.log(cart);
   // 3) calclate price after discount
   calclatTotalCartPriceAfterDiscont(coupon, cart);
 
