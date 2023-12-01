@@ -13,11 +13,11 @@ const {
 } = require("../services/expensesCategoryService");
 
 expenseCategoriesRoute.use(authService.protect);
-expenseCategoriesRoute.route("/").post(createExpenseCategory).get(getExpenseCategories);
+expenseCategoriesRoute.route("/").post(authService.allowedTo("expense category"), createExpenseCategory).get(getExpenseCategories);
 expenseCategoriesRoute
     .route("/:id")
     .get(getOneExpenseCategory)
-    .delete(deleteOneExpenseCategory)
-    .put(updateOneExpenseCategory);
+    .delete(authService.allowedTo("expense category"), deleteOneExpenseCategory)
+    .put(authService.allowedTo("expense category"), updateOneExpenseCategory);
 
 module.exports = expenseCategoriesRoute;
