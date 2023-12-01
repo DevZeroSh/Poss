@@ -14,6 +14,9 @@ const orderSchema = new mongoose.Schema(
         },
         quantity: Number,
         taxPrice: Number,
+        taxRate: Number,
+        taxs: Number,
+        price: Number,
         name: String,
         qr: String,
       },
@@ -22,16 +25,26 @@ const orderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    paymentMethodType: { type: String, default: "Nakit" },
+    // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
     isPadid: {
       type: Boolean,
       default: false,
     },
+    financialFunds: {
+      type: mongoose.Schema.ObjectId,
+      ref: "FinancialFunds",
+    },
+    quantity: Number,
     paidAt: String,
     coupon: String,
     couponCount: String,
     couponType: String,
+    counter: {
+      type: Number,
+      default: 0,
+      unique: true,
+    },
   },
   { timestamps: true }
 );
@@ -42,7 +55,7 @@ orderSchema.pre(/^find/, function (next) {
     select: "name profileImg email phone",
   }).populate({
     path: "cartItems.product",
-    select: "name  ",
+    select: "name  price",
   });
 
   next();

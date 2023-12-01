@@ -9,6 +9,7 @@ const {
   clearCoupon,
 } = require("../services/cartServices");
 const authService = require("../services/authService");
+const { createCashOrder } = require("../services/orderServices");
 
 const cartRout = express.Router();
 cartRout.use(authService.protect);
@@ -16,6 +17,7 @@ cartRout.use(authService.protect);
 cartRout
   .route("/")
   .post(addProductToCart)
+  
   .get(getLoggedUserCart)
   .delete(clearCart);
 

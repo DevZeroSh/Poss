@@ -22,6 +22,12 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    serialNumber: [
+      {
+        type:  String ,
+        default: "undefined",
+      },
+    ],
     quantity: Number,
     price: {
       type: Number,
@@ -34,6 +40,7 @@ const productSchema = new mongoose.Schema(
 
     priceAftereDiscount: {
       type: Number,
+      default: null,
     },
     qr: {
       type: String,
@@ -43,13 +50,7 @@ const productSchema = new mongoose.Schema(
     sku: {
       type: String,
     },
-    serialNumber: [
-      {
-        type: String,
-        unique: [true, "serialNumber must be unique"],
-        index: true,
-      },
-    ],
+
     image: {
       type: String,
       require: true,
@@ -93,6 +94,11 @@ const productSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
+    serialNumberType:{
+      type: String,
+      enum: ["true", "false"],
+      default: "false",
+    }
   },
   { timestamps: true }
 );

@@ -1,23 +1,23 @@
 const express = require("express");
 const {
-    getLabels,
-    createLabel,
-    getLabel,
-    updataLabel,
-    deleteLabel,
+  getLabels,
+  createLabel,
+  getLabel,
+  updataLabel,
+  deleteLabel,
 } = require("../services/labelsServices");
 
 const authService = require("../services/authService");
 const LabelRout = express.Router();
-// LabelRout.use(authService.protect);
+LabelRout.use(authService.protect);
 // authService.allowedTo("label"),
-LabelRout.route("/")
+  LabelRout.route("/")
     .get(getLabels)
-    .post(authService.allowedTo("new label"),createLabel);
+    .post(authService.allowedTo("new label"), createLabel);
 
 LabelRout.route("/:id")
-    .get(getLabel)
-    .put(authService.allowedTo("edit label"),updataLabel)
-    .delete(authService.allowedTo("delete label"),deleteLabel);
+  .get(getLabel)
+  .put(authService.allowedTo("edit label"), updataLabel)
+  .delete(authService.allowedTo("delete label"), deleteLabel);
 
 module.exports = LabelRout;

@@ -3,6 +3,7 @@ const ApiError = require("../utils/apiError");
 const productModel = require("../models/productModel");
 const PurchaseInvoicesModel = require("../models/purchaseinvoicesModel");
 const Supplier = require("../models/suppliersModel");
+
 exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   // app settings
   let ts = Date.now();
@@ -28,7 +29,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
 
   const {
     invoices,
-    supid,
+    sup,
     totalProductTax,
     totalPriceWitheOutTax,
     finalPrice,
@@ -37,7 +38,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   // Find the supplier
-  const sup = await Supplier.findById(supid);
+ 
 
   // Create an array to store the invoice items
   const invoiceItems = [];
@@ -56,12 +57,11 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
-
+    console.log(taxRate)
     if (!productDoc) {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
     }
-
     // Create an invoice item
     const invoiceItem = {
       product: productDoc._id,
@@ -71,11 +71,11 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
       serialNumber: serialNumber,
       buyingprice: buyingprice,
       taxPrice: taxPrice,
-      taxRate: taxRate,
+      taxRate: taxRate.tax,
+      ta:taxRate,
       totalTax: totalTax,
       totalPrice: totalPrice,
     };
-
     invoiceItems.push(invoiceItem);
   }
   bulkOption = invoiceItems.map((item) => ({
@@ -86,6 +86,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
         $set: {
           serialNumber: item.serialNumber,
           buyingprice: item.buyingprice,
+          tax: item.ta,
         },
       },
     },
@@ -93,7 +94,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOption, {});
 
   // Get the next counter value
-  const nextCounter = await PurchaseInvoicesModel.countDocuments() + 1;
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new PurchaseInvoicesModel({
     invoices: invoiceItems,
@@ -107,7 +108,6 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     counter: nextCounter,
   });
-console.log(newPurchaseInvoice)
   // Save the new purchase invoice to the database
   const savedInvoice = await newPurchaseInvoice.save();
 

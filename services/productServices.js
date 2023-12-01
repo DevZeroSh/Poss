@@ -62,11 +62,14 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .populate({ path: "tax", select: "tax  _id" })
     .populate({ path: "label", select: "name  _id" })
     .exec();
+
+    
   const notices = [];
 
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
-      notices.push(` ${element.qr} is low on stock.`);
+      if (element.archives !== "true")
+        notices.push(` ${element.qr} is low on stock.`);
     }
   });
   res
