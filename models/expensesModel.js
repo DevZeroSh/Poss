@@ -18,14 +18,8 @@ const expensesSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "ExpensesCategory",
     },
-    expenseTax: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Tax",
-    },
-    expenseFinancialFund: {
-        type: mongoose.Schema.ObjectId,
-        ref: "FinancialFunds",
-    },
+    expenseTax: String,
+    expenseFinancialFund: String,
     counter: {
         type: Number,
         default: 1,

@@ -38,25 +38,20 @@ exports.getCurrency = asyncHandler(async (req, res, next) => {
 // @route Put /api/currency/:id
 // @access Private
 exports.updataCurrency = asyncHandler(async (req, res, next) => {
-
-    if (!req.body.is_primary || req.body.is_primary == "" || req.body.is_primary == "false" ||req.body.is_primary === undefined) {
-
-        const currency = await currencyModel.findByIdAndUpdate(req.params.id,req.body,{ new: true });
+    if (!req.body.is_primary || req.body.is_primary == "" || req.body.is_primary == "false" || req.body.is_primary === undefined) {
+        const currency = await currencyModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!currency) {
             return next(new ApiError(`No currency for this id ${req.params.id}`, 404));
         }
-        res.status(200).json({status: "true",message: "Currency updated", data: currency,});
-
+        res.status(200).json({ status: "true", message: "Currency updated", data: currency });
     } else if (req.body.is_primary == "true") {
-
         // Update all other currency documents to is_primary to false
         await currencyModel.updateMany({ is_primary: true }, { is_primary: false });
-        const currency = await currencyModel.findByIdAndUpdate(req.params.id,req.body,{ new: true });
+        const currency = await currencyModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!currency) {
             return next(new ApiError(`No currency for this id ${req.params.id}`, 404));
         }
-        res.status(200).json({status: "true",message: "Currency updated", data: currency,});
-
+        res.status(200).json({ status: "true", message: "Currency updated", data: currency });
     }
 });
 
@@ -65,9 +60,18 @@ exports.updataCurrency = asyncHandler(async (req, res, next) => {
 // @access priveta
 exports.deleteCurrency = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const currency = await currencyModel.findByIdAndDelete(id);
+    const currency = await currencyModel.findById(id);
+
     if (!currency) {
         return next(new ApiError(`No currency for this id ${id}`, 404));
     }
-    res.status(200).json({ status: "true", message: "Currency Deleted" });
+
+    // Add a condition to check if is_primary is not true before deleting
+    if (currency.is_primary !== "true") {
+        await currencyModel.findByIdAndDelete(id);
+        res.status(200).json({ status: true, message: "Currency Deleted" });
+    } else {
+        // Currency has is_primary true, so prevent deletion
+        res.status(400).json({ status: false, message: "Cannot delete primary currency" });
+    }
 });
