@@ -22,6 +22,7 @@ const cartSchema = new mongoose.Schema(
     totalPriceAfterDiscount: Number,
     couponCount: String,
     couponType: String,
+
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
