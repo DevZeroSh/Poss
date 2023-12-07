@@ -13,9 +13,7 @@ const { getPosRoles } = require("./rolePosServices");
 // @rout Get /api/user
 // @access priveta
 exports.getEmployees = asyncHandler(async (req, res) => {
-    const employee = await employeeModel
-        .find({})
-        .populate({ path: "selectedRoles", select: "name _id" });
+    const employee = await employeeModel.find({}).populate({ path: "selectedRoles", select: "name _id" });
 
     res.status(200).json({ status: "true", data: employee });
 });
@@ -51,9 +49,7 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
                 data: employee,
             });
         } catch (error) {
-            return next(
-                new ApiError("There is an error in sending email", 500)
-            );
+            return next(new ApiError("There is an error in sending email", 500));
         }
     } else {
         return next(new ApiError("There is an error in email format", 500));
@@ -80,7 +76,7 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
 
         const dashRoleName = await getDashboardRoles(dashboardRolesIds);
         const poseRoleName = await getPosRoles(posRolesIds);
-        
+
         res.status(200).json({
             status: "true",
             data: employee,
@@ -100,9 +96,7 @@ exports.updateEmployee = asyncHandler(async (req, res, next) => {
     });
 
     if (!employee) {
-        return next(
-            new ApiError(`There is no employee with this id ${id}`, 404)
-        );
+        return next(new ApiError(`There is no employee with this id ${id}`, 404));
     } else {
         res.status(200).json({
             status: "true",
@@ -112,14 +106,12 @@ exports.updateEmployee = asyncHandler(async (req, res, next) => {
     }
 });
 
-//@desc Delete specific employee(put it in archives)
+//@desc Delete specific employee
 // @rout Delete /api/employee/:id
 // @access priveta
 exports.deleteEmployee = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const employee = await employeeModel.findByIdAndUpdate(id, {
-        archives: "true",
-    });
+    const employee = await employeeModel.findByIdAndDelete(id);
     if (!employee) {
         return next(new ApiError(`No employee by this id ${id}`, 404));
     }
