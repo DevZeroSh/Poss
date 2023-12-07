@@ -18,7 +18,6 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
   console.log(cart.totalCartPrice);
   let totalPrice = cart.totalCartPrice;
   if (coupon.discountType === "Percentages") {
-    console.log(totalPrice);
     totalPriceAfterDiscount = (
       totalPrice -
       (totalPrice * coupon.quantity) / 100
@@ -81,8 +80,8 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         product: product,
         taxPrice: taxPrice,
         name: product.name,
-        qr: product.qr, 
-        quantity: quantity, 
+        qr: product.qr,
+        quantity: quantity,
         taxRate: taxRate,
         taxs: taxs,
         price: price,
@@ -182,7 +181,7 @@ exports.clearCoupon = asyncHandler(async (req, res, next) => {
 //@accsess private/User
 
 exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
-  const { quantity, taxPrice } = req.body;
+  const { quantity, taxPrice, taxs } = req.body;
   const cart = await CartModel.findOne({ employee: req.user._id });
   if (!cart) {
     return next(
@@ -197,6 +196,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
     const cartItem = cart.cartItems[itemIndex];
     cartItem.quantity = quantity;
     cartItem.taxPrice = taxPrice;
+    cartItem.taxs = taxs;
     cart.cartItems[itemIndex] = cartItem;
   } else {
     return next(
