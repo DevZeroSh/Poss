@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const FinancialFunds = require("../models/financialFundsModel");
 const expensesModel = require("../models/expensesModel");
+const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const TaxModel = require("../models/taxModel");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
@@ -42,35 +43,60 @@ exports.uploadFiles = upload.any();
 exports.createExpenses = asyncHandler(async (req, res, next) => {
     try {
         const uploadedFiles = req.files.map((file) => `${file.filename}`);
-        const fundId = req.body.expenseFinancialFund; // replace with your actual ID
-        const taxId = req.body.expenseTax;
 
+        const taxId = req.body.expenseTax;
         //find the tax value using taxId
         const taxValue = await TaxModel.findById(taxId);
         if (!taxValue) {
             return next(new ApiError(`tax value not found`, 404));
         }
-
         req.body.expenseTax = taxValue.tax;
 
-        // Find the financial fund by ID
-        const financialFund = await FinancialFunds.findById(fundId);
+        if (req.body.paid == "paid") {
+            const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
-        if (!financialFund) {
-            return next(new ApiError(`Financial fund not found`, 404));
+            // Find the financial fund by ID
+            const financialFund = await FinancialFunds.findById(fundId);
+            if (!financialFund) {
+                return next(new ApiError(`Financial fund not found`, 404));
+            }
+
+            req.body.expenseFinancialFund = financialFund.fundName;
+            // Decrease the fundBalance
+            financialFund.fundBalance -= req.body.expenseQuantityAfterKdv;
+            // Save the updated financial fund
+            await financialFund.save();
+
+            const nextCounter = (await expensesModel.countDocuments()) + 1;
+            console.log("1");
+            let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
+
+            //Start create a record in reports financial fund table
+            let operationDate = req.body.expenseDate;
+            let amount = req.body.expenseQuantityAfterKdv;
+            let expenseId = expense._id;
+            let type = "expense";
+            let financialFundId = fundId;
+            let financialFundRest = financialFund.fundBalance;
+
+            await ReportsFinancialFundsModel.create({
+                date: operationDate,
+                amount: amount,
+                expense: expenseId,
+                type: type,
+                financialFundId: financialFundId,
+                financialFundRest: financialFundRest,
+            });
+            //End create a record in reports financial fund table
+
+            res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
+        } else {
+            req.body.expenseFinancialFund = "Unpaid";
+            const nextCounter = (await expensesModel.countDocuments()) + 1;
+            console.log("2");
+            let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
+            res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
         }
-        req.body.expenseFinancialFund = financialFund.fundName;
-        // Decrease the fundBalance
-        financialFund.fundBalance -= req.body.expenseQuantityAfterKdv;
-
-        // Save the updated financial fund
-        await financialFund.save();
-
-        const nextCounter = (await expensesModel.countDocuments()) + 1;
-
-        const expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
-
-        res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
     } catch (error) {
         // If an error occurs, handle it and do not change anything
         console.error("Error creating expense:", error);
@@ -82,9 +108,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 //@rol: who has rol can Get Expenses Data
 exports.getExpenses = asyncHandler(async (req, res, next) => {
     //.populate({ path: "expenseCurrency", select: "currencyName _id" })
-    const expenses = await expensesModel
-        .find()
-        .populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" })
+    const expenses = await expensesModel.find().populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" });
     res.status(200).json({ status: "true", data: expenses });
 });
 
@@ -118,17 +142,53 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 //     }
 // });
 
-// @desc Update specific expense
+//@desc Update specific expense
 // @route Put /api/expenses/:id
 // @access Private
-// exports.updateExpense = asyncHandler(async (req, res, next) => {
-//     const { id } = req.params;
+exports.updateExpense = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    console.log(req.body);
 
-//     const uploadedFiles = req.files.map((file) => `${file.filename}`);
-//     const expense = await expensesModel.findByIdAndUpdate({ _id: id }, { ...req.body, expenseFile: uploadedFiles }, { new: true });
+    const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
-//     if (!expense) {
-//         return next(new ApiError(`No expense for this id ${req.params.id}`, 404));
-//     }
-//     res.status(200).json({ status: "true", message: "Expense updated", data: expense });
-// });
+    // Find the financial fund by ID
+    const financialFund = await FinancialFunds.findByIdAndUpdate(fundId);
+    if (!financialFund) {
+        return next(new ApiError(`Financial fund not found`, 404));
+    }
+    req.body.expenseFinancialFund = financialFund.fundName;
+
+    //const uploadedFiles = req.files.map((file) => `${file.filename}`);
+    const expense = await expensesModel.findByIdAndUpdate(
+        { _id: id },
+        { paid: req.body.paid, expenseFinancialFund: req.body.expenseFinancialFund },
+        { new: true }
+    );
+    if (!expense) {
+        return next(new ApiError(`No expense for this id ${req.params.id}`, 404));
+    }
+
+    financialFund.fundBalance -= expense.expenseQuantityAfterKdv;
+    // Save the updated financial fund
+    await financialFund.save();
+
+    //Start create a record in reports financial fund table
+    let operationDate = req.body.payDate;
+    let amount = expense.expenseQuantityAfterKdv;
+    let expenseId = id;
+    let type = "expense";
+    let financialFundId = fundId;
+    let financialFundRest = financialFund.fundBalance;
+
+    await ReportsFinancialFundsModel.create({
+        date: operationDate,
+        amount: amount,
+        expense: expenseId,
+        type: type,
+        financialFundId: financialFundId,
+        financialFundRest: financialFundRest,
+    });
+    //End create a record in reports financial fund table
+
+    res.status(200).json({ status: "true", message: "Expense updated" });
+});

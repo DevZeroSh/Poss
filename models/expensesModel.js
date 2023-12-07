@@ -18,6 +18,11 @@ const expensesSchema = new mongoose.Schema({
         type: mongoose.Schema.ObjectId,
         ref: "ExpensesCategory",
     },
+    paid: {
+        type: String,
+        default: "unpaid",
+        enum: ["paid", "unpaid"],
+    },
     expenseTax: String,
     expenseFinancialFund: String,
     counter: {
