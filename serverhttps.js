@@ -6,7 +6,9 @@ const cors = require("cors");
 const https = require("https");
 const fs = require("fs");
 const dbConnection = require("./config/database");
+const globalError = require("./middlewares/errorMiddleware");
 
+dotenv.config({ path: "config.env" });
 //Routes
 const productRout = require("./routes/productRout");
 const brandRout = require("./routes/brandRout");
@@ -31,6 +33,8 @@ const financialFundsRoute = require("./routes/financialFundsRoute");
 const expensesRoute = require("./routes/expensesRoute");
 const productInvoicesRout = require("./routes/purchaseInvoices");
 const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
+const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
+const companyInfoRoute = require("./routes/companyInfoRoute");
 dotenv.config({ path: "config.env" });
 
 dbConnection();
@@ -40,7 +44,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(express.static(path.join(__dirname, "uploads")))
+app.use(express.static(path.join(__dirname, "uploads")));
 if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
   console.log(`mode: ${process.env.NODE_ENV}`);
@@ -70,11 +74,20 @@ app.use("/api/financialfunds", financialFundsRoute);
 app.use("/api/expenses", expensesRoute);
 app.use("/api/productinvoices", productInvoicesRout);
 app.use("/api/expenseCategories", expenseCategoriesRoute);
+app.use("/api/companyinfo", companyInfoRoute);
+app.use("/api/financialfundsreports", reportsFinancialFundRoute);
 
+app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const privateKey = fs.readFileSync("/etc/letsencrypt/live/nooncar.com/privkey.pem", "utf8");
-const certificate = fs.readFileSync("/etc/letsencrypt/live/nooncar.com/fullchain.pem", "utf8");
+const privateKey = fs.readFileSync(
+  "/etc/letsencrypt/live/nooncar.com/privkey.pem",
+  "utf8"
+);
+const certificate = fs.readFileSync(
+  "/etc/letsencrypt/live/nooncar.com/fullchain.pem",
+  "utf8"
+);
 const credentials = { key: privateKey, cert: certificate };
 
 const httpsServer = https.createServer(credentials, app);
