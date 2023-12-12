@@ -7,6 +7,7 @@ const Order = require("../models/orderModel");
 const roleModel = require("../models/roleModel");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const FinancialFunds = require("../models/financialFundsModel");
+const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -65,7 +66,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   }
 
   const nextCounter = (await Order.countDocuments()) + 1;
-
+  financialFunds.fundBalance += totalOrderPrice;
   // 3) Create order with default paymentMethodType cash
   const order = await Order.create({
     employee: req.user._id,
@@ -88,6 +89,16 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     couponType: cart.couponType,
     counter: nextCounter,
   });
+
+  await ReportsFinancialFundsModel.create({
+    date: dates,
+    amount: totalOrderPrice,
+    order: order._id,
+    type: "order",
+    financialFundId: financialFundsId,
+    financialFundRest: financialFunds.fundBalance,
+  });
+
   // 4) After creating order, decrement product quantity, increment product sold
   if (order) {
     const bulkOption = cart.cartItems.map((item) => ({
@@ -96,7 +107,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
         update: { $inc: { quantity: -item.quantity, sold: +item.quantity } },
       },
     }));
-    financialFunds.fundBalance += totalOrderPrice;
 
     await Product.bulkWrite(bulkOption, {});
     await financialFunds.save();
@@ -139,6 +149,33 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`There is no such cart with id ${cartId}`, 404));
   }
 
+  // Create order and update product stock
+  const order = await Order.create({
+    taxPrice: 0, // Update with the appropriate value
+    employee: req.user._id,
+    cartItems: cart.cartItems,
+    totalOrderPrice: 0, // Update with the appropriate value
+    paymentMethodType: req.body.paymentMethodType,
+    taxs: req.body.taxs,
+    price: req.body.price,
+    taxRate: req.body.taxRate,
+    customarName: req.body.customarName,
+    customarEmail: req.body.customarEmail,
+    customarPhone: req.body.customarPhone,
+    customaraddres: req.body.customaraddres,
+    paidAt: dates,
+    coupon: cart.coupon,
+    couponCount: cart.couponCount,
+    couponType: cart.couponType,
+    counter: (await Order.countDocuments()) + 1,
+    financialFunds: financialFunds
+      .filter((allocation) => allocation.amount !== 0)
+      .map((allocation) => ({
+        fundId: allocation.fundId,
+        allocatedAmount: allocation.amount,
+      })),
+  });
+
   // Validate financial funds and calculate total allocated amount
   let totalAllocatedAmount = 0;
   if (!financialFunds || financialFunds.length === 0) {
@@ -164,6 +201,14 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     }
 
     financialFund.fundBalance += amount;
+    await ReportsFinancialFundsModel.create({
+      date: dates,
+      amount: amount,
+      order: order._id,
+      type: "order",
+      financialFundId: fundId,
+      financialFundRest: financialFund.fundBalance,
+    });
     bulkUpdates.push({
       updateOne: {
         filter: { _id: fundId },
@@ -174,6 +219,9 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     totalAllocatedAmount += amount;
   }
 
+  // Update the order with the correct totalAllocatedAmount
+  await Order.findByIdAndUpdate(order._id, { taxPrice: totalAllocatedAmount, totalOrderPrice: totalAllocatedAmount });
+
   // Check if total allocated amount is zero
   if (totalAllocatedAmount === 0) {
     return res.status(400).json({
@@ -183,33 +231,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Create order and update product stock
-  const order = await Order.create({
-    taxPrice: totalAllocatedAmount,
-    employee: req.user._id,
-    cartItems: cart.cartItems,
-    totalOrderPrice: totalAllocatedAmount, // Update total order price
-    paymentMethodType: req.body.paymentMethodType,
-    taxs: req.body.taxs,
-    price: req.body.price,
-    taxRate: req.body.taxRate,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customaraddres: req.body.customaraddres,
-    paidAt: dates,
-    coupon: cart.coupon,
-    couponCount: cart.couponCount,
-    couponType: cart.couponType,
-    counter: (await Order.countDocuments()) + 1,
-    financialFunds: financialFunds
-      .filter((allocation) => allocation.amount !== 0)
-      .map((allocation) => ({
-        fundId: allocation.fundId,
-        allocatedAmount: allocation.amount,
-      })),
-  });
-
+  // Update product stock
   const bulkOption = cart.cartItems.map((item) => ({
     updateOne: {
       filter: { _id: item.product },
