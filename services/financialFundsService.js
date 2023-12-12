@@ -1,6 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const FinancialFunds = require("../models/financialFundsModel");
+const { checkIdIfUsed } = require("../utils/tools/checkIdIfUsed");
 
 //@desc Get list of Financial Funds
 //@route GET  /api/financialfunds
@@ -66,6 +67,10 @@ exports.financialFund = asyncHandler(async (req, res, next) => {
 //@access priveta
 exports.deletefinancialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
+
+    //check if id is used in anther place or not
+    //if (checkIdIfUsed(id, "FinancialFunds")) {}
+
     const financialFund = await FinancialFunds.findByIdAndDelete(id);
     if (!financialFund) {
         return next(new ApiError(`No financial fund for this id ${id}`, 404));
