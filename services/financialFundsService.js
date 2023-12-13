@@ -7,10 +7,12 @@ const { checkIdIfUsed } = require("../utils/tools/checkIdIfUsed");
 //@route GET  /api/financialfunds
 //@accsess Private
 exports.getFinancialFunds = asyncHandler(async (req, res) => {
-    const financialFunds = await FinancialFunds.find().populate({
-        path: "fundCurrency",
-        select: "_id currencyCode currencyName exchangeRate",
-    });
+    const financialFunds = await FinancialFunds.find()
+        .populate({
+            path: "fundCurrency",
+            select: "_id currencyCode currencyName exchangeRate",
+        })
+        .populate({ path: "fundPaymentType" });
     res.status(200).json({ status: "true", data: financialFunds });
 });
 
@@ -32,10 +34,12 @@ exports.createFinancialFunds = asyncHandler(async (req, res) => {
 exports.getOneFinancialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
-    const financialFunds = await FinancialFunds.findById(id).populate({
-        path: "fundCurrency",
-        select: "_id currencyCode currencyName exchangeRate",
-    });
+    const financialFunds = await FinancialFunds.findById(id)
+        .populate({
+            path: "fundCurrency",
+            select: "_id currencyCode currencyName exchangeRate",
+        })
+        .populate({ path: "fundPaymentType" });
     res.status(200).json({ status: "true", data: financialFunds });
 });
 
@@ -46,10 +50,12 @@ exports.financialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const financialFund = await FinancialFunds.findByIdAndUpdate({ _id: id }, req.body, {
         new: true,
-    }).populate({
-        path: "fundCurrency",
-        select: "_id currencyCode currencyName exchangeRate",
-    });
+    })
+        .populate({
+            path: "fundCurrency",
+            select: "_id currencyCode currencyName exchangeRate",
+        })
+        .populate({ path: "fundPaymentType" });
 
     if (!financialFund) {
         return next(new ApiError(`No financial fund for this id ${id}`, 404));

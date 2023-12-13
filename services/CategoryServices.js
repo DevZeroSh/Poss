@@ -46,9 +46,8 @@ exports.updateCategory = asyncHandler(async (req, res, next) => {
   if (!category) {
     return next(new ApiError(`No Category for this id ${id}`, 404));
   }
-  res
-    .status(200)
-    .json({ status: "true", message: "Category updated", data: category });
+  res.status(200)
+.json({ status: "true", message: "Category updated", data: category });
 });
 
 //@desc Delete specific category
