@@ -98,7 +98,11 @@ const productSchema = new mongoose.Schema(
       type: String,
       enum: ["true", "false"],
       default: "false",
-    }
+    },
+    currency: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Currency",
+    },
   },
   { timestamps: true }
 );

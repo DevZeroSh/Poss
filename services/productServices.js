@@ -61,9 +61,12 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .populate({ path: "unit", select: "name code  _id" })
     .populate({ path: "tax", select: "tax  _id" })
     .populate({ path: "label", select: "name  _id" })
+    .populate({
+      path: "currency",
+      select: "currencyCode currencyName exchangeRate is_primary  _id",
+    })
     .exec();
 
-    
   const notices = [];
 
   product.forEach((element) => {
@@ -99,7 +102,12 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     .populate({ path: "category", select: "name _id" })
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "name _id" })
-    .populate({ path: "tax", select: "tax  _id" });
+    .populate({ path: "tax", select: "tax  _id" })
+    .populate({ path: "label", select: "name  _id" })
+    .populate({
+      path: "currency",
+      select: "currencyCode currencyName exchangeRate is_primary  _id",
+    });
   res.status(200).json({ data: product });
 });
 
