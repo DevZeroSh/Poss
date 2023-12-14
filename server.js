@@ -34,6 +34,7 @@ const productInvoicesRout = require("./routes/purchaseInvoices");
 const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
+const pricingMethodRoute = require("./routes/pricingMethodRoute");
 
 const app = express();
 // Middleware
@@ -74,6 +75,7 @@ app.use("/api/productinvoices", productInvoicesRout);
 app.use("/api/expenseCategories", expenseCategoriesRoute);
 app.use("/api/companyinfo", companyInfoRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
+app.use("/api/pricingmethod", pricingMethodRoute);
 
 //Global error handling middleware for express
 app.use(globalError);

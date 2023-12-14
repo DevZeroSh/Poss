@@ -16,6 +16,10 @@ const financialFundsSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        fundPaymentType: {
+            type: mongoose.Schema.ObjectId,
+            ref: "PaymentType",
+        },
         fundDescription: String,
     },
     { timestamps: true }
