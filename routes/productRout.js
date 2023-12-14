@@ -7,6 +7,8 @@ const {
   updateProduct,
   uploadProductImage,
   resizerImage,
+  addProduct,
+  exportProductData,
 } = require("../services/productServices");
 const {
   craeteProductValidator,
@@ -15,9 +17,18 @@ const {
   deleteProductValdiator,
 } = require("../utils/validators/productValidator");
 ``;
-const authService = require("../services/authService");
+const multer = require("multer");
+
+const storage = multer.memoryStorage(); // Use memory storage for simplicity
+
+const uploads = multer({ storage: storage });
+
+ const authService = require("../services/authService");
 const productRout = express.Router();
-productRout.use(authService.protect);
+ productRout.use(authService.protect);
+
+productRout.post("/add", uploads.single("file"), addProduct);
+productRout.post("/export", exportProductData);
 
 productRout
   .route("/")
@@ -34,7 +45,7 @@ productRout
   .get(getProdictValidator, getOneProduct)
   .put(uploadProductImage, resizerImage, updateProductValidator, updateProduct)
   .delete(
-    authService.allowedTo("delete product"),
+     authService.allowedTo("delete product"),
     deleteProductValdiator,
     deleteProduct
   );
