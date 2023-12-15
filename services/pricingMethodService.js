@@ -8,7 +8,7 @@ const { default: mongoose } = require("mongoose");
 //@route GET  /api/pricingmethod
 //@accsess Private
 exports.getPricingMethods = asyncHandler(async (req, res) => {
-    const pricingMethod = await PricingMethodModel.find();
+    const pricingMethod = await PricingMethodModel.find().populate({ path: "selectedCategory"});
     res.status(200).json({ status: "true", data: pricingMethod });
 });
 
@@ -99,5 +99,4 @@ exports.getSpecificCategoryPricing = asyncHandler(async (req, res) => {
 
     const specificCategory = await PricingMethodModel.findOne({ selectedCategory: id });
     res.status(200).json({ status: "true", data: specificCategory });
-    
 });
