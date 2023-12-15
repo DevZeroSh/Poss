@@ -5,8 +5,17 @@ const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
-
 const multerStorage = multer.memoryStorage();
+const csvtojson = require("csvtojson");
+const xlsx = require("xlsx");
+const fs = require("fs");
+const categoryModel = require("../models/CategoryModel");
+const brandModel = require("../models/brandModel");
+const labelsModel = require("../models/labelsModel");
+const unitModel = require("../models/UnitsModel");
+const taxModel = require("../models/taxModel");
+const valiantModel = require("../models/variantsModel");
+const path = require("path");
 
 const multerFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
@@ -145,3 +154,183 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   }
   res.status(200).json({ status: "true", message: "Product Deleted" });
 });
+
+// @desc import Exsel product
+// @route add /api/add
+// @access Private
+
+exports.addProduct = asyncHandler(async (req, res) => {
+  try {
+    const { buffer } = req.file;
+
+    let csvData;
+
+    // Check the file type based on the file extension or content type
+    if (
+      req.file.originalname.endsWith(".csv") ||
+      req.file.mimetype === "text/csv"
+    ) {
+      // Use csvtojson to convert CSV buffer to JSON array
+      csvData = await csvtojson().fromString(buffer.toString());
+    } else if (
+      req.file.originalname.endsWith(".xlsx") ||
+      req.file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ) {
+      // Use xlsx library to convert XLSX buffer to JSON array
+      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const sheet_name_list = workbook.SheetNames;
+      csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+    } else {
+      return res.status(400).json({ error: "Unsupported file type" });
+    }
+
+    // Process your data and save to MongoDB using your mongoose model
+    await productModel.insertMany(csvData);
+
+    res.json({ success: "Success" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// @desc Export Exsel product
+// @route export /api/export
+// @access Private
+
+const exportData = (
+  categories,
+  columnNames,
+  brands,
+  label,
+  unit,
+  tax,
+  valiant,
+  fileName,
+  filePaths
+) => {
+  const outputDirectory = path.resolve(filePaths);
+  const outputFile = path.resolve(outputDirectory, `${fileName}.xlsx`);
+
+  // Create the directory if it doesn't exist
+  if (!fs.existsSync(outputDirectory)) {
+    fs.mkdirSync(outputDirectory);
+  }
+
+  const workBook = xlsx.utils.book_new();
+
+  const productWorksheet = xlsx.utils.aoa_to_sheet([columnNames]);
+  xlsx.utils.book_append_sheet(workBook, productWorksheet, "Products");
+
+  // Combine category, brand, and label data into a single column
+  const combinedData = [
+    [
+      "Category Id",
+      "Category Name",
+      "Brand",
+      "Label",
+      "Units",
+      "tax",
+      "valiant",
+      "value",
+    ],
+  ];
+
+  const maxLength = Math.max(
+    categories.length,
+    brands.length,
+    label.length,
+    unit.length,
+    tax.length,
+    valiant.length
+  );
+
+  for (let i = 0; i < maxLength; i++) {
+    combinedData.push([
+      String(categories[i]?._id || ""),
+      categories[i]?.name || "",
+      brands[i]?.name || "",
+      label[i]?.name || "",
+      unit[i]?.name || "",
+      String(tax[i]?.tax + "%" || ""),
+      valiant[i]?.variant || "",
+      String(valiant[i]?.value || ""),
+    ]);
+  }
+
+  // Create worksheet for combined data
+  const combinedWorksheet = xlsx.utils.aoa_to_sheet(combinedData);
+  xlsx.utils.book_append_sheet(workBook, combinedWorksheet, "CombinedData");
+
+  xlsx.writeFile(workBook, outputFile);
+
+  return outputFile; // Return the file path
+};
+
+exports.exportProductData = async (req, res) => {
+  try {
+    // Fetch category data from MongoDB
+    const categories = await categoryModel.find({}, { __v: 0 }).lean().exec();
+    const brands = await brandModel.find({}, { __v: 0 }).lean().exec();
+    const label = await labelsModel.find({}, { __v: 0 }).lean().exec();
+    const unit = await unitModel.find({}, { __v: 0 }).lean().exec();
+    const tax = await taxModel.find({}, { __v: 0 }).lean().exec();
+    const valiant = await valiantModel
+      .find({}, { _id: 0, __v: 0 })
+      .lean()
+      .exec();
+
+    // Column names for the export file
+    const columnNames = [
+      "Name",
+      "slug",
+      "type",
+      "description",
+      "sold",
+      "serialNumber",
+      "quantity",
+      "buyingprice",
+      "price",
+      "qr",
+      "sku",
+      "image",
+      "brand",
+      "category",
+      "variant",
+      "value",
+      "variant2",
+      "value2",
+      "unit",
+      "alarm",
+      "tax",
+      "label",
+      "taxPrice",
+      "archives",
+      "serialNumberType",
+      "currency",
+    ];
+
+    // Choose a suitable file name
+    const fileName = "combined-export";
+    const filePaths=req.body.filePaths
+    // Call the export function directly
+    const filePath = exportData(
+      categories,
+      columnNames,
+      brands,
+      label,
+      unit,
+      tax,
+      valiant,
+      fileName,
+      filePaths
+    );
+
+    res.status(200).json({ status: "success", filePath });
+  } catch (error) {
+    console.error("Error exporting data:", error);
+    res.status(500).json({ status: "error", error });
+  }
+};
+

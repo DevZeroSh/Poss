@@ -54,8 +54,8 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
           product: product,
           taxPrice: taxPrice,
           name: product.name,
-          qr: product.qr, // Include the "qr" field from the product
-          quantity: quantity, // Initialize the quantity as 1
+          qr: product.qr,
+          quantity: quantity,
           taxRate: taxRate,
           taxs: taxs,
           price: price,

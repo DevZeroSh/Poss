@@ -14,6 +14,7 @@ const productSchema = new mongoose.Schema(
     },
     type: {
       type: String,
+      default: "Normal",
     },
     description: {
       type: String,
@@ -103,6 +104,7 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Currency",
     },
+    
   },
   { timestamps: true }
 );
