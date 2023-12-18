@@ -83,15 +83,17 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarPhone: req.body.customarPhone,
     customaraddres: req.body.customaraddres,
     onefinancialFunds: financialFundsId,
-    paidAt: dates,
+     paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
     couponType: cart.couponType,
     counter: nextCounter,
   });
-
+ 
+const data=new Date()
+const isaaaa=data.toISOString()
   await ReportsFinancialFundsModel.create({
-    date: dates,
+    date: isaaaa,
     amount: totalOrderPrice,
     order: order._id,
     type: "order",
@@ -163,7 +165,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
     customaraddres: req.body.customaraddres,
-    paidAt: dates,
+    // paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
     couponType: cart.couponType,
@@ -220,7 +222,10 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
   }
 
   // Update the order with the correct totalAllocatedAmount
-  await Order.findByIdAndUpdate(order._id, { taxPrice: totalAllocatedAmount, totalOrderPrice: totalAllocatedAmount });
+  await Order.findByIdAndUpdate(order._id, {
+    taxPrice: totalAllocatedAmount,
+    totalOrderPrice: totalAllocatedAmount,
+  });
 
   // Check if total allocated amount is zero
   if (totalAllocatedAmount === 0) {
