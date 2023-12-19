@@ -35,6 +35,7 @@ const productInvoicesRout = require("./routes/purchaseInvoices");
 const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
+const pricingMethodRoute = require("./routes/pricingMethodRoute");
 dotenv.config({ path: "config.env" });
 
 dbConnection();
@@ -76,6 +77,7 @@ app.use("/api/productinvoices", productInvoicesRout);
 app.use("/api/expenseCategories", expenseCategoriesRoute);
 app.use("/api/companyinfo", companyInfoRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
+app.use("/api/pricingmethod", pricingMethodRoute);
 
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
