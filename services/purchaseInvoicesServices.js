@@ -30,6 +30,10 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   const {
     invoices,
     sup,
+    supplierPhone,
+    supplierEmail,
+    supplierAddress,
+    supplierCompany,
     totalProductTax,
     totalPriceWitheOutTax,
     finalPrice,
@@ -38,7 +42,6 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   // Find the supplier
- 
 
   // Create an array to store the invoice items
   const invoiceItems = [];
@@ -57,7 +60,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
-    console.log(taxRate)
+    console.log(taxRate);
     if (!productDoc) {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
@@ -72,7 +75,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
       buyingprice: buyingprice,
       taxPrice: taxPrice,
       taxRate: taxRate.tax,
-      ta:taxRate,
+      ta: taxRate,
       totalTax: totalTax,
       totalPrice: totalPrice,
     };
@@ -100,6 +103,10 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     invoices: invoiceItems,
     paidAt: dates,
     supplier: sup,
+    supplierPhone,
+    supplierEmail,
+    supplierAddress,
+    supplierCompany,
     totalProductTax: totalProductTax,
     totalPriceWitheOutTax: totalPriceWitheOutTax,
     totalbuyingprice: totalbuyingprice,

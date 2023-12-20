@@ -209,9 +209,9 @@ const exportData = (
   tax,
   valiant,
   fileName,
-  filePaths
+  downloadLocation
 ) => {
-  const outputDirectory = path.resolve(filePaths);
+  const outputDirectory = path.resolve(downloadLocation);
   const outputFile = path.resolve(outputDirectory, `${fileName}.xlsx`);
 
   // Create the directory if it doesn't exist
@@ -314,7 +314,7 @@ exports.exportData = async (req, res) => {
 
     // Choose a suitable file name
     const fileName = "combined-export";
-    const filePaths = req.body.filePaths;
+    const { downloadLocation } = req.body;
     // Call the export function directly
     const filePath = exportData(
       categories,
@@ -325,7 +325,7 @@ exports.exportData = async (req, res) => {
       tax,
       valiant,
       fileName,
-      filePaths
+      downloadLocation
     );
 
     res.status(200).json({ status: "success", filePath });
@@ -339,11 +339,16 @@ exports.exportData = async (req, res) => {
 // @route export /api/export
 // @access Private
 
-const exportProduct = (data, workSheetColumnNames, filePaths, fileName) => {
+const exportProduct = (
+  data,
+  workSheetColumnNames,
+  downloadLocation,
+  fileName
+) => {
   const xlsx = require("xlsx");
   const path = require("path");
 
-  const outputDirectory = path.resolve(filePaths);
+  const outputDirectory = path.resolve(downloadLocation);
   const outputFile = path.resolve(outputDirectory, `${fileName}.xlsx`);
 
   // Create the directory if it doesn't exist
@@ -430,10 +435,10 @@ exports.exportProductData = async (req, res) => {
     ];
     // Choose a suitable file name
     const fileName = "products-export";
-    const filePaths = req.body.filePaths;
+    const { downloadLocation } = req.body;
 
     // Call the export function directly
-    exportProduct(productData, columnNames, filePaths, fileName);
+    exportProduct(productData, columnNames, downloadLocation, fileName);
 
     res.status(200).json({ status: "success", message: "Export successful" });
   } catch (error) {

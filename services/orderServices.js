@@ -81,7 +81,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarName: req.body.customarName,
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
-    customaraddres: req.body.customaraddres,
+    customarAddress: req.body.customarAddress,
     onefinancialFunds: financialFundsId,
      paidAt: dates,
     coupon: cart.coupon,
