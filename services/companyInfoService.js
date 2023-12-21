@@ -9,6 +9,7 @@ const sharp = require("sharp");
 const roleDashboardModel = require("../models/roleDashboardModel");
 const rolePosModel = require("../models/rolePosModel");
 const roleModel = require("../models/roleModel");
+const { createConnection } = require("../middlewares/switchConnectDb");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -38,6 +39,8 @@ exports.resizerLogo = asyncHandler(async (req, res, next) => {
 //@route post /api/companyinfo
 exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     try {
+        //console.log(req.body.databaseName);
+        await createConnection(req.body.databaseName);
         //1-craet a company
         const companyInfo = await CompanyInfnoModel.create(req.body);
 
