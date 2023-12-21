@@ -36,6 +36,8 @@ const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const pricingMethodRoute = require("./routes/pricingMethodRoute");
+const companyInfoRoute = require("./routes/companyInfoRoute");
+const pricingMethodRoute = require("./routes/pricingMethodRoute");
 dotenv.config({ path: "config.env" });
 
 //dbConnection();

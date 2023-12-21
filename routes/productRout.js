@@ -9,6 +9,7 @@ const {
   resizerImage,
   addProduct,
   exportProductData,
+  exportData,
 } = require("../services/productServices");
 const {
   craeteProductValidator,
@@ -23,18 +24,19 @@ const storage = multer.memoryStorage(); // Use memory storage for simplicity
 
 const uploads = multer({ storage: storage });
 
- const authService = require("../services/authService");
+const authService = require("../services/authService");
 const productRout = express.Router();
- productRout.use(authService.protect);
+productRout.use(authService.protect);
 
 productRout.post("/add", uploads.single("file"), addProduct);
-productRout.post("/export", exportProductData);
+productRout.post("/export", exportData);
+productRout.post("/export-pdoduct", exportProductData);
 
 productRout
   .route("/")
   .get(getProduct)
   .post(
-    authService.allowedTo("new product"),
+    authService.allowedTo("product"),
     uploadProductImage,
     resizerImage,
     createProduct
@@ -43,9 +45,15 @@ productRout
 productRout
   .route("/:id")
   .get(getProdictValidator, getOneProduct)
-  .put(uploadProductImage, resizerImage, updateProductValidator, updateProduct)
+  .put(
+    authService.allowedTo("product"),
+    uploadProductImage,
+    resizerImage,
+    updateProductValidator,
+    updateProduct
+  )
   .delete(
-     authService.allowedTo("delete product"),
+    authService.allowedTo("product"),
     deleteProductValdiator,
     deleteProduct
   );

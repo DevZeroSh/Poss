@@ -25,7 +25,7 @@ const productSchema = new mongoose.Schema(
     },
     serialNumber: [
       {
-        type:  String ,
+        type: String,
         default: "undefined",
       },
     ],
@@ -95,7 +95,7 @@ const productSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
-    serialNumberType:{
+    serialNumberType: {
       type: String,
       enum: ["true", "false"],
       default: "false",
@@ -104,7 +104,8 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Currency",
     },
-    
+    profitRatio: Number,
+    transactionAmount: Number,
   },
   { timestamps: true }
 );

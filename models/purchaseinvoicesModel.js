@@ -28,6 +28,11 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     totalQuantity: Number,
     totalbuyingprice: Number,
     supplier: String,
+    supplierPhone: String,
+    supplierEmail: String,
+    supplierAddress: String,
+    supplierCompany: String,
+    invoiceCurrency: String,
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
