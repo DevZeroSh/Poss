@@ -8,49 +8,72 @@ const { getPosRoles } = require("./rolePosServices");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const employeeModel = require("../models/employeeModel");
+const axios = require("axios");
+const { createConnection } = require("../middlewares/switchConnectDb");
 
 exports.login = asyncHandler(async (req, res, next) => {
     try {
-        const user = await Employee.findOne({ email: req.body.email });
-        if (!user) {
-            return next(new ApiError("Incorrect email", 401));
+        //make axois req to get dbName from subscribers server
+        //1-check user from main subscribers server
+        try {
+            const response = await axios.get("http://localhost:4000/api/allusers/", { params: { email: req.body.email } });
+            if (response.data.status === "true") {
+                let dbName = response.data.user[0].subscribtion.dbName;
+                // Create a connection to the specified database
+
+                await createConnection(dbName);
+
+                //here search for employee using this connection
+                try {
+                    const user = await employeeModel.findOne({ email: req.body.email });
+                    if (!user) {
+                        return next(new ApiError("Incorrect email", 401));
+                    }
+                    console.log(user);
+                    //Check if the password is correct
+                    const passwordMatch = await bcrypt.compare(req.body.password, user.password);
+                    if (!passwordMatch) {
+                        return next(new ApiError("Incorrect Password", 401));
+                    }
+                    //Check if the user is active
+                    if (user.archives === "true") {
+                        return next(new ApiError("The account is not active", 401));
+                    }
+                    // 5. Remove the password and pin from the user object
+                    // Set sensitive fields to `undefined`
+                    user.password = undefined;
+                    user.pin = undefined;
+
+                    //continu here
+                    try {
+                        const roles = await RoleModel.findById(user.selectedRoles[0]);
+
+                        const { rolesDashboard, rolesPos } = roles;
+
+                        //get all roles name
+
+                        const dashRoleName = await getDashboardRoles(rolesDashboard);
+                        const posRoleName = await getPosRoles(rolesPos);
+
+                        const token = createToken(user._id);
+                        res.status(200).json({
+                            status: "true",
+                            data: user,
+                            dashBoardRoles: dashRoleName,
+                            posRolesName: posRoleName,
+                            token,
+                            dbName,
+                        });
+                    } catch (error) {
+                        console.error("Error finding roles:", error);
+                    }
+                } catch (error) {
+                    console.error("Error searching for employee:", error);
+                }
+            }
+        } catch (error) {
+            console.log(error);
         }
-
-        // 3. Check if the password is correct
-        const passwordMatch = await bcrypt.compare(
-            req.body.password,
-            user.password
-        );
-        if (!passwordMatch) {
-            return next(new ApiError("Incorrect Password", 401));
-        }
-        // 4. Check if the user is active
-        if (user.archives === "true") {
-            return next(new ApiError("The account is not active", 401));
-        }
-
-        // 5. Remove the password and pin from the user object
-        // Set sensitive fields to `undefined`
-        user.password = undefined;
-        user.pin = undefined;
-
-        // Fetch role information
-        const roles = await RoleModel.findById(user.selectedRoles[0]);
-        const { rolesDashboard, rolesPos } = roles;
-
-        // Fetch role names
-        const dashRoleName = await getDashboardRoles(rolesDashboard);
-        const posRoleName = await getPosRoles(rolesPos);
-        // 8. Generate a JWT token
-        const token = createToken(user._id);
-
-        res.status(200).json({
-            status: "true",
-            data: user,
-            dashBoardRoles: dashRoleName,
-            posRolesName: posRoleName,
-            token,
-        });
     } catch (error) {
         next(error);
     }
@@ -60,10 +83,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 exports.protect = asyncHandler(async (req, res, next) => {
     //1-Check if token exist, if exist get
     let token;
-    if (
-        req.headers.authorization &&
-        req.headers.authorization.startsWith("Bearer")
-    ) {
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
         token = req.headers.authorization.split(" ")[1];
     }
 
@@ -95,9 +115,7 @@ exports.allowedTo = (role) =>
         const id = req.user._id;
         try {
             //get all user's roles
-            const employee = await employeeModel
-                .findById(id)
-                .populate({ path: "selectedRoles", select: "name _id" });
+            const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
             if (!employee) {
                 return next(new ApiError(`No employee by this id ${id}`, 404));
             }
@@ -105,10 +123,7 @@ exports.allowedTo = (role) =>
             //4-get all roles
             const roles = await RoleModel.findById(employee.selectedRoles[0]);
             const { rolesDashboard, rolesPos } = roles;
-            const [dashRoleName, poseRoleName] = await Promise.all([
-                getDashboardRoles(rolesDashboard),
-                getPosRoles(rolesPos),
-            ]);
+            const [dashRoleName, poseRoleName] = await Promise.all([getDashboardRoles(rolesDashboard), getPosRoles(rolesPos)]);
 
             let allUserRoles = [...dashRoleName, ...poseRoleName];
 

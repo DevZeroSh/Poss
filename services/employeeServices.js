@@ -23,26 +23,21 @@ exports.getEmployees = asyncHandler(async (req, res) => {
 // @access priveta
 exports.createEmployee = asyncHandler(async (req, res, next) => {
     const email = req.body.email;
+    
     //Check if the email format is true or not
     if (isEmail(email)) {
         try {
             //Generate Password
             const employeePass = generatePassword();
+            req.body.password = employeePass;
             //Sned password to email
             await sendEmail({
                 email: req.body.email,
                 subject: "New Password",
                 message: `Hello ${req.body.name}, Your password is ${employeePass}`,
             });
-
             //Create the employee
-            const employee = await employeeModel.create({
-                name: req.body.name,
-                email: req.body.email,
-                pin: req.body.pin,
-                password: employeePass,
-                selectedRoles: req.body.selectedRoles,
-            });
+            const employee = await employeeModel.create(req.body);
             res.status(201).json({
                 status: "true",
                 message: "Employee Inserted",
@@ -69,6 +64,7 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
         employee.pin = undefined;
         employee.createdAt = undefined;
         employee.updatedAt = undefined;
+        
         //4-get all roles
         const roles = await RoleModel.findById(employee.selectedRoles[0]);
         const dashboardRolesIds = roles.rolesDashboard;

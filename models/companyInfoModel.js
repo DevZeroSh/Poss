@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const companyIfnoSchema = new mongoose.Schema({
+    
     companyName: {
         type: String,
         unique: [true, "Name must be unique"],
