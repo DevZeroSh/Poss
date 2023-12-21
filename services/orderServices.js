@@ -83,15 +83,15 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarPhone: req.body.customarPhone,
     customarAddress: req.body.customarAddress,
     onefinancialFunds: financialFundsId,
-     paidAt: dates,
+    paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
     couponType: cart.couponType,
     counter: nextCounter,
   });
- 
-const data=new Date()
-const isaaaa=data.toISOString()
+
+  const data = new Date();
+  const isaaaa = data.toISOString();
   await ReportsFinancialFundsModel.create({
     date: isaaaa,
     amount: totalOrderPrice,
@@ -150,13 +150,13 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
   if (!cart) {
     return next(new ApiError(`There is no such cart with id ${cartId}`, 404));
   }
-
+  let totalAllocatedAmount = 0;
   // Create order and update product stock
   const order = await Order.create({
     taxPrice: 0, // Update with the appropriate value
     employee: req.user._id,
     cartItems: cart.cartItems,
-    totalOrderPrice: 0, // Update with the appropriate value
+    totalOrderPrice: 0,
     paymentMethodType: req.body.paymentMethodType,
     taxs: req.body.taxs,
     price: req.body.price,
@@ -165,7 +165,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
     customaraddres: req.body.customaraddres,
-    // paidAt: dates,
+    paidAt: dates,
     coupon: cart.coupon,
     couponCount: cart.couponCount,
     couponType: cart.couponType,
@@ -179,7 +179,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
   });
 
   // Validate financial funds and calculate total allocated amount
-  let totalAllocatedAmount = 0;
+
   if (!financialFunds || financialFunds.length === 0) {
     return res.status(400).json({
       status: "error",
@@ -201,10 +201,11 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     if (!financialFund) {
       return next(new ApiError(`Financial fund ${fundId} not found`, 404));
     }
-
+    const data = new Date();
+    const isaaaa = data.toISOString();
     financialFund.fundBalance += amount;
     await ReportsFinancialFundsModel.create({
-      date: dates,
+      date: isaaaa,
       amount: amount,
       order: order._id,
       type: "order",

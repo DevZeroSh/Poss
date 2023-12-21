@@ -39,6 +39,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     finalPrice,
     totalQuantity,
     totalbuyingprice,
+    invoiceCurrency,
   } = req.body;
 
   // Find the supplier
@@ -113,6 +114,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     finalPrice: finalPrice,
     totalQuantity: totalQuantity,
     employee: req.user._id,
+    invoiceCurrency,
     counter: nextCounter,
   });
   // Save the new purchase invoice to the database

@@ -32,6 +32,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     supplierEmail: String,
     supplierAddress: String,
     supplierCompany: String,
+    invoiceCurrency: String,
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
