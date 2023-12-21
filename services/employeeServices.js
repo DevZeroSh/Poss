@@ -23,7 +23,7 @@ exports.getEmployees = asyncHandler(async (req, res) => {
 // @access priveta
 exports.createEmployee = asyncHandler(async (req, res, next) => {
     const email = req.body.email;
-    
+
     //Check if the email format is true or not
     if (isEmail(email)) {
         try {
@@ -38,6 +38,16 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
             });
             //Create the employee
             const employee = await employeeModel.create(req.body);
+
+            //insert the user on the main server
+            const createUserOnServer = await axios.post("http://localhost:8000/api/companyinfo/", {
+                userEmail: req.body.name,
+                subscribtion: req.body.subscribtion,
+                userType: req.body.adress,
+            });
+            //Continue here
+            console.log(createUserOnServer);
+
             res.status(201).json({
                 status: "true",
                 message: "Employee Inserted",
@@ -64,7 +74,7 @@ exports.getEmployee = asyncHandler(async (req, res, next) => {
         employee.pin = undefined;
         employee.createdAt = undefined;
         employee.updatedAt = undefined;
-        
+
         //4-get all roles
         const roles = await RoleModel.findById(employee.selectedRoles[0]);
         const dashboardRolesIds = roles.rolesDashboard;

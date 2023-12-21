@@ -16,7 +16,7 @@ exports.login = asyncHandler(async (req, res, next) => {
         //make axois req to get dbName from subscribers server
         //1-check user from main subscribers server
         try {
-            const response = await axios.get("https://nooncar.com:4000/api/allusers/", { params: { email: req.body.email } });
+            const response = await axios.get("https://nooncar.com:4000/main_server/api/allusers/", { params: { email: req.body.email } });
             if (response.data.status === "true") {
                 let dbName = response.data.user[0].subscribtion.dbName;
                 // Create a connection to the specified database
