@@ -16,9 +16,10 @@ exports.login = asyncHandler(async (req, res, next) => {
         //make axois req to get dbName from subscribers server
         //1-check user from main subscribers server
         try {
-            const response = await axios.get("https://nooncar.com:4000/api/allusers/", { params: { email: req.body.email } });
+            const response = await axios.get("http://localhost:4000/api/allusers/", { params: { email: req.body.email } });
             if (response.data.status === "true") {
                 let dbName = response.data.user[0].subscribtion.dbName;
+                let subscribtionId = response.data.user[0].subscribtion._id;
                 // Create a connection to the specified database
 
                 await createConnection(dbName);
@@ -29,7 +30,7 @@ exports.login = asyncHandler(async (req, res, next) => {
                     if (!user) {
                         return next(new ApiError("Incorrect email", 401));
                     }
-                    console.log(user);
+
                     //Check if the password is correct
                     const passwordMatch = await bcrypt.compare(req.body.password, user.password);
                     if (!passwordMatch) {
@@ -63,6 +64,7 @@ exports.login = asyncHandler(async (req, res, next) => {
                             posRolesName: posRoleName,
                             token,
                             dbName,
+                            subscribtionId,
                         });
                     } catch (error) {
                         console.error("Error finding roles:", error);
@@ -70,6 +72,8 @@ exports.login = asyncHandler(async (req, res, next) => {
                 } catch (error) {
                     console.error("Error searching for employee:", error);
                 }
+            } else {
+                return next(new ApiError("authService.js", 401));
             }
         } catch (error) {
             console.log(error);

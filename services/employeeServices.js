@@ -8,14 +8,20 @@ const sendEmail = require("../utils/sendEmail");
 const isEmail = require("../utils/tools/isEmail");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
+const axios = require("axios");
 
 //@desc Get list of employee
 // @rout Get /api/user
 // @access priveta
 exports.getEmployees = asyncHandler(async (req, res) => {
-    const employee = await employeeModel.find({}).populate({ path: "selectedRoles", select: "name _id" });
+    try {
+        const employee = await employeeModel.find().populate({ path: "selectedRoles", select: "name _id" });
 
-    res.status(200).json({ status: "true", data: employee });
+        res.status(200).json({ status: "true", data: employee });
+    } catch (error) {
+        console.error("Error fetching employees:", error);
+        res.status(500).json({ status: "false", error: "Internal Server Error" });
+    }
 });
 
 //@desc Create specific employee
@@ -39,14 +45,21 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
             //Create the employee
             const employee = await employeeModel.create(req.body);
 
-            //insert the user on the main server
-            const createUserOnServer = await axios.post("http://localhost:8000/api/companyinfo/", {
-                userEmail: req.body.name,
-                subscribtion: req.body.subscribtion,
-                userType: req.body.adress,
-            });
-            //Continue here
-            console.log(createUserOnServer);
+            // //insert the user on the main server
+
+            if (req.body.userType && req.body.userType === "normal") {
+                try {
+                    const createUserOnServer = await axios.post("http://localhost:4000/api/allusers/", {
+                        userEmail: req.body.email,
+                        subscribtion: req.body.subscribtion,
+                        userType: req.body.userType,
+                    });
+                    //Continue here
+                    console.log(createUserOnServer);
+                } catch (error) {
+                    console.log(error);
+                }
+            }
 
             res.status(201).json({
                 status: "true",
