@@ -130,6 +130,14 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
             rolesPos: posRoleIds,
         });
 
+        //5-insert the main currency
+        await currencyModel.create({
+            currencyCode: req.body.currencyCode,
+            currencyName: req.body.currencyName,
+            exchangeRate: "1",
+            is_primary: "true",
+        });
+
         //make res
         res.status(201).json({
             status: "true",
