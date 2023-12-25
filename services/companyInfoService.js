@@ -162,12 +162,17 @@ exports.getCompanyInfo = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
+    console.log("s")
     const { id } = req.params;
-    const companyInfo = await CompanyInfnoModel.findByIdAndUpdate({ _id: id }, req.body, { new: true });
-
-    if (!companyInfo) {
-        return next(new ApiError(`There is no company with this id ${id}`, 404));
-    } else {
-        res.status(200).json({ status: "true", message: "Company info updated", data: companyInfo });
+    console.log(id);
+    try {
+        const companyInfo = await CompanyInfnoModel.findByIdAndUpdate({ _id: id }, req.body, { new: true });
+        if (!companyInfo) {
+            return next(new ApiError(`There is no company with this id ${id}`, 404));
+        } else {
+            res.status(200).json({ status: "true", message: "Company info updated", data: companyInfo });
+        }
+    } catch (error) {
+        console.log(error);
     }
 });

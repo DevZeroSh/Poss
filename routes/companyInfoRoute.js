@@ -7,7 +7,7 @@ const authService = require("../services/authService");
 const companyInfoRoute = express.Router();
 
 //companyInfoRoute.use(switchConnectDb);
-//companyInfoRoute.use(authService.protect);
+companyInfoRoute.use(authService.protect);
 companyInfoRoute.route("/").post(uploadCompanyLogo, resizerLogo, createCompanyInfo).get(getCompanyInfo);
 companyInfoRoute.route("/:id").put(authService.allowedTo("company info"), uploadCompanyLogo, resizerLogo, updataCompanyInfo);
 
