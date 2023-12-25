@@ -105,7 +105,6 @@ const productSchema = new mongoose.Schema(
       ref: "Currency",
     },
     profitRatio: Number,
-    transactionAmount: Number,
   },
   { timestamps: true }
 );
