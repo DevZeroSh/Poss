@@ -62,6 +62,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     mongooseQuery = mongooseQuery.find(query);
   }
 
+  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+
   // Show the all proporty
   const product = await mongooseQuery
     .populate({ path: "category", select: "name -_id" })
@@ -159,7 +161,6 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
 // @desc import Exsel product
 // @route add /api/add
 // @access Private
-
 exports.addProduct = asyncHandler(async (req, res) => {
   try {
     const { buffer } = req.file;
@@ -187,9 +188,25 @@ exports.addProduct = asyncHandler(async (req, res) => {
     }
 
     // Process your data and save to MongoDB using your mongoose model
-    await productModel.insertMany(csvData);
+    const duplicateQRs = [];
 
-    res.json({ success: "Success" });
+    // Use try-catch to catch duplicate key errors
+    try {
+      await productModel.insertMany(csvData, { ordered: false });
+    } catch (error) {
+      if (error.code === 11000) {
+        // Duplicate key error
+        error.writeErrors.forEach((writeError) => {
+          const duplicateQR = writeError.err.op.qr;
+          duplicateQRs.push(duplicateQR);
+          console.log(`Duplicate QR: ${duplicateQR}`);
+        });
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
+
+    res.json({ success: "Success", duplicateQRs });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
@@ -222,19 +239,19 @@ const exportData = (
   const workBook = xlsx.utils.book_new();
 
   const productWorksheet = xlsx.utils.aoa_to_sheet([columnNames]);
-  xlsx.utils.book_append_sheet(workBook, productWorksheet, 'Products');
+  xlsx.utils.book_append_sheet(workBook, productWorksheet, "Products");
 
   // Combine category, brand, and label data into a single column
   const combinedData = [
     [
-      'Category Id',
-      'Category Name',
-      'Brand',
-      'Label',
-      'Units',
-      'tax',
-      'valiant',
-      'value',
+      "Category Id",
+      "Category Name",
+      "Brand",
+      "Label",
+      "Units",
+      "tax",
+      "valiant",
+      "value",
     ],
   ];
 
@@ -249,20 +266,20 @@ const exportData = (
 
   for (let i = 0; i < maxLength; i++) {
     combinedData.push([
-      String(categories[i]?._id || ''),
-      categories[i]?.name || '',
-      brands[i]?.name || '',
-      label[i]?.name || '',
-      unit[i]?.name || '',
-      String(tax[i]?.tax + '%' || ''),
-      valiant[i]?.variant || '',
-      String(valiant[i]?.value || ''),
+      String(categories[i]?._id || ""),
+      categories[i]?.name || "",
+      brands[i]?.name || "",
+      label[i]?.name || "",
+      unit[i]?.name || "",
+      String(tax[i]?.tax + "%" || ""),
+      valiant[i]?.variant || "",
+      String(valiant[i]?.value || ""),
     ]);
   }
 
   // Create worksheet for combined data
   const combinedWorksheet = xlsx.utils.aoa_to_sheet(combinedData);
-  xlsx.utils.book_append_sheet(workBook, combinedWorksheet, 'CombinedData');
+  xlsx.utils.book_append_sheet(workBook, combinedWorksheet, "CombinedData");
 
   xlsx.writeFile(workBook, outputFile);
 
@@ -284,36 +301,36 @@ exports.exportData = async (req, res) => {
 
     // Column names for the export file
     const columnNames = [
-      'Name',
-      'slug',
-      'type',
-      'description',
-      'sold',
-      'serialNumber',
-      'quantity',
-      'buyingprice',
-      'price',
-      'qr',
-      'sku',
-      'image',
-      'brand',
-      'category',
-      'variant',
-      'value',
-      'variant2',
-      'value2',
-      'unit',
-      'alarm',
-      'tax',
-      'label',
-      'taxPrice',
-      'archives',
-      'serialNumberType',
-      'currency',
+      "Name",
+      "slug",
+      "type",
+      "description",
+      "sold",
+      "serialNumber",
+      "quantity",
+      "buyingprice",
+      "price",
+      "qr",
+      "sku",
+      "image",
+      "brand",
+      "category",
+      "variant",
+      "value",
+      "variant2",
+      "value2",
+      "unit",
+      "alarm",
+      "tax",
+      "label",
+      "taxPrice",
+      "archives",
+      "serialNumberType",
+      "currency",
     ];
 
     // Choose a suitable file name
-    const fileName = 'combined-export';
+    const fileName = "combined-export";
     const { downloadLocation } = req.body;
 
     // Call the export function directly
@@ -334,13 +351,13 @@ exports.exportData = async (req, res) => {
       // Cleanup: Delete the file after sending
       fs.unlinkSync(filePath);
       if (err) {
-        console.error('Error sending file:', err);
-        res.status(500).json({ status: 'error', error: err });
+        console.error("Error sending file:", err);
+        res.status(500).json({ status: "error", error: err });
       }
     });
   } catch (error) {
-    console.error('Error exporting data:', error);
-    res.status(500).json({ status: 'error', error });
+    console.error("Error exporting data:", error);
+    res.status(500).json({ status: "error", error });
   }
 };
 
