@@ -1,12 +1,18 @@
 const asyncHandler = require("express-async-handler");
-const PaymentTypes = require("../models/paymentTypesModel");
+//const PaymentTypes = require("../models/paymentTypesModel");
+const mongoose = require("mongoose");
 const ApiError = require("../utils/apiError");
-
+const paymentTypeSchema = require("../models/paymentTypesModel");
 //@desc Get list of payment types
 // @rout Get /api/paymenttype
 // @access priveta
 exports.getPaymentTypes = asyncHandler(async (req, res) => {
-    const paymentType = await PaymentTypes.find({});
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+
+    const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
+
+    const paymentType = await PaymentTypesModel.find();
     res.status(200).json({ status: "true", data: paymentType });
 });
 
@@ -30,9 +36,7 @@ exports.getOnePaymentType = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const paymentType = await PaymentTypes.findById(id);
     if (!paymentType) {
-        return next(
-            new ApiError(`There is no payment type with this id ${id}`, 404)
-        );
+        return next(new ApiError(`There is no payment type with this id ${id}`, 404));
     } else {
         res.status(200).json({ status: "true", data: paymentType });
     }
@@ -48,9 +52,7 @@ exports.updataPaymentType = asyncHandler(async (req, res, next) => {
     });
 
     if (!paymentType) {
-        return next(
-            new ApiError(`There is no payment type with this id ${id}`, 404)
-        );
+        return next(new ApiError(`There is no payment type with this id ${id}`, 404));
     } else {
         res.status(200).json({
             status: "true",
@@ -64,7 +66,6 @@ exports.updataPaymentType = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/paymenttype/:id
 // @access priveta
 exports.deleteOnePaymentType = asyncHandler(async (req, res, next) => {
-  
     const { id } = req.params;
     const paymentType = await PaymentTypes.findByIdAndDelete(id);
 

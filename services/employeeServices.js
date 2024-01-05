@@ -9,14 +9,15 @@ const isEmail = require("../utils/tools/isEmail");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const axios = require("axios");
+const { createConnection } = require("../middlewares/switchConnectDb");
 
 //@desc Get list of employee
 // @rout Get /api/user
 // @access priveta
 exports.getEmployees = asyncHandler(async (req, res) => {
     try {
+        //const con = await createConnection(req.query.databaseName);
         const employee = await employeeModel.find().populate({ path: "selectedRoles", select: "name _id" });
-
         res.status(200).json({ status: "true", data: employee });
     } catch (error) {
         console.error("Error fetching employees:", error);
@@ -79,29 +80,34 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
 // @access priveta
 exports.getEmployee = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
-    if (!employee) {
-        return next(new ApiError(`No employee by this id ${id}`, 404));
-    } else {
-        employee.password = undefined;
-        employee.pin = undefined;
-        employee.createdAt = undefined;
-        employee.updatedAt = undefined;
+    try {
+        const connection = await createConnection(req.query.databaseName);
+        const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
+        if (!employee) {
+            return next(new ApiError(`No employee by this id ${id}`, 404));
+        } else {
+            employee.password = undefined;
+            employee.pin = undefined;
+            employee.createdAt = undefined;
+            employee.updatedAt = undefined;
 
-        //4-get all roles
-        const roles = await RoleModel.findById(employee.selectedRoles[0]);
-        const dashboardRolesIds = roles.rolesDashboard;
-        const posRolesIds = roles.rolesPos;
+            //4-get all roles
+            const roles = await RoleModel.findById(employee.selectedRoles[0]);
+            const dashboardRolesIds = roles.rolesDashboard;
+            const posRolesIds = roles.rolesPos;
 
-        const dashRoleName = await getDashboardRoles(dashboardRolesIds);
-        const poseRoleName = await getPosRoles(posRolesIds);
+            const dashRoleName = await getDashboardRoles(dashboardRolesIds);
+            const poseRoleName = await getPosRoles(posRolesIds);
 
-        res.status(200).json({
-            status: "true",
-            data: employee,
-            dashBoardRoles: dashRoleName,
-            posRolesName: poseRoleName,
-        });
+            res.status(200).json({
+                status: "true",
+                data: employee,
+                dashBoardRoles: dashRoleName,
+                posRolesName: poseRoleName,
+            });
+        }
+    } catch (error) {
+        console.error(`Error connecting to MongoDB: ${error.message}`);
     }
 });
 

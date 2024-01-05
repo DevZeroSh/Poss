@@ -6,9 +6,8 @@ const ApiError = require("../utils/apiError");
 //@route GEt  /api/role
 //@accsess Private
 exports.getRoles = asyncHandler(async (req, res) => {
-    const role = await RoleModel.find()
-        .populate({ path: "rolesDashboard", select: "title _id" })
-        .populate({ path: "rolesPos", select: "title _id" });
+
+    const role = await RoleModel.find().populate({ path: "rolesDashboard", select: "title _id" }).populate({ path: "rolesPos", select: "title _id" });
     res.status(200).json({ status: "true", data: role });
 });
 

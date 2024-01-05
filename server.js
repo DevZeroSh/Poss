@@ -5,9 +5,8 @@ const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
 
-//const dbContacion = require("./config/database");
-
 dotenv.config({ path: "config.env" });
+const app = express();
 
 //Routes
 const productRout = require("./routes/productRout");
@@ -36,16 +35,13 @@ const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const pricingMethodRoute = require("./routes/pricingMethodRoute");
-//const { switchConnectDb } = require("./middlewares/switchConnectDb");
+const dbContacion = require("./config/database");
 
-const app = express();
-
+dbContacion();
 // Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "uploads")));
-
-//app.use(switchConnectDb);
 
 if (process.env.NODE_ENV === "development") {
     app.use(morgan("dev"));

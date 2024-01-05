@@ -1,18 +1,27 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const FinancialFunds = require("../models/financialFundsModel");
-const { checkIdIfUsed } = require("../utils/tools/checkIdIfUsed");
+const financialFundsSchema = require("../models/financialFundsModel");
+const mongoose = require("mongoose");
+const paymentTypeSchema = require("../models/paymentTypesModel");
+const currencySchema = require("../models/currencyModel");
 
 //@desc Get list of Financial Funds
 //@route GET  /api/financialfunds
 //@accsess Private
 exports.getFinancialFunds = asyncHandler(async (req, res) => {
-    const financialFunds = await FinancialFunds.find()
-        .populate({
-            path: "fundCurrency",
-            select: "_id currencyCode currencyName exchangeRate",
-        })
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
+    db.model("PaymentType", paymentTypeSchema);
+    db.model("Currency", currencySchema);
+
+    const financialFunds = await FinancialFundsModel.find()
+        .populate({ path: "fundCurrency", select: "_id currencyCode currencyName exchangeRate" })
         .populate({ path: "fundPaymentType" });
+
+    //console.log(financialFunds);
     res.status(200).json({ status: "true", data: financialFunds });
 });
 

@@ -15,4 +15,4 @@ const paymentTypesSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-module.exports = mongoose.model("PaymentType", paymentTypesSchema);
+module.exports = paymentTypesSchema;

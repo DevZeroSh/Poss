@@ -10,14 +10,12 @@ const authService = require("../services/authService");
 
 const employeeRoute = express.Router();
 
-//employeeRoute.use(authService.protect);
-
-employeeRoute.route("/").get(getEmployees).post(createEmployeeValidator, createEmployee); //authService.allowedTo("new employee")
+employeeRoute.route("/").get(getEmployees).post(authService.protect, authService.allowedTo("new employee"), createEmployeeValidator, createEmployee); //authService.allowedTo("new employee")
 
 employeeRoute
     .route("/:id")
-    .delete(authService.allowedTo("delete employee"), deleteEmployeeVlaidator, deleteEmployee)
-    .get(getEmployeeVlaidator, getEmployee)
-    .put(authService.allowedTo("edit employee"), updateEmployee);
+    .delete(authService.protect, authService.allowedTo("delete employee"), deleteEmployeeVlaidator, deleteEmployee)
+    .get(authService.protect, getEmployeeVlaidator, getEmployee)
+    .put(authService.protect, authService.allowedTo("edit employee"), updateEmployee);
 
 module.exports = employeeRoute;

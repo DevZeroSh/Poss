@@ -1,58 +1,70 @@
-const mongoose = require("mongoose");
-let isConnected = false;
+const { MongoClient } = require("mongodb");
 
-// const switchConnectDb = async (req, res, next) => {
-//     try {
-//         if (isConnected) {
-//             await mongoose.connection.close();
-//             isConnected = false;
-//         }
-//         if (!isConnected) {
-//             let dbName = req.body?.databaseName || "";
-//             const dbUrl = `mongodb+srv://boss:1234@pos.jsfduqc.mongodb.net/${dbName}?retryWrites=true&w=majority`;
-
-//             // Connect to the MongoDB database
-//             await mongoose.connect(dbUrl, {
-//                 useNewUrlParser: true,
-//                 useUnifiedTopology: true,
-//             });
-//             isConnected = true;
-//             console.log(`Connected to the database: ${dbUrl}`);
-//         }
-//         next();
-//     } catch (error) {
-//         console.error("Database connection error:", error);
-//     }
-// };
-
-//const connections = {};
-
-const createConnection = async (dbName) => {
-    // Close the existing connection if it's active
-    if (isConnected) {
-        await mongoose.connection.close();
-        isConnected = false;
+// Add more companies as needed
+const companyConnectionMap = {};
+// Create a pool for each company
+const companyPools = {};
+const switchConnectionPool = async (dbName) => {
+    let dbUri = companyConnectionMap[dbName];
+    if (!dbUri) {
+        const url = `mongodb+srv://boss:1234@pos.jsfduqc.mongodb.net/${dbName}?retryWrites=true&w=majority`;
+        //add the url to  companyConnectionMap the property is dbName and the value is  url text
+        companyConnectionMap[dbName] = url;
+        dbUri = url;
     }
 
-    const dbUrl = `mongodb+srv://boss:1234@pos.jsfduqc.mongodb.net/${dbName}?retryWrites=true&w=majority`;
-    await mongoose.connect(dbUrl, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    });
-    console.log(`Connected to the database: ${dbUrl}`);
-    //isConnected = true;
-    // connections[dbName] = connection;
+    if (!companyPools[dbName]) {
+        const client = new MongoClient(dbUri, { useNewUrlParser: true, useUnifiedTopology: true });
+        await client.connect();
+        const pool = client.db();
 
-    // connection.on("error", (err) => {
-    //     console.error(`MongoDB connection error for ${dbName}:`, err);
-    // });
+        companyPools[dbName] = pool;
+    }
 
-    // connection.on("connected", () => {
-    //     console.log(`Connected to : ${dbName}`);
-    // });
+    return companyPools[dbName];
+};
 
-    //return connections[dbName];
+// Middleware to handle database connection based on company name
+const companyDatabaseMiddleware = async (req, res, next) => {
+    const companyName = req.query.databaseName; // Assuming the company name is in the request parameters
+
+    try {
+        const companyPool = await switchConnectionPool(companyName);
+        req.companyPool = companyPool;
+
+        // Now you can use req.companyPool in your route handlers to interact with the specific company's database
+        next();
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+//const connections = {};
+let connectionPool = null;
+const createConnection = async (dbName) => {
+    try {
+        // Close the existing connection if it's active
+        if (connectionPool) {
+            await connectionPool.close();
+            connectionPool = null;
+        }
+
+        // Create a new connection pool
+        const client = new MongoClient(`mongodb+srv://boss:1234@pos.jsfduqc.mongodb.net/${dbName}?retryWrites=true&w=majority`, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 30000,
+        });
+        await client.connect();
+        connectionPool = client; // Use the default database from the connection string
+
+        const db = connectionPool.db(dbName);
+        return db;
+    } catch (error) {
+        console.error("Error creating database connection:", error);
+        throw error;
+    }
 };
 
 //module.exports = { switchConnectDb, createConnection };
-module.exports = { createConnection };
+module.exports = { createConnection, switchConnectionPool, companyDatabaseMiddleware };
