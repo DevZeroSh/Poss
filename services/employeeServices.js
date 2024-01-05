@@ -29,116 +29,116 @@ exports.getEmployees = asyncHandler(async (req, res) => {
 // @rout Post /api/employee
 // @access priveta
 exports.createEmployee = asyncHandler(async (req, res, next) => {
-    const email = req.body.email;
+  const email = req.body.email;
 
-    //Check if the email format is true or not
-    if (isEmail(email)) {
+  //Check if the email format is true or not
+  if (isEmail(email)) {
+    try {
+      //Generate Password
+      const employeePass = generatePassword();
+      req.body.password = employeePass;
+      //Sned password to email
+      await sendEmail({
+        email: req.body.email,
+        subject: "New Password",
+        message: `Hello ${req.body.name}, Your password is ${employeePass}`,
+      });
+      //Create the employee
+      const employee = await employeeModel.create(req.body);
+
+      // //insert the user on the main server
+
+      if (req.body.userType && req.body.userType === "normal") {
         try {
-            //Generate Password
-            const employeePass = generatePassword();
-            req.body.password = employeePass;
-            //Sned password to email
-            await sendEmail({
-                email: req.body.email,
-                subject: "New Password",
-                message: `Hello ${req.body.name}, Your password is ${employeePass}`,
-            });
-            //Create the employee
-            const employee = await employeeModel.create(req.body);
-
-            // //insert the user on the main server
-
-            if (req.body.userType && req.body.userType === "normal") {
-                try {
-                    const createUserOnServer = await axios.post("http://localhost:4000/api/allusers/", {
-                        userEmail: req.body.email,
-                        subscribtion: req.body.subscribtion,
-                        userType: req.body.userType,
-                    });
-                    //Continue here
-                    console.log(createUserOnServer);
-                } catch (error) {
-                    console.log(error);
-                }
+          const createUserOnServer = await axios.post(
+            "https://nooncar.com:8001/api/allusers/",
+            {
+              userEmail: req.body.email,
+              subscribtion: req.body.subscribtion,
+              userType: req.body.userType,
             }
-
-            res.status(201).json({
-                status: "true",
-                message: "Employee Inserted",
-                data: employee,
-            });
+          );
+          //Continue here
+          console.log(createUserOnServer);
         } catch (error) {
-            return next(new ApiError("There is an error in sending email", 500));
+          console.log(error);
         }
-    } else {
-        return next(new ApiError("There is an error in email format", 500));
+      }
+
+      res.status(201).json({
+        status: "true",
+        message: "Employee Inserted",
+        data: employee,
+      });
+    } catch (error) {
+      return next(new ApiError("There is an error in sending email", 500));
     }
+  } else {
+    return next(new ApiError("There is an error in email format", 500));
+  }
 });
 
 //@desc get specific Employee by id
 // @rout Get /api/employee/:id
 // @access priveta
 exports.getEmployee = asyncHandler(async (req, res, next) => {
-    const { id } = req.params;
-    try {
-        const connection = await createConnection(req.query.databaseName);
-        const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
-        if (!employee) {
-            return next(new ApiError(`No employee by this id ${id}`, 404));
-        } else {
-            employee.password = undefined;
-            employee.pin = undefined;
-            employee.createdAt = undefined;
-            employee.updatedAt = undefined;
+  const { id } = req.params;
+  const employee = await employeeModel
+    .findById(id)
+    .populate({ path: "selectedRoles", select: "name _id" });
+  if (!employee) {
+    return next(new ApiError(`No employee by this id ${id}`, 404));
+  } else {
+    employee.password = undefined;
+    employee.pin = undefined;
+    employee.createdAt = undefined;
+    employee.updatedAt = undefined;
 
-            //4-get all roles
-            const roles = await RoleModel.findById(employee.selectedRoles[0]);
-            const dashboardRolesIds = roles.rolesDashboard;
-            const posRolesIds = roles.rolesPos;
+    //4-get all roles
+    const roles = await RoleModel.findById(employee.selectedRoles[0]);
+    const dashboardRolesIds = roles.rolesDashboard;
+    const posRolesIds = roles.rolesPos;
 
-            const dashRoleName = await getDashboardRoles(dashboardRolesIds);
-            const poseRoleName = await getPosRoles(posRolesIds);
+    const dashRoleName = await getDashboardRoles(dashboardRolesIds);
+    const poseRoleName = await getPosRoles(posRolesIds);
 
-            res.status(200).json({
-                status: "true",
-                data: employee,
-                dashBoardRoles: dashRoleName,
-                posRolesName: poseRoleName,
-            });
-        }
-    } catch (error) {
-        console.error(`Error connecting to MongoDB: ${error.message}`);
-    }
+    res.status(200).json({
+      status: "true",
+      data: employee,
+      dashBoardRoles: dashRoleName,
+      posRolesName: poseRoleName,
+    });
+  }
 });
 
 //@desc update specific Employee by id
 // @rout Put /api/employee/:id
 // @access priveta
 exports.updateEmployee = asyncHandler(async (req, res, next) => {
-    const { id } = req.params;
-    const employee = await employeeModel.findByIdAndUpdate(id, req.body, {
-        new: true,
-    });
+  const { id } = req.params;
+  const employee = await employeeModel.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
 
-    if (!employee) {
-        return next(new ApiError(`There is no employee with this id ${id}`, 404));
-    } else {
-        res.status(200).json({
-            status: "true",
-            message: "Employee updated",
-            data: employee,
-        });
-    }
+  if (!employee) {
+    return next(new ApiError(`There is no employee with this id ${id}`, 404));
+  } else {
+    res.status(200).json({
+      status: "true",
+      message: "Employee updated",
+      data: employee,
+    });
+  }
 });
 
 //@desc Delete specific employee
 // @rout Delete /api/employee/:id
 // @access priveta
 exports.deleteEmployee = asyncHandler(async (req, res, next) => {
-    const { id } = req.params;
-    const employee = await employeeModel.findByIdAndDelete(id);
-    if (!employee) {
-        return next(new ApiError(`No employee by this id ${id}`, 404));
-    }
-    res.status(200).json({ status: "true", message: "Employee Deleted" });
+  const { id } = req.params;
+  const employee = await employeeModel.findByIdAndDelete(id);
+  if (!employee) {
+    return next(new ApiError(`No employee by this id ${id}`, 404));
+  }
+  res.status(200).json({ status: "true", message: "Employee Deleted" });
 });
