@@ -1,5 +1,4 @@
 const asyncHandler = require("express-async-handler");
-const Employee = require("../models/employeeModel");
 const RoleModel = require("../models/roleModel");
 const ApiError = require("../utils/apiError");
 const createToken = require("../utils/createToken");
@@ -7,7 +6,6 @@ const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
-//const employeeModel = require("../models/employeeModel");
 const mongoose = require("mongoose");
 const emoloyeeShcema = require("../models/employeeModel");
 const rolesShcema = require("../models/roleModel");
