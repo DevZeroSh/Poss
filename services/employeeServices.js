@@ -9,21 +9,20 @@ const isEmail = require("../utils/tools/isEmail");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const axios = require("axios");
+const { createConnection } = require("../middlewares/switchConnectDb");
 
 //@desc Get list of employee
 // @rout Get /api/user
 // @access priveta
 exports.getEmployees = asyncHandler(async (req, res) => {
-  try {
-    const employee = await employeeModel
-      .find()
-      .populate({ path: "selectedRoles", select: "name _id" });
-
-    res.status(200).json({ status: "true", data: employee });
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    res.status(500).json({ status: "false", error: "Internal Server Error" });
-  }
+    try {
+        //const con = await createConnection(req.query.databaseName);
+        const employee = await employeeModel.find().populate({ path: "selectedRoles", select: "name _id" });
+        res.status(200).json({ status: "true", data: employee });
+    } catch (error) {
+        console.error("Error fetching employees:", error);
+        res.status(500).json({ status: "false", error: "Internal Server Error" });
+    }
 });
 
 //@desc Create specific employee

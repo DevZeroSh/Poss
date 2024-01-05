@@ -25,5 +25,5 @@ const financialFundsSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-const FinancialFunds = mongoose.model("FinancialFunds", financialFundsSchema);
-module.exports = FinancialFunds;
+//const FinancialFunds = mongoose.model("FinancialFunds", financialFundsSchema);
+module.exports = financialFundsSchema;

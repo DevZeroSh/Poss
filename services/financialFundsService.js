@@ -1,19 +1,19 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const FinancialFunds = require("../models/financialFundsModel");
-const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
+const { checkIdIfUsed } = require("../utils/tools/checkIdIfUsed");
 
 //@desc Get list of Financial Funds
 //@route GET  /api/financialfunds
 //@accsess Private
 exports.getFinancialFunds = asyncHandler(async (req, res) => {
-  const financialFunds = await FinancialFunds.find()
-    .populate({
-      path: "fundCurrency",
-      select: "_id currencyCode currencyName exchangeRate",
-    })
-    .populate({ path: "fundPaymentType" });
-  res.status(200).json({ status: "true", data: financialFunds });
+    const financialFunds = await FinancialFunds.find()
+        .populate({
+            path: "fundCurrency",
+            select: "_id currencyCode currencyName exchangeRate",
+        })
+        .populate({ path: "fundPaymentType" });
+    res.status(200).json({ status: "true", data: financialFunds });
 });
 
 // @desc Create a Financial Funds

@@ -51,4 +51,4 @@ emoloyeeShcema.pre("save", async function (next) {
 });
 
 const employeeModel = mongoose.model("Employee", emoloyeeShcema);
-module.exports = employeeModel;
+module.exports = emoloyeeShcema;

@@ -1,14 +1,16 @@
 const express = require("express");
-const {createRoleVlaidator, updateRoleVlaidator, getRolVlaidator, deleteRoleVlaidator} = require("../utils/validators/roleValidator");
-const {getRole,createRole,getRoles,updataRole,deleteRole,} = require("../services/roleServices");
+const { createRoleVlaidator, updateRoleVlaidator, getRolVlaidator, deleteRoleVlaidator } = require("../utils/validators/roleValidator");
+const { getRole, createRole, getRoles, updataRole, deleteRole } = require("../services/roleServices");
 
+const authService = require("../services/authService");
 
-const authService = require('../services/authService');
 const roleRout = express.Router();
 
-roleRout.use(authService.protect);
+roleRout.route("/").get(authService.protect, getRoles).post(authService.protect, createRoleVlaidator, createRole);
 
-roleRout.route("/").get(getRoles).post(createRoleVlaidator,createRole);
-
-roleRout.route("/:id").get(getRolVlaidator,getRole).put(updateRoleVlaidator,updataRole).delete(deleteRoleVlaidator,deleteRole);
+roleRout
+    .route("/:id")
+    .get(authService.protect, getRolVlaidator, getRole)
+    .put(authService.protect, updateRoleVlaidator, updataRole)
+    .delete(authService.protect, deleteRoleVlaidator, deleteRole);
 module.exports = roleRout;

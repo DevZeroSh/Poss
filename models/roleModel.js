@@ -1,28 +1,28 @@
 const mongoose = require("mongoose");
 
 const rolesShcema = new mongoose.Schema({
-  name: {
-    type: String,
-    require: [true, " Role name is require"],
-    unique: true,
-  },
-  description: {
-    type: String,
-  },
-  rolesDashboard: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "RoleDashboard",
+    name: {
+        type: String,
+        require: [true, " Role name is require"],
+        unique: true,
     },
-  ],
-  rolesPos: [
-    {
-      type: mongoose.Schema.ObjectId,
-      ref: "RolePos",
+    description: {
+        type: String,
     },
-  ],
+    rolesDashboard: [
+        {
+            type: mongoose.Schema.ObjectId,
+            ref: "RoleDashboard",
+        },
+    ],
+    rolesPos: [
+        {
+            type: mongoose.Schema.ObjectId,
+            ref: "RolePos",
+        },
+    ],
 });
 
 const roleModel = mongoose.model("Roles", rolesShcema);
 
-module.exports = roleModel;
+module.exports = rolesShcema;

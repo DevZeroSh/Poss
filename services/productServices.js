@@ -50,6 +50,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 // @route Get /api/product
 // @access Private
 exports.getProduct = asyncHandler(async (req, res, next) => {
+  
   // Search for product or qr
   let mongooseQuery = productModel.find({});
 

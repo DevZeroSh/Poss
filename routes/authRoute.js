@@ -1,10 +1,13 @@
-const express = require('express');
+const express = require("express");
 
-const {login} = require('../services/authService');
+const { login } = require("../services/authService");
+const { checkUserSubsicreber } = require("../middlewares/checkUserSubsicreber");
+
 
 const router = express.Router();
 
-router.post('/login',login);
+router.use(checkUserSubsicreber);
 
+router.post("/login", login);
 
 module.exports = router;
