@@ -15,6 +15,7 @@ const labelsModel = require("../models/labelsModel");
 const unitModel = require("../models/UnitsModel");
 const taxModel = require("../models/taxModel");
 const valiantModel = require("../models/variantsModel");
+const currencyModel = require("../models/currencyModel");
 const path = require("path");
 
 const multerFilter = function (req, file, cb) {
@@ -186,7 +187,18 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else {
       return res.status(400).json({ error: "Unsupported file type" });
     }
-
+    for (const item of csvData) {
+      try {
+        const tax = await taxModel.findById(item.tax);
+        const finalPrice = item.price * (1 + tax.tax / 100);
+        item.taxPrice = finalPrice;
+      } catch (error) {
+        // Handle errors when finding currency
+        console.error(
+          `Error finding currency for item with QR ${item.qr}: ${error.message}`
+        );
+      }
+    }
     // Process your data and save to MongoDB using your mongoose model
     const duplicateQRs = [];
 
@@ -212,263 +224,3 @@ exports.addProduct = asyncHandler(async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-// @desc Export Exsel Data
-// @route export /api/export
-// @access Private
-
-const exportData = (
-  categories,
-  columnNames,
-  brands,
-  label,
-  unit,
-  tax,
-  valiant,
-  fileName,
-  downloadLocation
-) => {
-  const outputDirectory = path.resolve(downloadLocation);
-  const outputFile = path.resolve(outputDirectory, `${fileName}.xlsx`);
-
-  // Create the directory if it doesn't exist
-  if (!fs.existsSync(outputDirectory)) {
-    fs.mkdirSync(outputDirectory);
-  }
-
-  const workBook = xlsx.utils.book_new();
-
-  const productWorksheet = xlsx.utils.aoa_to_sheet([columnNames]);
-  xlsx.utils.book_append_sheet(workBook, productWorksheet, "Products");
-
-  // Combine category, brand, and label data into a single column
-  const combinedData = [
-    [
-      "Category Id",
-      "Category Name",
-      "Brand",
-      "Label",
-      "Units",
-      "tax",
-      "valiant",
-      "value",
-    ],
-  ];
-
-  const maxLength = Math.max(
-    categories.length,
-    brands.length,
-    label.length,
-    unit.length,
-    tax.length,
-    valiant.length
-  );
-
-  for (let i = 0; i < maxLength; i++) {
-    combinedData.push([
-      String(categories[i]?._id || ""),
-      categories[i]?.name || "",
-      brands[i]?.name || "",
-      label[i]?.name || "",
-      unit[i]?.name || "",
-      String(tax[i]?.tax + "%" || ""),
-      valiant[i]?.variant || "",
-      String(valiant[i]?.value || ""),
-    ]);
-  }
-
-  // Create worksheet for combined data
-  const combinedWorksheet = xlsx.utils.aoa_to_sheet(combinedData);
-  xlsx.utils.book_append_sheet(workBook, combinedWorksheet, "CombinedData");
-
-  xlsx.writeFile(workBook, outputFile);
-
-  return outputFile; // Return the file path
-};
-
-exports.exportData = async (req, res) => {
-  try {
-    // Fetch data from MongoDB
-    const categories = await categoryModel.find({}, { __v: 0 }).lean().exec();
-    const brands = await brandModel.find({}, { __v: 0 }).lean().exec();
-    const label = await labelsModel.find({}, { __v: 0 }).lean().exec();
-    const unit = await unitModel.find({}, { __v: 0 }).lean().exec();
-    const tax = await taxModel.find({}, { __v: 0 }).lean().exec();
-    const valiant = await valiantModel
-      .find({}, { _id: 0, __v: 0 })
-      .lean()
-      .exec();
-
-    // Column names for the export file
-    const columnNames = [
-      "Name",
-      "slug",
-      "type",
-      "description",
-      "sold",
-      "serialNumber",
-      "quantity",
-      "buyingprice",
-      "price",
-      "qr",
-      "sku",
-      "image",
-      "brand",
-      "category",
-      "variant",
-      "value",
-      "variant2",
-      "value2",
-      "unit",
-      "alarm",
-      "tax",
-      "label",
-      "taxPrice",
-      "archives",
-      "serialNumberType",
-      "currency",
-    ];
-
-    // Choose a suitable file name
-    const fileName = "combined-export";
-    const { downloadLocation } = req.body;
-
-    // Call the export function directly
-    const filePath = exportData(
-      categories,
-      columnNames,
-      brands,
-      label,
-      unit,
-      tax,
-      valiant,
-      fileName,
-      downloadLocation
-    );
-
-    // Send the file as a response for download
-    res.download(filePath, (err) => {
-      // Cleanup: Delete the file after sending
-      fs.unlinkSync(filePath);
-      if (err) {
-        console.error("Error sending file:", err);
-        res.status(500).json({ status: "error", error: err });
-      }
-    });
-  } catch (error) {
-    console.error("Error exporting data:", error);
-    res.status(500).json({ status: "error", error });
-  }
-};
-
-// @desc Export Exsel product
-// @route export /api/export
-// @access Private
-
-const exportProduct = (
-  data,
-  workSheetColumnNames,
-  downloadLocation,
-  fileName
-) => {
-  const xlsx = require("xlsx");
-  const path = require("path");
-
-  const outputDirectory = path.resolve(downloadLocation);
-  const outputFile = path.resolve(outputDirectory, `${fileName}.xlsx`);
-
-  // Create the directory if it doesn't exist
-  if (!fs.existsSync(outputDirectory)) {
-    fs.mkdirSync(outputDirectory);
-  }
-
-  const workBook = xlsx.utils.book_new();
-  const workSheetData = [workSheetColumnNames, ...data];
-  const workSheet = xlsx.utils.aoa_to_sheet(workSheetData);
-  xlsx.utils.book_append_sheet(workBook, workSheet, "products");
-
-  // Write the file to the specified path
-  xlsx.writeFile(workBook, outputFile);
-};
-
-exports.exportProductData = async (req, res) => {
-  try {
-    // Fetch product data from MongoDB
-    const products = await productModel
-      .find({}, { _id: 0, __v: 0 })
-      .populate("category brand variant unit tax label currency")
-      .lean()
-      .exec();
-
-    // Structure product data for export
-    const productData = products.map((product) => [
-      product.name,
-      product.slug,
-      product.type,
-      product.description,
-      product.sold,
-      product.serialNumber,
-      product.quantity,
-      product.buyingprice,
-      product.price,
-      product.qr,
-      product.sku,
-      product.image,
-      product.brand ? product.brand.name : "",
-      product.category ? product.category.name : "",
-      product.variant ? product.variant.variant : "",
-      product.value,
-      product.variant2,
-      product.value2,
-      product.unit ? product.unit.name : "",
-      product.alarm,
-      product.tax ? product.tax.tax : "",
-      product.label ? product.label.name : "lol",
-      product.taxPrice,
-      product.archives,
-      product.serialNumberType,
-      product.currency ? product.currency.name : "",
-    ]);
-
-    // Column names for the export file
-    const columnNames = [
-      "Name",
-      "slug",
-      "type",
-      "description",
-      "sold",
-      "serialNumber",
-      "quantity",
-      "buyingprice",
-      "price",
-      "qr",
-      "sku",
-      "image",
-      "brand",
-      "category",
-      "variant",
-      "value",
-      "variant2",
-      "value2",
-      "unit",
-      "alarm",
-      "tax",
-      "label",
-      "taxPrice",
-      "archives",
-      "serialNumberType",
-      "currency",
-    ];
-    // Choose a suitable file name
-    const fileName = "products-export";
-    const { downloadLocation } = req.body;
-
-    // Call the export function directly
-    exportProduct(productData, columnNames, downloadLocation, fileName);
-
-    res.status(200).json({ status: "success", message: "Export successful" });
-  } catch (error) {
-    console.error("Error exporting product data:", error);
-    res.status(500).json({ status: "error", error });
-  }
-};

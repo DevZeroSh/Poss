@@ -8,49 +8,55 @@ const roleModel = require("../models/roleModel");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const FinancialFunds = require("../models/financialFundsModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
-
+const multer = require("multer");
+const upload = multer();
 // @desc    create cash order
 // @route   POST /api/orders/cartId
 // @access  privet/User
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
+  const cartItems = req.body.cartItems;
   // app settings
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
   let ts = Date.now();
   let date_ob = new Date(ts);
-  let date = date_ob.getDate();
-  let month = date_ob.getMonth() + 1;
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
   let year = date_ob.getFullYear();
-  let hours = date_ob.getHours();
-  let minutes = date_ob.getMinutes();
-  let seconds = date_ob.getSeconds();
-  const dates =
-    date +
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
     "-" +
     month +
     "-" +
-    year +
-    "-" +
+    date +
+    " " +
     hours +
     ":" +
     minutes +
     ":" +
     seconds;
-  // 1) Get cart depend on cartId
-  const cart = await Cart.findById(req.params.cartId);
-  if (!cart) {
-    return next(
-      new ApiError(`There is no such cart with id ${req.params.cartId}`, 404)
-    );
+
+  // Retrieve cart data from localStorage
+  // const cartItems = JSON.parse(localStorage.getItem('cart'));
+  if (!cartItems || cartItems.length === 0) {
+    return next(new ApiError("The cart is empty", 400));
   }
 
-  // 2) Get order price depend on cart price "Check if coupon apply"
-  const cartPrice = cart.totalPriceAfterDiscount
-    ? cart.totalPriceAfterDiscount
-    : cart.totalCartPrice;
+  // 2) Get order price depend on cart price "Check if coupon applies"
+  const cartPrice = cartItems.reduce((total, item) => {
+    return total + item.taxPrice * item.quantity;
+  }, 0);
+
   const paymentMethodType = req.body.paymentMethodType;
+  const totalOrderPrice = cartPrice;
 
-  const totalOrderPrice = cartPrice; // totalOrderPrice is now an array with one element
-
-  // Now, you can use totalOrderPrice as an array
+  // use totalOrderPrice as an array
   const financialFundsId = req.body.financialFunds;
 
   // 1) Find the financial funds document based on the provided ID
@@ -65,16 +71,17 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     );
   }
 
+  const exchangeRate = req.body.exchangeRate;
   const nextCounter = (await Order.countDocuments()) + 1;
-  financialFunds.fundBalance += totalOrderPrice;
+  financialFunds.fundBalance += totalOrderPrice / exchangeRate;
+
   // 3) Create order with default paymentMethodType cash
   const order = await Order.create({
     employee: req.user._id,
-    cartItems: cart.cartItems,
+    cartItems,
     shippingAddress: req.body.shippingAddress,
     totalOrderPrice,
     paymentMethodType,
-    // quantity: req.body.quantity,
     taxs: req.body.taxs,
     price: req.body.price,
     taxRate: req.body.taxRate,
@@ -83,11 +90,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarPhone: req.body.customarPhone,
     customarAddress: req.body.customarAddress,
     onefinancialFunds: financialFundsId,
-    paidAt: dates,
-    coupon: cart.coupon,
-    couponCount: cart.couponCount,
-    couponType: cart.couponType,
+    paidAt: formattedDate,
     counter: nextCounter,
+    exchangeRate: exchangeRate,
   });
 
   const data = new Date();
@@ -99,36 +104,46 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     type: "order",
     financialFundId: financialFundsId,
     financialFundRest: financialFunds.fundBalance,
+    exchangeRate: exchangeRate,
   });
 
   // 4) After creating order, decrement product quantity, increment product sold
   if (order) {
-    const bulkOption = cart.cartItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: { $inc: { quantity: -item.quantity, sold: +item.quantity } },
-      },
-    }));
-
+    const bulkOption = cartItems.map(
+      (item) => (
+        console.log(item),
+        {
+          updateOne: {
+            filter: { _id: item._id },
+            update: {
+              $inc: { quantity: -item.quantity, sold: +item.quantity },
+            },
+          },
+        }
+      )
+    );
+    console.log(cartItems);
+    console.log(bulkOption);
     await Product.bulkWrite(bulkOption, {});
     await financialFunds.save();
-
-    // 5) Clear cart depend on cartId
-    await Cart.findByIdAndDelete(req.params.cartId);
   }
 
   res.status(201).json({ status: "success", data: order });
 });
 
-exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
+exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
   let ts = Date.now();
   let date_ob = new Date(ts);
-  let date = date_ob.getDate();
-  let month = date_ob.getMonth() + 1;
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
   let year = date_ob.getFullYear();
-  let hours = date_ob.getHours();
-  let minutes = date_ob.getMinutes();
-  let seconds = date_ob.getSeconds();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
   const dates =
     date +
     "-" +
@@ -142,20 +157,19 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     ":" +
     seconds;
 
-  const { cartId } = req.params;
+  const cartItems = req.body.cartItems;
   const financialFunds = req.body.financialFunds;
 
   // Validate cart and get cart price
-  const cart = await Cart.findById(cartId);
-  if (!cart) {
-    return next(new ApiError(`There is no such cart with id ${cartId}`, 404));
+  if (!cartItems || cartItems.length === 0) {
+    return next(new ApiError("The cart is empty", 400));
   }
   let totalAllocatedAmount = 0;
   // Create order and update product stock
   const order = await Order.create({
-    taxPrice: 0, // Update with the appropriate value
+    taxPrice: 0,
     employee: req.user._id,
-    cartItems: cart.cartItems,
+    cartItems: cartItems,
     totalOrderPrice: 0,
     paymentMethodType: req.body.paymentMethodType,
     taxs: req.body.taxs,
@@ -166,9 +180,9 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     customarPhone: req.body.customarPhone,
     customaraddres: req.body.customaraddres,
     paidAt: dates,
-    coupon: cart.coupon,
-    couponCount: cart.couponCount,
-    couponType: cart.couponType,
+    // coupon: coupon,
+    // couponCount: couponCount,
+    // couponType: couponType,
     counter: (await Order.countDocuments()) + 1,
     financialFunds: financialFunds
       .filter((allocation) => allocation.amount !== 0)
@@ -189,13 +203,12 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
 
   const bulkUpdates = [];
   for (const allocation of financialFunds) {
-    const { fundId, amount } = allocation;
+    const { fundId, amount, exchangeRate } = allocation;
 
     if (amount === 0) {
       // Skip if amount is 0
       continue;
     }
-
     // Validate financial fund and update fund balance
     const financialFund = await FinancialFunds.findById(fundId);
     if (!financialFund) {
@@ -203,7 +216,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
     }
     const data = new Date();
     const isaaaa = data.toISOString();
-    financialFund.fundBalance += amount;
+    financialFund.fundBalance += amount / exchangeRate;
     await ReportsFinancialFundsModel.create({
       date: isaaaa,
       amount: amount,
@@ -211,11 +224,12 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
       type: "order",
       financialFundId: fundId,
       financialFundRest: financialFund.fundBalance,
+      exchangeRate,
     });
     bulkUpdates.push({
       updateOne: {
         filter: { _id: fundId },
-        update: { $inc: { fundBalance: amount } },
+        update: { $inc: { fundBalance: amount / exchangeRate } },
       },
     });
 
@@ -238,9 +252,9 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
   }
 
   // Update product stock
-  const bulkOption = cart.cartItems.map((item) => ({
+  const bulkOption = cartItems.map((item) => ({
     updateOne: {
-      filter: { _id: item.product },
+      filter: { _id: item._id },
       update: {
         $inc: { quantity: -item.quantity, sold: +item.quantity },
       },
@@ -249,7 +263,7 @@ exports.createCashOrder2 = asyncHandler(async (req, res, next) => {
 
   await FinancialFunds.bulkWrite(bulkUpdates);
   await Product.bulkWrite(bulkOption, {});
-  await Cart.findByIdAndDelete(cartId);
+  // await Cart.findByIdAndDelete(cartId);
 
   res.status(201).json({ status: "success", data: order });
 });

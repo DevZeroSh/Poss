@@ -16,15 +16,20 @@ const orderSchema = new mongoose.Schema(
         allocatedAmount: {
           type: Number,
         },
+        exchangeRate: Number,
       },
     ],
     onefinancialFunds: String,
+
+    exchangeRate: Number,
+
     cartItems: [
       {
         product: {
           type: mongoose.Schema.ObjectId,
           ref: "Product",
         },
+    
         quantity: Number,
         taxPrice: Number,
         taxRate: Number,
@@ -75,6 +80,10 @@ orderSchema.pre(/^find/, function (next) {
   })
     .populate({
       path: "financialFunds.fundId",
+      select: "fundName",
+    })
+    .populate({
+      path: "onefinancialFunds",
       select: "fundName",
     })
     .populate({

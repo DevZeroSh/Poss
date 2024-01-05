@@ -11,19 +11,19 @@ exports.createCustomarVlaidator = [
     .withMessage("The name is too short")
     .isLength({ max: 30 })
     .withMessage("The name is too long"),
-  check("phoneNumber")
-    .optional()
-    .isMobilePhone(["tr-TR"])
-    .withMessage("Invalid phone number Only accepted turkey phone numbers"),
-  check("email")
-    .optional()
-    .custom((val) =>
-    Customar.findOne({ email: val }).then((customar) => {
-        if (customar) {
-          return Promise.reject(new Error("Email already in customar"));
-        }
-      })
-    ),
+  // check("phoneNumber")
+  //   .optional()
+  //   .isMobilePhone(["tr-TR"])
+  //   .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+  // check("email")
+  //   .optional()
+  //   .custom((val) =>
+  //   Customar.findOne({ email: val }).then((customar) => {
+  //       if (customar) {
+  //         return Promise.reject(new Error("Email already in customar"));
+  //       }
+  //     })
+  //   ),
 
   validatorMiddleware,
 ];
@@ -39,19 +39,19 @@ exports.updataCustomarVlaidator = [
         .withMessage("The name is too short")
         .isLength({ max: 30 })
         .withMessage("The name is too long"),
-    check("phoneNumber")
-        .optional()
-        .isMobilePhone(["tr-TR"])
-        .withMessage("Invalid phone number Only accepted turkey phone numbers"),
-    body("email")
-        .optional()
-        .custom((val,{req}) => Customar.findOne({ email: val, _id: { $ne: req.params.id }}).then((customar) => {
+    // check("phoneNumber")
+    //     .optional()
+    //     .isMobilePhone(["tr-TR"])
+    //     .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+    // body("email")
+    //     .optional()
+    //     .custom((val,{req}) => Customar.findOne({ email: val, _id: { $ne: req.params.id }}).then((customar) => {
          
-            if (customar) {
-              return Promise.reject(new Error("Email already in customar"));
-            }
-        }) 
-        ),
+    //         if (customar) {
+    //           return Promise.reject(new Error("Email already in customar"));
+    //         }
+    //     }) 
+    //     ),
 
     validatorMiddleware,
 ];

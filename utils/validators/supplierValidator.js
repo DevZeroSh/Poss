@@ -11,21 +11,21 @@ exports.createSupplierValidator = [
     .withMessage("The name is too short")
     .isLength({ max: 30 })
     .withMessage("The name is too long"),
-  check("phoneNumber")
-    .optional()
-    .isMobilePhone(["tr-TR"])
-    .withMessage("Invalid phone number Only accepted turkey phone numbers"),
-  check("email")
-    .optional()
-    .isEmail()
-    .withMessage("Invalid email address")
-    .custom((val) =>
-      Supplier.findOne({ email: val }).then((supplier) => {
-        if (supplier) {
-          return Promise.reject(new Error("Email already in supplier"));
-        }
-      })
-    ),
+  // check("phoneNumber")
+  //   .optional()
+  //   .isMobilePhone(["tr-TR"])
+  //   .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+  // check("email")
+  //   .optional()
+  //   .isEmail()
+  //   .withMessage("Invalid email address")
+  //   .custom((val) =>
+  //     Supplier.findOne({ email: val }).then((supplier) => {
+  //       if (supplier) {
+  //         return Promise.reject(new Error("Email already in supplier"));
+  //       }
+  //     })
+  //   ),
 
   validatorMiddleware,
 ];
@@ -41,24 +41,24 @@ exports.updataSupplierVlaidator = [
     .withMessage("The name is too short")
     .isLength({ max: 30 })
     .withMessage("The name is too long"),
-  check("phoneNumber")
-    .optional()
-    .isMobilePhone(["tr-TR"])
-    .withMessage("Invalid phone number Only accepted turkey phone numbers"),
-  body("email")
-    .optional()
-    .isEmail()
-    .withMessage("Invalid email address")
-    .custom((val, { req }) =>
+  // check("phoneNumber")
+  //   .optional()
+  //   .isMobilePhone(["tr-TR"])
+  //   .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+  // body("email")
+  //   .optional()
+  //   .isEmail()
+  //   .withMessage("Invalid email address")
+  //   .custom((val, { req }) =>
     
-      Supplier.findOne({ email: val, _id: { $ne: req.params.id } }).then(
-        (supplier) => {
-          if (supplier) {
-            return Promise.reject(new Error("Email already in supplier"));
-          }
-        }
-      )
-    ),
+  //     Supplier.findOne({ email: val, _id: { $ne: req.params.id } }).then(
+  //       (supplier) => {
+  //         if (supplier) {
+  //           return Promise.reject(new Error("Email already in supplier"));
+  //         }
+  //       }
+  //     )
+  //   ),
 
   validatorMiddleware,
 ];

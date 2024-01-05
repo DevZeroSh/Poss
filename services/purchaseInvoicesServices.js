@@ -3,24 +3,30 @@ const ApiError = require("../utils/apiError");
 const productModel = require("../models/productModel");
 const PurchaseInvoicesModel = require("../models/purchaseinvoicesModel");
 const Supplier = require("../models/suppliersModel");
+const FinancialFunds = require("../models/financialFundsModel");
+const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 
-exports.getProductInvoices = asyncHandler(async (req, res, next) => {
+exports.createProductInvoices = asyncHandler(async (req, res, next) => {
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
   // app settings
   let ts = Date.now();
   let date_ob = new Date(ts);
-  let date = date_ob.getDate();
-  let month = date_ob.getMonth() + 1;
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
   let year = date_ob.getFullYear();
-  let hours = date_ob.getHours();
-  let minutes = date_ob.getMinutes();
-  let seconds = date_ob.getSeconds();
-  const dates =
-    date +
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
     "-" +
     month +
     "-" +
-    year +
-    "-" +
+    date +
+    " " +
     hours +
     ":" +
     minutes +
@@ -42,12 +48,13 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     invoiceCurrency,
   } = req.body;
 
+  const invoiceFinancialFund = req.body.invoiceFinancialFund;
   // Find the supplier
 
   // Create an array to store the invoice items
   const invoiceItems = [];
   let bulkOption;
-
+  const financialFund = await FinancialFunds.findById(invoiceFinancialFund);
   for (const item of invoices) {
     const {
       quantity,
@@ -102,7 +109,7 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new PurchaseInvoicesModel({
     invoices: invoiceItems,
-    paidAt: dates,
+    paidAt: formattedDate,
     supplier: sup,
     supplierPhone,
     supplierEmail,
@@ -117,10 +124,23 @@ exports.getProductInvoices = asyncHandler(async (req, res, next) => {
     invoiceCurrency,
     counter: nextCounter,
   });
+
+  const data = new Date();
+  const isaaaa = data.toISOString();
+  financialFund.fundBalance -= finalPrice;
+
   // Save the new purchase invoice to the database
   const savedInvoice = await newPurchaseInvoice.save();
-
+  await ReportsFinancialFundsModel.create({
+    date: isaaaa,
+    invoice: savedInvoice._id,
+    amount: finalPrice,
+    type: "purchase",
+    financialFundId: invoiceFinancialFund,
+    financialFundRest: financialFund.fundBalance,
+  });
   // Respond with the created invoice
+  await financialFund.save();
   res.status(201).json({ status: "success", data: savedInvoice });
 });
 

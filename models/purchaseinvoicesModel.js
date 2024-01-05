@@ -33,6 +33,13 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     supplierAddress: String,
     supplierCompany: String,
     invoiceCurrency: String,
+    invoiceFinancialFund: String,
+
+    paid: {
+      type: String,
+      default: "unpaid",
+      enum: ["paid", "unpaid"],
+    },
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",

@@ -8,8 +8,6 @@ const {
   uploadProductImage,
   resizerImage,
   addProduct,
-  exportProductData,
-  exportData,
 } = require("../services/productServices");
 const {
   craeteProductValidator,
@@ -29,8 +27,6 @@ const productRout = express.Router();
 productRout.use(authService.protect);
 
 productRout.post("/add", uploads.single("file"), addProduct);
-productRout.post("/export", exportData);
-productRout.post("/export-pdoduct", exportProductData);
 
 productRout
   .route("/")
