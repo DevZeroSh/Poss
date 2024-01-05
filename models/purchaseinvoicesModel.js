@@ -61,9 +61,6 @@ PurchaseInvoicesSchema.pre(/^find/, function (next) {
   next();
 });
 
-const PurchaseInvoicesModel = mongoose.model(
-  "PurchaseInvoices",
-  PurchaseInvoicesSchema
-);
 
-module.exports = PurchaseInvoicesModel;
+
+module.exports = PurchaseInvoicesSchema;

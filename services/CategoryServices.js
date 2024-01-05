@@ -1,11 +1,16 @@
 const asyncHandler = require("express-async-handler");
-const categoryModel = require("../models/CategoryModel");
+const categorySchema = require("../models/CategoryModel");
 const ApiError = require("../utils/apiError");
+const mongoose = require("mongoose");
 
 //@desc Get List category
 //@route Get /api/category/
 //@access Private
 exports.getCategories = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const categoryModel = db.model("categories", categorySchema);
   const category = await categoryModel.find();
   res
     .status(200)
@@ -16,6 +21,11 @@ exports.getCategories = asyncHandler(async (req, res, next) => {
 //@route Post /api/category
 //@access Private
 exports.createCategory = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const categoryModel = db.model("Category", categorySchema);
+
   const category = await categoryModel.create(req.body);
   res
     .status(201)
@@ -26,6 +36,10 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
 //@route Get /api/category/:id
 //@access Private
 exports.getCategory = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const categoryModel = db.model("Category", categorySchema);
   const { id } = req.params;
   const category = await categoryModel.findById(id);
 
@@ -39,6 +53,10 @@ exports.getCategory = asyncHandler(async (req, res, next) => {
 //@route Put /api/category/:id
 //@access Private
 exports.updateCategory = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const categoryModel = db.model("Category", categorySchema);
   const { id } = req.params;
   const category = await categoryModel.findByIdAndUpdate(id, req.body, {
     new: true,
@@ -46,14 +64,19 @@ exports.updateCategory = asyncHandler(async (req, res, next) => {
   if (!category) {
     return next(new ApiError(`No Category for this id ${id}`, 404));
   }
-  res.status(200)
-.json({ status: "true", message: "Category updated", data: category });
+  res
+    .status(200)
+    .json({ status: "true", message: "Category updated", data: category });
 });
 
 //@desc Delete specific category
 //@route Delete /api/category/:id
 //@access Private
 exports.deleteCategory = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const categoryModel = db.model("Category", categorySchema);
   const { id } = req.params;
   const category = await categoryModel.findByIdAndDelete(id);
   if (!category) {

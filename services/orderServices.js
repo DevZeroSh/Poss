@@ -3,7 +3,7 @@ const ApiError = require("../utils/apiError");
 
 const Product = require("../models/productModel");
 const Cart = require("../models/cartModel");
-const Order = require("../models/orderModel");
+const orderSchema = require("../models/orderModel");
 const roleModel = require("../models/roleModel");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const FinancialFunds = require("../models/financialFundsModel");
@@ -14,6 +14,11 @@ const upload = multer();
 // @route   POST /api/orders/cartId
 // @access  privet/User
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+
   const cartItems = req.body.cartItems;
   // app settings
   function padZero(value) {
@@ -72,11 +77,11 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   }
 
   const exchangeRate = req.body.exchangeRate;
-  const nextCounter = (await Order.countDocuments()) + 1;
+  const nextCounter = (await orderModel.countDocuments()) + 1;
   financialFunds.fundBalance += totalOrderPrice / exchangeRate;
 
   // 3) Create order with default paymentMethodType cash
-  const order = await Order.create({
+  const order = await orderModel.create({
     employee: req.user._id,
     cartItems,
     shippingAddress: req.body.shippingAddress,
@@ -132,6 +137,11 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 });
 
 exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+ 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -166,7 +176,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   }
   let totalAllocatedAmount = 0;
   // Create order and update product stock
-  const order = await Order.create({
+  const order = await orderModel.create({
     taxPrice: 0,
     employee: req.user._id,
     cartItems: cartItems,
@@ -183,7 +193,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     // coupon: coupon,
     // couponCount: couponCount,
     // couponType: couponType,
-    counter: (await Order.countDocuments()) + 1,
+    counter: (await orderModel.countDocuments()) + 1,
     financialFunds: financialFunds
       .filter((allocation) => allocation.amount !== 0)
       .map((allocation) => ({
@@ -237,7 +247,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   }
 
   // Update the order with the correct totalAllocatedAmount
-  await Order.findByIdAndUpdate(order._id, {
+  await orderModel.findByIdAndUpdate(order._id, {
     taxPrice: totalAllocatedAmount,
     totalOrderPrice: totalAllocatedAmount,
   });
@@ -269,6 +279,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 });
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
+
+
   const roles = await roleModel.findById(req.user.selectedRoles[0]);
   const dashboardRolesIds = roles.rolesDashboard;
   let dashRoleName = await getDashboardRoles(dashboardRolesIds);
@@ -285,13 +297,23 @@ exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
 // @route   Get /api/orders/cartId
 // @access  privet/All
 exports.findAllOrder = asyncHandler(async (req, res, next) => {
-  const order = await Order.find();
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+
+  const order = await orderModel.find();
   res.status(200).json({ status: "true", results: order.length, data: order });
 });
 
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+  
   const { id } = req.params;
-  const order = await Order.findById(id);
+  const order = await orderModel.findById(id);
   if (!order) {
     return next(new ApiError(`No order for this id ${id}`, 404));
   }

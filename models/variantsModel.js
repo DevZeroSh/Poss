@@ -16,5 +16,5 @@ const variantSchema = new mongoose.Schema({
   value: [String],
 });
 
-const variantModel = mongoose.model("Variant", variantSchema);
-module.exports = variantModel;
+
+module.exports = variantSchema

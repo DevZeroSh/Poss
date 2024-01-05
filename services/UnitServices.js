@@ -1,12 +1,18 @@
 const asyncHandler = require("express-async-handler");
-const UnitModel = require("../models/UnitsModel");
+const UnitSchema = require("../models/UnitsModel");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
+const mongoose = require("mongoose");
 
 //@desc Get list of Unit
 // @rout Get /api/unit
 // @access priveta
 exports.getUnits = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const UnitModel = db.model("Unit", UnitSchema);
+
   const unit = await UnitModel.find();
 
   res.status(200).json({ status: "true", results: unit.length, data: unit });
@@ -16,6 +22,11 @@ exports.getUnits = asyncHandler(async (req, res) => {
 // @rout Post /api/unit
 // @access priveta
 exports.createUnit = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const UnitModel = db.model("Unit", UnitSchema);
+
   req.body.slug = slugify(req.body.name);
   const unit = await UnitModel.create(req.body);
   res
@@ -27,6 +38,11 @@ exports.createUnit = asyncHandler(async (req, res) => {
 // @rout Get /api/unit/:id
 // @access priveta
 exports.getUnit = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const UnitModel = db.model("Unit", UnitSchema);
+
   const { id } = req.params;
   const unit = await UnitModel.findById(id);
   if (!unit) {
@@ -36,6 +52,11 @@ exports.getUnit = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataUnit = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const UnitModel = db.model("Unit", UnitSchema);
+
   const unit = await UnitModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
@@ -49,6 +70,10 @@ exports.updataUnit = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/unit/:id
 // @access priveta
 exports.deleteUnit = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const UnitModel = db.model("Unit", UnitSchema);
 
   const { id } = req.params;
   const unit = await UnitModel.findByIdAndDelete(id);
@@ -56,6 +81,6 @@ exports.deleteUnit = asyncHandler(async (req, res, next) => {
   if (!unit) {
     return next(new ApiError(`No Unit by this id ${id}`, 404));
   }
-  
+
   res.status(200).json({ status: "true", message: "Unit Deleted" });
 });

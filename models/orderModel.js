@@ -94,5 +94,5 @@ orderSchema.pre(/^find/, function (next) {
   next();
 });
 
-const orderModel = mongoose.model("Orders", orderSchema);
-module.exports = orderModel;
+
+module.exports = orderSchema;

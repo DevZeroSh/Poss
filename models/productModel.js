@@ -59,7 +59,7 @@ const productSchema = new mongoose.Schema(
 
     brand: {
       type: mongoose.Schema.ObjectId,
-      ref: "Brand",
+      ref: "brand",
     },
     category: {
       type: mongoose.Schema.ObjectId,
@@ -125,5 +125,13 @@ productSchema.post("save", (doc) => {
   setImageURL(doc);
 });
 
-const productModel = mongoose.model("Product", productSchema);
-module.exports = productModel;
+productSchema.pre(/^find/, function (next) {
+  this.populate({ path: "category", select: "name -_id" })
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "label", select: "name  _id" })
+ 
+
+  next();
+});
+
+module.exports = productSchema;

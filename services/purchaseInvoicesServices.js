@@ -1,12 +1,21 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const productModel = require("../models/productModel");
-const PurchaseInvoicesModel = require("../models/purchaseinvoicesModel");
+const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
 const Supplier = require("../models/suppliersModel");
 const FinancialFunds = require("../models/financialFundsModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
+const mongoose = require("mongoose");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -145,6 +154,13 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 });
 
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
   const ProductInvoices = await PurchaseInvoicesModel.find();
   res.status(200).json({
     status: "true",
@@ -154,6 +170,14 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
 });
 
 exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+
   const { id } = req.params;
   const ProductInvoices = await PurchaseInvoicesModel.findById(id);
   console.log(ProductInvoices);
@@ -164,6 +188,13 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
 });
 
 exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
   const { quantity } = req.body;
   const cart = await PurchaseInvoicesModel.findOne({ employee: req.user._id });
   if (!cart) {

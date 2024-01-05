@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const productModel = require("../models/productModel");
+const productSchema = require("../models/productModel");
 const slugify = require("slugify");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
@@ -9,14 +9,19 @@ const multerStorage = multer.memoryStorage();
 const csvtojson = require("csvtojson");
 const xlsx = require("xlsx");
 const fs = require("fs");
-const categoryModel = require("../models/CategoryModel");
-const brandModel = require("../models/brandModel");
 const labelsModel = require("../models/labelsModel");
 const unitModel = require("../models/UnitsModel");
 const taxModel = require("../models/taxModel");
 const valiantModel = require("../models/variantsModel");
 const currencyModel = require("../models/currencyModel");
 const path = require("path");
+const { default: mongoose } = require("mongoose");
+const brandSchema = require("../models/brandModel");
+const categorySchema = require("../models/CategoryModel");
+const labelsSchema = require("../models/labelsModel");
+const variantSchema = require("../models/variantsModel");
+const UnitSchema = require("../models/UnitsModel");
+const TaxSchema = require("../models/taxModel");
 
 const multerFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
@@ -50,7 +55,14 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 // @route Get /api/product
 // @access Private
 exports.getProduct = asyncHandler(async (req, res, next) => {
-  
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+
   // Search for product or qr
   let mongooseQuery = productModel.find({});
 
@@ -66,19 +78,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
-  // Show the all proporty
-  const product = await mongooseQuery
-    .populate({ path: "category", select: "name -_id" })
-    .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "variant  _id" })
-    .populate({ path: "unit", select: "name code  _id" })
-    .populate({ path: "tax", select: "tax  _id" })
-    .populate({ path: "label", select: "name  _id" })
-    .populate({
-      path: "currency",
-      select: "currencyCode currencyName exchangeRate is_primary  _id",
-    })
-    .exec();
+  
+  const product = await mongooseQuery;
 
   const notices = [];
 
@@ -97,6 +98,11 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 // @route Post /api/product
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+
   req.body.slug = slugify(req.body.name);
 
   const product = await productModel.create(req.body);
@@ -109,6 +115,16 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 // @route Get /api/product/:id
 // @access Private
 exports.getOneProduct = asyncHandler(async (req, res, next) => {
+    const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema)
+  db.model("Unit", UnitSchema)
+  db.model("Variant", variantSchema);
   const { id } = req.params;
   const product = await productModel
     .findById(id)
