@@ -1,10 +1,15 @@
 const asyncHandler = require("express-async-handler");
-const brandModel = require("../models/brandModel");
+const brandSchema = require("../models/brandModel");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
+const mongoose = require("mongoose");
 
 // Get list of Brands
 exports.getBrands = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const brandModel = db.model("brand", brandSchema);
   const brands = await brandModel.find();
   res
     .status(200)
@@ -13,6 +18,11 @@ exports.getBrands = asyncHandler(async (req, res, next) => {
 
 // Create Brand
 exports.createBrand = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const brandModel = db.model("brand", brandSchema);
+
   req.body.slug = slugify(req.body.name);
   const brand = await brandModel.create(req.body);
   res
@@ -22,8 +32,14 @@ exports.createBrand = asyncHandler(async (req, res, next) => {
 
 // Get specific Brand by id
 exports.getBrand = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const brandModel = db.model("brand", brandSchema);
+
   const { id } = req.params;
   const brand = await brandModel.findById(id);
+  
   if (!brand) {
     return next(new ApiError(`No Brand found for id ${id}`, 404));
   }
@@ -32,6 +48,10 @@ exports.getBrand = asyncHandler(async (req, res, next) => {
 
 // Update specific Brand
 exports.updataBrand = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const brandModel = db.model("brand", brandSchema);
   const brand = await brandModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
@@ -45,6 +65,10 @@ exports.updataBrand = asyncHandler(async (req, res, next) => {
 
 // Delete specific Brand
 exports.deleteBrand = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const brandModel = db.model("brand", brandSchema);
   const { id } = req.params;
   const brand = await brandModel.findByIdAndDelete(id);
   if (!brand) {

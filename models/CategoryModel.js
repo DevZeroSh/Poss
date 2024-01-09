@@ -5,6 +5,6 @@ const categorySchema = new mongoose.Schema({
   parentCategory: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
 });
 
-const Category = mongoose.model("Category", categorySchema);
 
-module.exports = Category;
+
+module.exports = categorySchema;

@@ -4,7 +4,7 @@ const {
   findAllOrder,
   filterOrderForLoggedUser,
   findOneOrder,
-  createCashOrder2,
+  createCashOrderMultipelFunds,
 } = require("../services/orderServices");
 
 const authService = require("../services/authService");
@@ -13,8 +13,8 @@ const OrderRout = express.Router();
 
 OrderRout.use(authService.protect);
 
-OrderRout.route("/:cartId").post(createCashOrder);
-OrderRout.route("/funds/:cartId").post(createCashOrder2);
+OrderRout.route("/").post(createCashOrder);
+OrderRout.route("/funds").post(createCashOrderMultipelFunds);
 OrderRout.route("/").get(filterOrderForLoggedUser, findAllOrder);
 OrderRout.route("/:id").get(findOneOrder);
 

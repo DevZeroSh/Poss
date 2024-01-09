@@ -1,5 +1,11 @@
 const express = require("express");
-const { createCompanyInfo, uploadCompanyLogo, resizerLogo, getCompanyInfo, updataCompanyInfo } = require("../services/companyInfoService");
+const {
+  createCompanyInfo,
+  uploadCompanyLogo,
+  resizerLogo,
+  getCompanyInfo,
+  updataCompanyInfo,
+} = require("../services/companyInfoService");
 
 const authService = require("../services/authService");
 

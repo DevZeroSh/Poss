@@ -10,13 +10,13 @@ const customarSchema = new mongoose.Schema({
     },
     phoneNumber:{
         type:String,
-        unique: true,
+        // unique: true,
     },
     email:{
         type:String,
-        unique: true,
-        trim:true,
-        lowercase: true,
+        // unique: true,
+        // trim:true,
+        // lowercase: true,
     },
     idNumber:{
         type:Number,

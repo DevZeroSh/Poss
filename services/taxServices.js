@@ -1,12 +1,17 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
-const TaxModel = require("../models/taxModel");
+const TaxSchema = require("../models/taxModel");
+const mongoose = require("mongoose");
 
 //@desc Get list of tax
 // @rout Get /api/tax
 // @access priveta
 exports.getTax = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const TaxModel = db.model("Tax", TaxSchema);
   const tax = await TaxModel.find();
 
   res.status(200).json({ status: "true", results: tax.length, data: tax });
@@ -16,6 +21,10 @@ exports.getTax = asyncHandler(async (req, res) => {
 // @rout Post /api/tax
 // @access priveta
 exports.createTax = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const TaxModel = db.model("Tax", TaxSchema);
   req.body.slug = slugify(req.body.name);
 
   const tax = await TaxModel.create(req.body);
@@ -26,6 +35,10 @@ exports.createTax = asyncHandler(async (req, res) => {
 // @rout Get /api/tax/:id
 // @access priveta
 exports.getOneTax = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const TaxModel = db.model("Tax", TaxSchema);
   const { id } = req.params;
   const tax = await TaxModel.findById(id);
   if (!tax) {
@@ -35,6 +48,10 @@ exports.getOneTax = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataTax = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const TaxModel = db.model("Tax", TaxSchema);
   req.body.slug = slugify(req.body.name);
 
   const tax = await TaxModel.findByIdAndUpdate(req.params.id, req.body, {
@@ -50,6 +67,10 @@ exports.updataTax = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/tax/:id
 // @access priveta
 exports.deleteTax = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const TaxModel = db.model("Tax", TaxSchema);
   const { id } = req.params;
   const tax = await TaxModel.findByIdAndDelete(id);
   if (!tax) {

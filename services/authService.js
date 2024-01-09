@@ -36,7 +36,7 @@ exports.login = asyncHandler(async (req, res, next) => {
             return next(new ApiError("The account is not active", 401));
         }
         // 5. Remove the password and pin from the user object
-        // Set sensitive fields to `undefined`
+        // Set sensitive fields to undefined
         user.password = undefined;
         user.pin = undefined;
 

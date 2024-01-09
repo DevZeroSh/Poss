@@ -11,18 +11,12 @@ const paymentTypesSchema = require("../models/paymentTypesModel");
 //@route GET  /api/financialfunds
 //@accsess Private
 exports.getFinancialFunds = asyncHandler(async (req, res) => {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-
-    db.model("PaymentType", paymentTypeSchema);
-    db.model("Currency", currencySchema);
-
-    const financialFunds = await FinancialFundsModel.find()
-        .populate({ path: "fundCurrency", select: "_id currencyCode currencyName exchangeRate" })
+    const financialFunds = await FinancialFunds.find()
+        .populate({
+            path: "fundCurrency",
+            select: "_id currencyCode currencyName exchangeRate",
+        })
         .populate({ path: "fundPaymentType" });
-
-    //console.log(financialFunds);
     res.status(200).json({ status: "true", data: financialFunds });
 });
 
@@ -113,4 +107,62 @@ exports.deletefinancialFund = asyncHandler(async (req, res, next) => {
     }
 
     res.status(200).json({ status: "true", message: "Financial fund Deleted" });
+});
+
+// @desc Transfer from fund to fund
+// @route Post /api/transferfinancialfunds
+// @access Private
+
+exports.transfer = asyncHandler(async (req, res, next) => {
+    function padZero(value) {
+        return value < 10 ? `0${value}` : value;
+    }
+    const data = new Date();
+    const Time = data.toISOString();
+
+    const { id } = req.params;
+    const { fund, quantity, amount } = req.body;
+
+    // 1) Take the first Fund
+    const financialFund = await FinancialFunds.findByIdAndUpdate({ _id: id });
+    console.log("Befor: " + financialFund.fundBalance);
+
+    // 2) Save the value with which the transfer will be made
+
+    let beforTransfer = financialFund.fundBalance - quantity;
+    let after = financialFund.fundBalance - beforTransfer;
+    financialFund.fundBalance -= after;
+
+    // 3) Find the fund to which the money will go
+    console.log("after: " + financialFund.fundBalance);
+    const funds = await FinancialFunds.findByIdAndUpdate(fund);
+    console.log("Befor Trans: " + funds.fundBalance);
+    funds.fundBalance += parseFloat(amount);
+    console.log("after Trans: " + funds.fundBalance);
+
+    // 4) Save
+    await financialFund.save();
+    await ReportsFinancialFundsModel.create({
+        date: Time,
+        amount: after,
+        type: "transfer_to",
+        financialFundId: id,
+        financialFundRest: financialFund.fundBalance,
+    });
+    await funds.save();
+    await ReportsFinancialFundsModel.create({
+        date: Time,
+        amount: after,
+        exchangeAmount: amount,
+
+        type: "transfer",
+        financialFundId: fund,
+        financialFundRest: funds.fundBalance,
+    });
+    res.status(200).json({
+        status: "true",
+        message: "Financial fund updated",
+        data: financialFund,
+        data2: funds,
+    });
 });

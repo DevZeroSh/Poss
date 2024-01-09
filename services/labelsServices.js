@@ -1,11 +1,17 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
-const LabelModel = require("../models/labelsModel");
+const labelsSchema = require("../models/labelsModel");
+const mongoose = require("mongoose");
+
 //@desc Get list of labels
 //@route GEt /api/labels
 //@accsess public
 exports.getLabels = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const LabelModel = db.model("Labels", labelsSchema);
   const Label = await LabelModel.find();
   res.status(200).json({ status: "true", results: Label.length, data: Label });
 });
@@ -13,6 +19,11 @@ exports.getLabels = asyncHandler(async (req, res, next) => {
 //@route Post /api/labels
 //@access Private
 exports.createLabel = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const LabelModel = db.model("Labels", labelsSchema);
+
   req.body.slug = slugify(req.body.name);
   const Label = await LabelModel.create(req.body);
   res
@@ -23,6 +34,10 @@ exports.createLabel = asyncHandler(async (req, res, next) => {
 //@route Get /api/labels/:id
 //@access Public
 exports.getLabel = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const LabelModel = db.model("Labels", labelsSchema);
   const { id } = req.params;
   const Label = await LabelModel.findById(id);
   if (!Label) {
@@ -34,6 +49,10 @@ exports.getLabel = asyncHandler(async (req, res, next) => {
 // @route Put /api/labels/:id
 // @access Private
 exports.updataLabel = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const LabelModel = db.model("Labels", labelsSchema);
   const Label = await LabelModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
@@ -48,6 +67,10 @@ exports.updataLabel = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/labels/:id
 // @access priveta
 exports.deleteLabel = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const LabelModel = db.model("Labels", labelsSchema);
   const { id } = req.params;
   const Label = await LabelModel.findByIdAndDelete(id);
   if (!Label) {

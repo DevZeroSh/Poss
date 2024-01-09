@@ -6,58 +6,61 @@ const supplierSchema = require("../../models/suppliersModel");
 
 //validator for create one supplier
 exports.createSupplierValidator = [
-    check("supplierName")
-        .notEmpty()
-        .withMessage("The name can not be empty")
-        .isLength({ min: 3 })
-        .withMessage("The name is too short")
-        .isLength({ max: 30 })
-        .withMessage("The name is too long"),
-    check("phoneNumber").optional().isMobilePhone(["tr-TR"]).withMessage("Invalid phone number Only accepted turkey phone numbers"),
-    check("email")
-        .optional()
-        .isEmail()
-        .withMessage("Invalid email address")
-        .custom(async (val, { req }) => {
-            const dbName = req.query.databaseName;
-            const db = mongoose.connection.useDb(dbName);
-            const supplierModel = db.model("Supplier", supplierSchema);
-            supplierModel.findOne({ email: val }).then((supplier) => {
-                if (supplier) {
-                    return Promise.reject(new Error("Email already in supplier"));
-                }
-            });
-        }),
+  check("supplierName")
+    .notEmpty()
+    .withMessage("The name can not be empty")
+    .isLength({ min: 3 })
+    .withMessage("The name is too short")
+    .isLength({ max: 30 })
+    .withMessage("The name is too long"),
+  // check("phoneNumber")
+  //   .optional()
+  //   .isMobilePhone(["tr-TR"])
+  //   .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+  // check("email")
+  //   .optional()
+  //   .isEmail()
+  //   .withMessage("Invalid email address")
+  //   .custom((val) =>
+  //     Supplier.findOne({ email: val }).then((supplier) => {
+  //       if (supplier) {
+  //         return Promise.reject(new Error("Email already in supplier"));
+  //       }
+  //     })
+  //   ),
 
     validatorMiddleware,
 ];
 
 //Validator for update an supplier
 exports.updataSupplierVlaidator = [
-    param("id").isMongoId().withMessage("Invalid supplier id"),
-    check("name")
-        .optional()
-        .notEmpty()
-        .withMessage("The name can not be empty")
-        .isLength({ min: 3 })
-        .withMessage("The name is too short")
-        .isLength({ max: 30 })
-        .withMessage("The name is too long"),
-    check("phoneNumber").optional().isMobilePhone(["tr-TR"]).withMessage("Invalid phone number Only accepted turkey phone numbers"),
-    body("email")
-        .optional()
-        .isEmail()
-        .withMessage("Invalid email address")
-        .custom(async (val, { req }) => {
-            const dbName = req.query.databaseName;
-            const db = mongoose.connection.useDb(dbName);
-            const supplierModel = db.model("Supplier", supplierSchema);
-            supplierModel.findOne({ email: val, _id: { $ne: req.params.id } }).then((supplier) => {
-                if (supplier) {
-                    return Promise.reject(new Error("Email already in supplier"));
-                }
-            });
-        }),
+  param("id").isMongoId().withMessage("Invalid supplier id"),
+  check("name")
+    .optional()
+    .notEmpty()
+    .withMessage("The name can not be empty")
+    .isLength({ min: 3 })
+    .withMessage("The name is too short")
+    .isLength({ max: 30 })
+    .withMessage("The name is too long"),
+  // check("phoneNumber")
+  //   .optional()
+  //   .isMobilePhone(["tr-TR"])
+  //   .withMessage("Invalid phone number Only accepted turkey phone numbers"),
+  // body("email")
+  //   .optional()
+  //   .isEmail()
+  //   .withMessage("Invalid email address")
+  //   .custom((val, { req }) =>
+    
+  //     Supplier.findOne({ email: val, _id: { $ne: req.params.id } }).then(
+  //       (supplier) => {
+  //         if (supplier) {
+  //           return Promise.reject(new Error("Email already in supplier"));
+  //         }
+  //       }
+  //     )
+  //   ),
 
     validatorMiddleware,
 ];

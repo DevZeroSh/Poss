@@ -1,11 +1,17 @@
 const asyncHandler = require("express-async-handler");
-const variantModel = require("../models/variantsModel");
+const variantSchema = require("../models/variantsModel");
 const ApiError = require("../utils/apiError");
+const mongoose = require("mongoose");
 
 // @desc Get List of Variant
 // @route Get /api/variant
 // @access Private
 exports.getVariants = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const variantModel = db.model("Variant", variantSchema);
+
   const variant = await variantModel.find();
   res.status(200).json({ results: variant.length, data: variant });
 });
@@ -14,6 +20,11 @@ exports.getVariants = asyncHandler(async (req, res, next) => {
 // @route Post /api/variant
 // @access Private
 exports.createVariant = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const variantModel = db.model("Variant", variantSchema);
+
   const variant = await variantModel.create(req.body);
   res
     .status(201)
@@ -24,6 +35,11 @@ exports.createVariant = asyncHandler(async (req, res) => {
 // @route Get /api/variant/:id
 // @access Private
 exports.getVariant = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const variantModel = db.model("Variant", variantSchema);
+
   const { id } = req.params;
   const variant = await variantModel.findById(id);
   if (!variant) {
@@ -38,6 +54,11 @@ exports.getVariant = asyncHandler(async (req, res, next) => {
 // @route Put /api/variant/:id
 // @access Private
 exports.updataeVariant = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const variantModel = db.model("Variant", variantSchema);
+
   const { id } = req.params;
   const variant = await variantModel.findByIdAndUpdate(id, req.body, {
     new: true,
@@ -54,6 +75,11 @@ exports.updataeVariant = asyncHandler(async (req, res, next) => {
 // @route Delete /api/variant/:id
 // @access Private
 exports.deleteVariant = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const variantModel = db.model("Variant", variantSchema);
+
   const { id } = req.params;
   const variant = await variantModel.findByIdAndDelete(id);
   if (!variant) {

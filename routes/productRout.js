@@ -1,15 +1,13 @@
 const express = require("express");
 const {
-    getProduct,
-    createProduct,
-    getOneProduct,
-    deleteProduct,
-    updateProduct,
-    uploadProductImage,
-    resizerImage,
-    addProduct,
-    exportProductData,
-    exportData,
+  getProduct,
+  createProduct,
+  getOneProduct,
+  deleteProduct,
+  updateProduct,
+  uploadProductImage,
+  resizerImage,
+  addProduct,
 } = require("../services/productServices");
 const {
     craeteProductValidator,
@@ -29,9 +27,7 @@ const { createConnection } = require("../middlewares/switchConnectDb");
 
 const productRout = express.Router();
 
-productRout.post("/add", authService.protect, uploads.single("file"), addProduct);
-productRout.post("/export", authService.protect, exportData);
-productRout.post("/export-pdoduct", authService.protect, exportProductData);
+productRout.post("/add", uploads.single("file"), addProduct);
 
 productRout
     .route("/")

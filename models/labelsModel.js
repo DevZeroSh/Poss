@@ -15,5 +15,5 @@ const labelsSchema = new mongoose.Schema({
   },
 });
 
-const labelsModel = mongoose.model("Labels", labelsSchema);
-module.exports = labelsModel;
+
+module.exports = labelsSchema;
