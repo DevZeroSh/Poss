@@ -186,7 +186,12 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
 // @route add /api/add
 // @access Private
 exports.addProduct = asyncHandler(async (req, res) => {
+
+
+
   try {
+    const productModel = db.model("Product", productSchema);
+
     const { buffer } = req.file;
 
     let csvData;
