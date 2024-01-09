@@ -60,11 +60,11 @@ exports.updataCustomarVlaidator = [
     // body("email")
     //     .optional()
     //     .custom((val,{req}) => Customar.findOne({ email: val, _id: { $ne: req.params.id }}).then((customar) => {
-         
+
     //         if (customar) {
     //           return Promise.reject(new Error("Email already in customar"));
     //         }
-    //     }) 
+    //     })
     //     ),
 
     validatorMiddleware,
