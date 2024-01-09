@@ -151,6 +151,11 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
 // @route Put /api/product/:id
 // @access Private
 exports.updateProduct = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+
   const { id } = req.params;
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
@@ -170,6 +175,11 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 // @route Delete /api/product/:id
 // @access Private
 exports.deleteProduct = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  
   const { id } = req.params;
   const product = await productModel.findByIdAndUpdate(
     id,
