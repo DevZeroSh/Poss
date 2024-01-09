@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const companyIfnoSchema = new mongoose.Schema({
-    
     companyName: {
         type: String,
         unique: [true, "Name must be unique"],
@@ -33,6 +32,6 @@ companyIfnoSchema.post("save", (doc) => {
     setImageURL(doc);
 });
 
-const CompanyInfoModel = mongoose.model("CompanyInfo", companyIfnoSchema);
+//const CompanyInfoModel = mongoose.model("CompanyInfo", companyIfnoSchema);
 
-module.exports = CompanyInfoModel;
+module.exports = companyIfnoSchema;

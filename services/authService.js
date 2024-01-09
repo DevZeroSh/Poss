@@ -1,5 +1,4 @@
 const asyncHandler = require("express-async-handler");
-const RoleModel = require("../models/roleModel");
 const ApiError = require("../utils/apiError");
 const createToken = require("../utils/createToken");
 const { getDashboardRoles } = require("./roleDashboardServices");
@@ -114,7 +113,13 @@ exports.protect = asyncHandler(async (req, res, next) => {
 exports.allowedTo = (role) =>
     asyncHandler(async (req, res, next) => {
         const id = req.user._id;
+        const dbName = req.query.databaseName;
         try {
+            const db = mongoose.connection.useDb(dbName);
+
+            const employeeModel = db.model("Employee", emoloyeeShcema);
+            const rolesModel = db.model("Roles", rolesShcema);
+
             //get all user's roles
             const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
             if (!employee) {
@@ -122,9 +127,14 @@ exports.allowedTo = (role) =>
             }
 
             //4-get all roles
-            const roles = await RoleModel.findById(employee.selectedRoles[0]);
+            const roles = await rolesModel.findById(employee.selectedRoles[0]);
+
+            if (!roles) {
+                return next(new ApiError("Roles not found for the user", 404));
+            }
+
             const { rolesDashboard, rolesPos } = roles;
-            const [dashRoleName, poseRoleName] = await Promise.all([getDashboardRoles(rolesDashboard), getPosRoles(rolesPos)]);
+            const [dashRoleName, poseRoleName] = await Promise.all([getDashboardRoles(rolesDashboard, db), getPosRoles(rolesPos, db)]);
 
             let allUserRoles = [...dashRoleName, ...poseRoleName];
 

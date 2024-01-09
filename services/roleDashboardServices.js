@@ -1,10 +1,15 @@
 const asyncHandler = require("express-async-handler");
-const RoleDashboardModel = require("../models/roleDashboardModel");
 const roleDashboardSchema = require("../models/roleDashboardModel");
+const mongoose = require("mongoose");
 
 //get all roles dashboard
 //admin
 exports.getRoleDashboard = asyncHandler(async (req, res, next) => {
+    const dbName = req.query.databaseName;
+    console.log(dbName);
+    const db = mongoose.connection.useDb(dbName);
+    const RoleDashboardModel = db.model("RoleDashboard", roleDashboardSchema);
+
     const rolesDashboard = await RoleDashboardModel.find();
     res.status(201).json({ status: "true", data: rolesDashboard });
 });

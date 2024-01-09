@@ -55,5 +55,5 @@ expensesSchema.post("save", (doc) => {
     setFileURL(doc);
 });
 
-const expensesModel = mongoose.model("Expenses", expensesSchema);
-module.exports = expensesModel;
+//const expensesModel = mongoose.model("Expenses", expensesSchema);
+module.exports = expensesSchema;

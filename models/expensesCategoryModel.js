@@ -8,5 +8,4 @@ const expensesCategorySchama = new mongoose.Schema({
     expenseCategoryDescription: String,
 });
 
-const expensesCategoryModel = mongoose.model("ExpensesCategory", expensesCategorySchama);
-module.exports = expensesCategoryModel;
+module.exports = expensesCategorySchama;

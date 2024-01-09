@@ -28,6 +28,6 @@ const reportsFinancialFundsSchema = new mongoose.Schema({
     financialFundRest: Number,
 });
 
-const ReportsFinancialFundsModel = mongoose.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+//const ReportsFinancialFundsModel = mongoose.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
-module.exports = ReportsFinancialFundsModel;
+module.exports = reportsFinancialFundsSchema;

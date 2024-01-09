@@ -46,5 +46,5 @@ const customarSchema = new mongoose.Schema({
 
 },{timestamps:true});
 
-module.exports = mongoose.model('Customar',customarSchema);
+module.exports = customarSchema;
 

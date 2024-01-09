@@ -5,6 +5,7 @@ const financialFundsSchema = require("../models/financialFundsModel");
 const mongoose = require("mongoose");
 const paymentTypeSchema = require("../models/paymentTypesModel");
 const currencySchema = require("../models/currencyModel");
+const paymentTypesSchema = require("../models/paymentTypesModel");
 
 //@desc Get list of Financial Funds
 //@route GET  /api/financialfunds
@@ -29,7 +30,11 @@ exports.getFinancialFunds = asyncHandler(async (req, res) => {
 // @route Post /api/financialfunds
 // @access Private
 exports.createFinancialFunds = asyncHandler(async (req, res) => {
-    const financialFunds = await FinancialFunds.create(req.body);
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
+    const financialFunds = await FinancialFundsModel.create(req.body);
     res.status(201).json({
         status: "true",
         message: "Financial Fund Inserted",
@@ -43,7 +48,13 @@ exports.createFinancialFunds = asyncHandler(async (req, res) => {
 exports.getOneFinancialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
-    const financialFunds = await FinancialFunds.findById(id)
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+    db.model("PaymentType", paymentTypeSchema);
+    db.model("Currency", currencySchema);
+
+    const financialFunds = await FinancialFundsModel.findById(id)
         .populate({
             path: "fundCurrency",
             select: "_id currencyCode currencyName exchangeRate",
@@ -57,7 +68,13 @@ exports.getOneFinancialFund = asyncHandler(async (req, res, next) => {
 //@access Private
 exports.financialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const financialFund = await FinancialFunds.findByIdAndUpdate({ _id: id }, req.body, {
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+    db.model("PaymentType", paymentTypesSchema);
+    db.model("Currency", currencySchema);
+    const financialFund = await FinancialFundsModel.findByIdAndUpdate({ _id: id }, req.body, {
         new: true,
     })
         .populate({
@@ -83,10 +100,14 @@ exports.financialFund = asyncHandler(async (req, res, next) => {
 exports.deletefinancialFund = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
     //check if id is used in anther place or not
     //if (checkIdIfUsed(id, "FinancialFunds")) {}
 
-    const financialFund = await FinancialFunds.findByIdAndDelete(id);
+    const financialFund = await FinancialFundsModel.findByIdAndDelete(id);
     if (!financialFund) {
         return next(new ApiError(`No financial fund for this id ${id}`, 404));
     }

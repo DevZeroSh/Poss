@@ -1,11 +1,15 @@
 const asyncHandler = require("express-async-handler");
 const FinancialFunds = require("../models/financialFundsModel");
-const expensesModel = require("../models/expensesModel");
+//const expensesModel = require("../models/expensesModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const TaxModel = require("../models/taxModel");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
+const expensesSchema = require("../models/expensesModel");
+const { default: mongoose } = require("mongoose");
+const expensesCategorySchama = require("../models/expensesCategoryModel");
+const financialFundsSchema = require("../models/financialFundsModel");
 
 const multerStorage = multer.diskStorage({
     filename: function (req, file, callback) {
@@ -42,6 +46,12 @@ exports.uploadFiles = upload.any();
 // @route Post /api/expenses
 exports.createExpenses = asyncHandler(async (req, res, next) => {
     try {
+        const dbName = req.query.databaseName;
+        const db = mongoose.connection.useDb(dbName);
+
+        const expensesModel = db.model("Expenses", expensesSchema);
+        const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
         const uploadedFiles = req.files.map((file) => `${file.filename}`);
 
         const taxId = req.body.expenseTax;
@@ -56,7 +66,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
             const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
             // Find the financial fund by ID
-            const financialFund = await FinancialFunds.findById(fundId);
+            const financialFund = await FinancialFundsModel.findById(fundId);
             if (!financialFund) {
                 return next(new ApiError(`Financial fund not found`, 404));
             }
@@ -88,12 +98,10 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
                 financialFundRest: financialFundRest,
             });
             //End create a record in reports financial fund table
-
             res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
         } else {
             req.body.expenseFinancialFund = "Unpaid";
             const nextCounter = (await expensesModel.countDocuments()) + 1;
-            console.log("2");
             let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
             res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
         }
@@ -107,7 +115,11 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 //Get All Expenses
 //@rol: who has rol can Get Expenses Data
 exports.getExpenses = asyncHandler(async (req, res, next) => {
-    //.populate({ path: "expenseCurrency", select: "currencyName _id" })
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const expensesModel = db.model("Expenses", expensesSchema);
+    db.model("ExpensesCategory", expensesCategorySchama);
+
     const expenses = await expensesModel.find().populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" });
     res.status(200).json({ status: "true", data: expenses });
 });
@@ -115,8 +127,14 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
 //Get One Expense
 //@rol: who has rol can Get the Expense's Data
 exports.getExpense = asyncHandler(async (req, res, next) => {
-    // .populate({ path: "expenseCurrency", select: "currencyName _id" })
     const { id } = req.params;
+    const dbName = req.query.databaseName;
+
+    const db = mongoose.connection.useDb(dbName);
+
+    const expensesModel = db.model("Expenses", expensesSchema);
+    db.model("ExpensesCategory", expensesCategorySchama);
+
     const expense = await expensesModel
         .findById(id)
         .populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" });
@@ -147,7 +165,6 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 // @access Private
 exports.updateExpense = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    console.log(req.body);
 
     const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
