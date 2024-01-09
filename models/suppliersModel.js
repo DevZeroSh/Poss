@@ -16,7 +16,7 @@ const supplierSchema = new mongoose.Schema(
       type: String,
       // unique: true,
       // trim:true,
-      // lowercase: true,
+      lowercase: true,
     },
     companyName: String,
     address: String,

@@ -1,13 +1,25 @@
 const asyncHandler = require("express-async-handler");
-const RoleModel = require("../models/roleModel");
 const ApiError = require("../utils/apiError");
+const rolesShcema = require("../models/roleModel");
+const mongoose = require("mongoose");
+const roleDashboardSchema = require("../models/roleDashboardModel");
+const rolePosSchema = require("../models/rolePosModel");
 
 //@desc Get list of Role
 //@route GEt  /api/role
 //@accsess Private
 exports.getRoles = asyncHandler(async (req, res) => {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("Roles", rolesShcema);
 
-    const role = await RoleModel.find().populate({ path: "rolesDashboard", select: "title _id" }).populate({ path: "rolesPos", select: "title _id" });
+    db.model("RoleDashboard", roleDashboardSchema);
+    db.model("RolePos", rolePosSchema);
+
+    const role = await rolesModel
+        .find()
+        .populate({ path: "rolesDashboard", select: "title _id" })
+        .populate({ path: "rolesPos", select: "title _id" });
     res.status(200).json({ status: "true", data: role });
 });
 
@@ -15,7 +27,10 @@ exports.getRoles = asyncHandler(async (req, res) => {
 //@route Post /api/role
 //@access Private
 exports.createRole = asyncHandler(async (req, res, next) => {
-    const role = await RoleModel.create(req.body);
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("Roles", rolesShcema);
+    const role = await rolesModel.create(req.body);
     res.status(200).json({ status: "true", message: "Role Inserted", data: role });
 });
 
@@ -24,7 +39,16 @@ exports.createRole = asyncHandler(async (req, res, next) => {
 //@access Private
 exports.getRole = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const role = await RoleModel.findById(id)
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("Roles", rolesShcema);
+
+    db.model("RoleDashboard", roleDashboardSchema);
+    db.model("RolePos", rolePosSchema);
+
+    const role = await rolesModel
+        .findById(id)
         .populate({ path: "rolesDashboard", select: "title _id" })
         .populate({ path: "rolesPos", select: "title _id" });
     if (!role) {
@@ -38,9 +62,18 @@ exports.getRole = asyncHandler(async (req, res, next) => {
 //@access Private
 exports.updataRole = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const role = await RoleModel.findByIdAndUpdate({ _id: id }, req.body, {
-        new: true,
-    })
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("Roles", rolesShcema);
+
+    db.model("RoleDashboard", roleDashboardSchema);
+    db.model("RolePos", rolePosSchema);
+
+    const role = await rolesModel
+        .findByIdAndUpdate({ _id: id }, req.body, {
+            new: true,
+        })
         .populate({ path: "rolesDashboard", select: "title _id" })
         .populate({ path: "rolesPos", select: "title _id" });
     if (!role) {
@@ -54,7 +87,11 @@ exports.updataRole = asyncHandler(async (req, res, next) => {
 //@access priveta
 exports.deleteRole = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const role = await RoleModel.findByIdAndDelete(id);
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("Roles", rolesShcema);
+    const role = await rolesModel.findByIdAndDelete(id);
     if (!role) {
         return next(new ApiError(`No Role for this id ${id}`, 404));
     }

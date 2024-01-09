@@ -9,7 +9,6 @@ const paymentTypeSchema = require("../models/paymentTypesModel");
 exports.getPaymentTypes = asyncHandler(async (req, res) => {
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
-
     const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
 
     const paymentType = await PaymentTypesModel.find();
@@ -20,7 +19,10 @@ exports.getPaymentTypes = asyncHandler(async (req, res) => {
 //route Post /api/paymenttype
 //@access Private
 exports.createPaymentType = asyncHandler(async (req, res, next) => {
-    const paymentType = await PaymentTypes.create(req.body);
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
+    const paymentType = await PaymentTypesModel.create(req.body);
 
     res.status(200).json({
         status: "true",
@@ -34,7 +36,11 @@ exports.createPaymentType = asyncHandler(async (req, res, next) => {
 //@access Private
 exports.getOnePaymentType = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const paymentType = await PaymentTypes.findById(id);
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
+
+    const paymentType = await PaymentTypesModel.findById(id);
     if (!paymentType) {
         return next(new ApiError(`There is no payment type with this id ${id}`, 404));
     } else {
@@ -47,7 +53,12 @@ exports.getOnePaymentType = asyncHandler(async (req, res, next) => {
 //@access Private
 exports.updataPaymentType = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const paymentType = await PaymentTypes.findByIdAndUpdate(id, req.body, {
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
+
+    const paymentType = await PaymentTypesModel.findByIdAndUpdate(id, req.body, {
         new: true,
     });
 
@@ -67,7 +78,12 @@ exports.updataPaymentType = asyncHandler(async (req, res, next) => {
 // @access priveta
 exports.deleteOnePaymentType = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
-    const paymentType = await PaymentTypes.findByIdAndDelete(id);
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PaymentTypesModel = db.model("PaymentType", paymentTypeSchema);
+
+    const paymentType = await PaymentTypesModel.findByIdAndDelete(id);
 
     if (!paymentType) {
         return next(new ApiError(`No payment type for this id ${id}`, 404));

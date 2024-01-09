@@ -1,11 +1,15 @@
 const asyncHandler = require("express-async-handler");
-const rolePosModel = require("../models/rolePosModel");
 const rolePosSchema = require("../models/rolePosModel");
+const mongoose = require("mongoose");
 
 //get all roles dashboard
 //admin
 exports.getRolePos = asyncHandler(async (req, res, next) => {
-    const rolesPos = await rolePosModel.find();
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const rolesModel = db.model("RolePos", rolePosSchema);
+
+    const rolesPos = await rolesModel.find();
     res.status(201).json({ status: "true", data: rolesPos });
 });
 

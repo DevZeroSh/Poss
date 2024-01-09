@@ -1,11 +1,16 @@
 const asyncHandler = require("express-async-handler");
-const currencyModel = require("../models/currencyModel");
+const currencySchema = require("../models/currencyModel");
 const ApiError = require("../utils/apiError");
+const mongoose = require("mongoose");
 
 // @desc Get list of Currency
 // @route GEt /api/currency
 // @accsess public
 exports.getCurrencies = asyncHandler(async (req, res) => {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
+
     const currencies = await currencyModel.find();
     res.status(200).json({ status: "true", data: currencies });
 });
@@ -14,6 +19,11 @@ exports.getCurrencies = asyncHandler(async (req, res) => {
 // @route Post /api/currency
 // @access Private
 exports.createCurrency = asyncHandler(async (req, res, next) => {
+    
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
+
     const currency = await currencyModel.create(req.body);
     res.status(200).json({
         status: "true",
@@ -27,6 +37,10 @@ exports.createCurrency = asyncHandler(async (req, res, next) => {
 // @access Public
 exports.getCurrency = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
+
     const currency = await currencyModel.findById(id);
     if (!currency) {
         return next(new ApiError(`No currency for this id ${id}`, 404));
@@ -38,6 +52,10 @@ exports.getCurrency = asyncHandler(async (req, res, next) => {
 // @route Put /api/currency/:id
 // @access Private
 exports.updataCurrency = asyncHandler(async (req, res, next) => {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
+
     if (!req.body.is_primary || req.body.is_primary == "" || req.body.is_primary == "false" || req.body.is_primary === undefined) {
         const currency = await currencyModel.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!currency) {
@@ -59,7 +77,13 @@ exports.updataCurrency = asyncHandler(async (req, res, next) => {
 // @rout Delete /api/currency/:id
 // @access priveta
 exports.deleteCurrency = asyncHandler(async (req, res, next) => {
+
     const { id } = req.params;
+    const dbName = req.query.databaseName;
+
+    const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
+
     const currency = await currencyModel.findById(id);
 
     if (!currency) {

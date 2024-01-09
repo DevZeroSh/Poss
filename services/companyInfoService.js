@@ -1,15 +1,18 @@
 const asyncHandler = require("express-async-handler");
-const CompanyInfnoModel = require("../models/companyInfoModel");
-const currencyModel = require("../models/currencyModel");
-
+const companyIfnoSchema = require("../models/companyInfoModel");
+const currencySchema = require("../models/currencyModel");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
-const roleDashboardModel = require("../models/roleDashboardModel");
-const rolePosModel = require("../models/rolePosModel");
-const roleModel = require("../models/roleModel");
-const { createConnection } = require("../middlewares/switchConnectDb");
+// const roleDashboardModel = require("../models/roleDashboardModel");
+// const rolePosModel = require("../models/rolePosModel");
+// const roleModel = require("../models/roleModel");
+//const { createConnection } = require("../middlewares/switchConnectDb");
+const mongoose = require("mongoose");
+const rolePosSchema = require("../models/rolePosModel");
+const roleDashboardSchema = require("../models/roleDashboardModel");
+const rolesShcema = require("../models/roleModel");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -39,8 +42,16 @@ exports.resizerLogo = asyncHandler(async (req, res, next) => {
 //@route post /api/companyinfo
 exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     try {
-        //console.log(req.body.databaseName);
-        await createConnection(req.body.databaseName);
+        const dbName = req.body.databaseName;
+        const db = mongoose.connection.useDb(dbName);
+
+        const CompanyInfnoModel = db.model("CompanyInfo", companyIfnoSchema);
+        const roleDashboardModel = db.model("RoleDashboard", roleDashboardSchema);
+        const rolePosModel = db.model("RolePos", rolePosSchema);
+        const rolesModel = db.model("Roles", rolesShcema);
+        const currencyModel = db.model("Currency", currencySchema);
+
+        //await createConnection(req.body.databaseName);
         //1-craet a company
         const companyInfo = await CompanyInfnoModel.create(req.body);
 
@@ -110,6 +121,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
             { title: "delete pricing method", desc: "pricing method" },
             { title: "new pricing method", desc: "pricing method" },
         ];
+
         const mainDashboardRoles = await roleDashboardModel.insertMany(allDashRoles);
 
         //3-insert all pos roles
@@ -117,15 +129,16 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
             { title: "discount", desc: "discount" },
             { title: "pos", desc: "pos" },
         ];
+
         const mainPosRoles = await rolePosModel.insertMany(allPosRoles);
 
         //4-insert the main role
         // Extract IDs from the inserted documents
         const dashboardRoleIds = mainDashboardRoles.map((role) => role._id);
         const posRoleIds = mainPosRoles.map((role) => role._id);
-        const insertMainRole = await roleModel.create({
+        const insertMainRole = await rolesModel.create({
             name: "The owner", // Replace with the actual role name
-            description: "YourRoleDescription", // Replace with the actual role description
+            description: "Role Description", // Replace with the actual role description
             rolesDashboard: dashboardRoleIds,
             rolesPos: posRoleIds,
         });
@@ -155,6 +168,10 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
 //Get company info
 //@rol: who has rol can Get Customars Data
 exports.getCompanyInfo = asyncHandler(async (req, res, next) => {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const CompanyInfnoModel = db.model("CompanyInfo", companyIfnoSchema);
+    const currencyModel = db.model("Currency", currencySchema);
     const companyInfos = await CompanyInfnoModel.find();
     const currency = await currencyModel.find({ is_primary: true });
 
@@ -162,10 +179,13 @@ exports.getCompanyInfo = asyncHandler(async (req, res, next) => {
 });
 
 exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
-    console.log("s")
-    const { id } = req.params;
-    console.log(id);
     try {
+        const { id } = req.params;
+        const dbName = req.query.databaseName;
+
+        const db = mongoose.connection.useDb(dbName);
+        const CompanyInfnoModel = db.model("CompanyInfo", companyIfnoSchema);
+
         const companyInfo = await CompanyInfnoModel.findByIdAndUpdate({ _id: id }, req.body, { new: true });
         if (!companyInfo) {
             return next(new ApiError(`There is no company with this id ${id}`, 404));

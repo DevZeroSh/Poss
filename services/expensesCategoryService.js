@@ -1,11 +1,16 @@
 const asyncHandler = require("express-async-handler");
-const expensesCategoryModel = require("../models/expensesCategoryModel");
+const expensesCategorySchama = require("../models/expensesCategoryModel");
 const ApiError = require("../utils/apiError");
+const mongoose = require("mongoose");
 
 // Create new expense category
 // @route get /api/expenseCategories
 exports.createExpenseCategory = asyncHandler(async (req, res, next) => {
     try {
+        const dbName = req.query.databaseName;
+        const db = mongoose.connection.useDb(dbName);
+        const expensesCategoryModel = db.model("ExpensesCategory", expensesCategorySchama);
+
         const expenseCategory = await expensesCategoryModel.create(req.body);
         res.status(201).json({
             status: "true",
@@ -21,10 +26,14 @@ exports.createExpenseCategory = asyncHandler(async (req, res, next) => {
 // @route get /api/expenseCategories
 exports.getExpenseCategories = asyncHandler(async (req, res, next) => {
     try {
+        const dbName = req.query.databaseName;
+        const db = mongoose.connection.useDb(dbName);
+        const expensesCategoryModel = db.model("ExpensesCategory", expensesCategorySchama);
+
         const expenseCategories = await expensesCategoryModel.find();
         res.status(200).json({ status: "true", data: expenseCategories });
     } catch (error) {
-        return next(new ApiError(error, 404));
+        return next(new ApiError(error, 404)); 
     }
 });
 
@@ -33,6 +42,10 @@ exports.getExpenseCategories = asyncHandler(async (req, res, next) => {
 exports.getOneExpenseCategory = asyncHandler(async (req, res, next) => {
     try {
         const { id } = req.params;
+        const dbName = req.query.databaseName;
+        const db = mongoose.connection.useDb(dbName);
+        const expensesCategoryModel = db.model("ExpensesCategory", expensesCategorySchama);
+
         const expenseCategory = await expensesCategoryModel.findById(id);
         if (!expenseCategory) {
             return next(new ApiError(`There is no expense category with this id ${id}`, 404));
@@ -48,6 +61,9 @@ exports.getOneExpenseCategory = asyncHandler(async (req, res, next) => {
 // @route delete /api/expenseCategories/:id
 exports.deleteOneExpenseCategory = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const expensesCategoryModel = db.model("ExpensesCategory", expensesCategorySchama);
     const expenseCategory = await expensesCategoryModel.findByIdAndDelete(id);
 
     if (!expenseCategory) {
@@ -61,6 +77,10 @@ exports.deleteOneExpenseCategory = asyncHandler(async (req, res, next) => {
 // @route delete /api/expenseCategories/:id
 exports.updateOneExpenseCategory = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const expensesCategoryModel = db.model("ExpensesCategory", expensesCategorySchama);
+
     const expenseCategory = await expensesCategoryModel.findByIdAndUpdate({ _id: id }, req.body, {
         new: true,
     });
