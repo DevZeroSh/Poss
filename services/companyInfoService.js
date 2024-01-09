@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const companyIfnoSchema = require("../models/companyInfoModel");
 const currencySchema = require("../models/currencyModel");
@@ -5,11 +6,6 @@ const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
-// const roleDashboardModel = require("../models/roleDashboardModel");
-// const rolePosModel = require("../models/rolePosModel");
-// const roleModel = require("../models/roleModel");
-//const { createConnection } = require("../middlewares/switchConnectDb");
-const mongoose = require("mongoose");
 const rolePosSchema = require("../models/rolePosModel");
 const roleDashboardSchema = require("../models/roleDashboardModel");
 const rolesShcema = require("../models/roleModel");

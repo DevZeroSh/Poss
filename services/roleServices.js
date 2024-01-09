@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const rolesShcema = require("../models/roleModel");
-const mongoose = require("mongoose");
 const roleDashboardSchema = require("../models/roleDashboardModel");
 const rolePosSchema = require("../models/rolePosModel");
 

@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const customarSchema = require("../models/customarModel");
-const mongoose = require("mongoose");
 
 //Create New Customar
 //@rol: Who has rol can create

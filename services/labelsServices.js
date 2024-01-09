@@ -1,8 +1,8 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
 const labelsSchema = require("../models/labelsModel");
-const mongoose = require("mongoose");
 
 //@desc Get list of labels
 //@route GEt /api/labels

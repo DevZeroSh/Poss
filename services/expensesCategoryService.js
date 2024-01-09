@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const expensesCategorySchama = require("../models/expensesCategoryModel");
 const ApiError = require("../utils/apiError");
-const mongoose = require("mongoose");
 
 // Create new expense category
 // @route get /api/expenseCategories

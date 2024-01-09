@@ -1,6 +1,6 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const rolePosSchema = require("../models/rolePosModel");
-const mongoose = require("mongoose");
 
 //get all roles dashboard
 //admin

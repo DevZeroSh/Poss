@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const discountSchema = require("../models/discountModel");
 const ApiError = require("../utils/apiError");
-const mongoose = require("mongoose");
 
 //Create New discount
 //@rol: Who has rol can create the discount

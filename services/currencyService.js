@@ -1,7 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const currencySchema = require("../models/currencyModel");
 const ApiError = require("../utils/apiError");
-const mongoose = require("mongoose");
 
 // @desc Get list of Currency
 // @route GEt /api/currency
