@@ -10,6 +10,7 @@ const financialFundsSchema = require("../models/financialFundsModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const multer = require("multer");
 const mongoose = require("mongoose");
+const emoloyeeShcema = require("../models/employeeModel");
 const upload = multer();
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -20,7 +21,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   const productModel = db.model("Product", productSchema);
 
   const cartItems = req.body.cartItems;
@@ -287,8 +291,10 @@ exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const orderModel = db.model("Orders", orderSchema);
-  console.log(orderModel);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const roles = await roleModel.findById(req.user.selectedRoles[0]);
   const dashboardRolesIds = roles.rolesDashboard;
   let dashRoleName = await getDashboardRoles(dashboardRolesIds);
@@ -309,7 +315,10 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
-
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const order = await orderModel.find();
   res.status(200).json({ status: "true", results: order.length, data: order });
 });
@@ -317,7 +326,10 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const orderModel = db.model("Orders", orderSchema);
 
   const { id } = req.params;

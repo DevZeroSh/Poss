@@ -6,10 +6,13 @@ const Supplier = require("../models/suppliersModel");
 const FinancialFunds = require("../models/financialFundsModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const mongoose = require("mongoose");
+const supplierSchema = require("../models/suppliersModel");
+const emoloyeeShcema = require("../models/employeeModel");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  const supplierModel = db.model("Supplier", supplierSchema);
 
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
@@ -77,7 +80,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
-    console.log(taxRate);
     if (!productDoc) {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
@@ -156,6 +158,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  db.model("Supplier", supplierSchema)
+  db.model("Employee", emoloyeeShcema);
 
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
@@ -172,6 +176,8 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
 exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  db.model("Supplier", supplierSchema);
+  db.model("Employee", emoloyeeShcema);
 
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
@@ -180,7 +186,7 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
   const ProductInvoices = await PurchaseInvoicesModel.findById(id);
-  console.log(ProductInvoices);
+
   if (!ProductInvoices) {
     return next(new ApiError(`No ProductInvoices for this id ${id}`, 404));
   }
@@ -190,6 +196,8 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
 exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  db.model("Supplier", supplierSchema);
+  db.model("Employee", emoloyeeShcema);
 
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
