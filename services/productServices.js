@@ -62,15 +62,23 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
 
   // Search for product or qr
-  let mongooseQuery = productModel.find({});
+  let mongooseQuery = productModel.find({ archives: { $ne: true } });
 
   if (req.query.keyword) {
     const query = {
-      $or: [
-        { name: { $regex: req.query.keyword, $options: "i" } },
-        { qr: { $regex: req.query.keyword, $options: "i" } },
+      $and: [
+        { archives: { $ne: true } },
+        {
+          $or: [
+            { name: { $regex: req.query.keyword, $options: "i" } },
+            { qr: { $regex: req.query.keyword, $options: "i" } },
+          ],
+        },
       ],
     };
     mongooseQuery = mongooseQuery.find(query);
@@ -78,21 +86,19 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
-  
   const product = await mongooseQuery;
-
   const notices = [];
 
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
-      if (element.archives !== "true")
+      if (element.archives !== "true") {
         notices.push(` ${element.qr} is low on stock.`);
+      }
     }
   });
-  res
-    .status(200)
-    .json({ status: "true", results: product.length, data: product, notices });
+  res.status(200).json({ status: "true", results: product.length, data: product, notices });
 });
+
 
 // @desc Create  product
 // @route Post /api/product

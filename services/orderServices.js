@@ -9,6 +9,7 @@ const { getDashboardRoles } = require("./roleDashboardServices");
 const FinancialFunds = require("../models/financialFundsModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const multer = require("multer");
+const mongoose = require("mongoose");
 const upload = multer();
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -141,7 +142,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
- 
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -279,8 +280,6 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 });
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
-
-
   const roles = await roleModel.findById(req.user.selectedRoles[0]);
   const dashboardRolesIds = roles.rolesDashboard;
   let dashRoleName = await getDashboardRoles(dashboardRolesIds);
@@ -311,7 +310,7 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
-  
+
   const { id } = req.params;
   const order = await orderModel.findById(id);
   if (!order) {
