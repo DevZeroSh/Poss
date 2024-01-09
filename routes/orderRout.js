@@ -15,7 +15,7 @@ OrderRout.use(authService.protect);
 
 OrderRout.route("/").post(createCashOrder);
 OrderRout.route("/funds").post(createCashOrderMultipelFunds);
-OrderRout.route("/").get(filterOrderForLoggedUser, findAllOrder);
+OrderRout.route("/").get(findAllOrder);
 OrderRout.route("/:id").get(findOneOrder);
 
 module.exports = OrderRout;

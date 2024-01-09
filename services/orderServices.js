@@ -1,13 +1,13 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 
-const Product = require("../models/productModel");
+const productSchema = require("../models/productModel");
 const Cart = require("../models/cartModel");
 const orderSchema = require("../models/orderModel");
 const roleModel = require("../models/roleModel");
 const { getDashboardRoles } = require("./roleDashboardServices");
-const FinancialFunds = require("../models/financialFundsModel");
-const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
+const financialFundsSchema = require("../models/financialFundsModel");
+const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const multer = require("multer");
 const mongoose = require("mongoose");
 const upload = multer();
@@ -19,6 +19,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const productModel = db.model("Product", productSchema);
 
   const cartItems = req.body.cartItems;
   // app settings
@@ -65,8 +68,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // use totalOrderPrice as an array
   const financialFundsId = req.body.financialFunds;
 
+  console.log(financialFundsId);
   // 1) Find the financial funds document based on the provided ID
-  const financialFunds = await FinancialFunds.findById(financialFundsId);
+  const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
   if (!financialFunds) {
     return next(
@@ -130,7 +134,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     );
     console.log(cartItems);
     console.log(bulkOption);
-    await Product.bulkWrite(bulkOption, {});
+    await productModel.bulkWrite(bulkOption, {});
     await financialFunds.save();
   }
 
@@ -280,6 +284,11 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 });
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+  console.log(orderModel);
   const roles = await roleModel.findById(req.user.selectedRoles[0]);
   const dashboardRolesIds = roles.rolesDashboard;
   let dashRoleName = await getDashboardRoles(dashboardRolesIds);
