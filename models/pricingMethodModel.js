@@ -15,5 +15,4 @@ const pricingMethodSchema = new mongoose.Schema({
     },
 });
 
-const PricingMethodModel = mongoose.model("PricingMethod", pricingMethodSchema);
-module.exports = PricingMethodModel;
+module.exports = pricingMethodSchema;

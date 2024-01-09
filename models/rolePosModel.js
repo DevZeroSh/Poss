@@ -5,6 +5,4 @@ const rolePosSchema = new mongoose.Schema({
     desc: String,
 });
 
-//const rolePosModel = mongoose.model("RolePos", rolePosSchema);
-
 module.exports = rolePosSchema;

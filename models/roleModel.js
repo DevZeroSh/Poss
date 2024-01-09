@@ -23,6 +23,4 @@ const rolesShcema = new mongoose.Schema({
     ],
 });
 
-const roleModel = mongoose.model("Roles", rolesShcema);
-
 module.exports = rolesShcema;

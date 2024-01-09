@@ -1,14 +1,20 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-const categoryModel = require("../models/CategoryModel");
-const PricingMethodModel = require("../models/pricingMethodModel");
-const { default: mongoose } = require("mongoose");
+//const categoryModel = require("../models/CategoryModel");
+const pricingMethodSchema = require("../models/pricingMethodModel");
+const mongoose = require("mongoose");
+const categorySchema = require("../models/CategoryModel");
 
 //@desc Get list of pricing methods
 //@route GET  /api/pricingmethod
 //@accsess Private
 exports.getPricingMethods = asyncHandler(async (req, res) => {
-    const pricingMethod = await PricingMethodModel.find().populate({ path: "selectedCategory"});
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PricingMethodModel = db.model("PricingMethod", pricingMethodSchema);
+    db.model("Category", categorySchema);
+
+    const pricingMethod = await PricingMethodModel.find().populate({ path: "selectedCategory" });
     res.status(200).json({ status: "true", data: pricingMethod });
 });
 
@@ -16,8 +22,11 @@ exports.getPricingMethods = asyncHandler(async (req, res) => {
 //@route POST /api/pricingmethod
 //accsess private
 exports.createPricingMethod = asyncHandler(async (req, res) => {
-    // const catId = req.body.selectedCategory;
     const catId = new mongoose.Types.ObjectId(req.body.selectedCategory);
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PricingMethodModel = db.model("PricingMethod", pricingMethodSchema);
+    const categoryModel = db.model("categories", categorySchema);
 
     const category = await categoryModel.findById(catId);
 
@@ -96,6 +105,10 @@ exports.createPricingMethod = asyncHandler(async (req, res) => {
 //accsess private
 exports.getSpecificCategoryPricing = asyncHandler(async (req, res) => {
     const { id } = req.params;
+
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const PricingMethodModel = db.model("PricingMethod", pricingMethodSchema);
 
     const specificCategory = await PricingMethodModel.findOne({ selectedCategory: id });
     res.status(200).json({ status: "true", data: specificCategory });

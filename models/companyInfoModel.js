@@ -32,6 +32,4 @@ companyIfnoSchema.post("save", (doc) => {
     setImageURL(doc);
 });
 
-//const CompanyInfoModel = mongoose.model("CompanyInfo", companyIfnoSchema);
-
 module.exports = companyIfnoSchema;

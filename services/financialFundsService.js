@@ -11,11 +11,15 @@ const paymentTypesSchema = require("../models/paymentTypesModel");
 //@route GET  /api/financialfunds
 //@accsess Private
 exports.getFinancialFunds = asyncHandler(async (req, res) => {
-    const financialFunds = await FinancialFunds.find()
-        .populate({
-            path: "fundCurrency",
-            select: "_id currencyCode currencyName exchangeRate",
-        })
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
+    db.model("PaymentType", paymentTypeSchema);
+    db.model("Currency", currencySchema);
+
+    const financialFunds = await FinancialFundsModel.find()
+        .populate({ path: "fundCurrency", select: "_id currencyCode currencyName exchangeRate" })
         .populate({ path: "fundPaymentType" });
     res.status(200).json({ status: "true", data: financialFunds });
 });
