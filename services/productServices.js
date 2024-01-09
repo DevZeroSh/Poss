@@ -186,11 +186,13 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
 // @route add /api/add
 // @access Private
 exports.addProduct = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
 
 
 
   try {
-    const productModel = db.model("Product", productSchema);
 
     const { buffer } = req.file;
 
