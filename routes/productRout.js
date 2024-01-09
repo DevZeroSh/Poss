@@ -31,18 +31,7 @@ productRout.post("/add", uploads.single("file"), addProduct);
 
 productRout
     .route("/")
-    .get(async (req, res, next) => {
-        try {
-            if (req.query.databaseName && req.query.databaseName !== "") {
-                const companyDatabaseName = req.query.databaseName;
-                await createConnection(companyDatabaseName);
-                next();
-            }
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: "Error setting user database" });
-        }
-    }, getProduct)
+    .get(getProduct)
     .post(authService.protect, authService.allowedTo("product"), uploadProductImage, resizerImage, createProduct);
 
 productRout
