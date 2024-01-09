@@ -179,7 +179,7 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   const db = mongoose.connection.useDb(dbName);
 
   const productModel = db.model("Product", productSchema);
-  
+
   const { id } = req.params;
   const product = await productModel.findByIdAndUpdate(
     id,
@@ -202,7 +202,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
+  const taxModel= db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
 
