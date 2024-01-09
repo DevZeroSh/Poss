@@ -1,16 +1,15 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
-const RoleModel = require("../models/roleModel");
 const ApiError = require("../utils/apiError");
 const generatePassword = require("../utils/tools/generatePassword");
-//Tools
-const sendEmail = require("../utils/sendEmail");
-const isEmail = require("../utils/tools/isEmail");
 const { getDashboardRoles } = require("./roleDashboardServices");
 const { getPosRoles } = require("./rolePosServices");
 const axios = require("axios");
 const rolesShcema = require("../models/roleModel");
-const mongoose = require("mongoose");
 const emoloyeeShcema = require("../models/employeeModel");
+//Tools
+const sendEmail = require("../utils/sendEmail");
+const isEmail = require("../utils/tools/isEmail");
 
 //@desc Get list of employee
 // @rout Get /api/user

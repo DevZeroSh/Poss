@@ -1,8 +1,7 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-//const categoryModel = require("../models/CategoryModel");
 const pricingMethodSchema = require("../models/pricingMethodModel");
-const mongoose = require("mongoose");
 const categorySchema = require("../models/CategoryModel");
 
 //@desc Get list of pricing methods

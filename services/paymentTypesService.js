@@ -1,8 +1,8 @@
-const asyncHandler = require("express-async-handler");
-//const PaymentTypes = require("../models/paymentTypesModel");
 const mongoose = require("mongoose");
+const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const paymentTypeSchema = require("../models/paymentTypesModel");
+
 //@desc Get list of payment types
 // @rout Get /api/paymenttype
 // @access priveta

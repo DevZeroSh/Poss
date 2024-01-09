@@ -1,15 +1,13 @@
+const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
-const FinancialFunds = require("../models/financialFundsModel");
-//const expensesModel = require("../models/expensesModel");
-const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
-const TaxModel = require("../models/taxModel");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const expensesSchema = require("../models/expensesModel");
-const { default: mongoose } = require("mongoose");
 const expensesCategorySchama = require("../models/expensesCategoryModel");
 const financialFundsSchema = require("../models/financialFundsModel");
+const TaxSchema = require("../models/taxModel");
+const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 
 const multerStorage = multer.diskStorage({
     filename: function (req, file, callback) {
@@ -51,6 +49,8 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
         const expensesModel = db.model("Expenses", expensesSchema);
         const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+        const TaxModel = db.model("Tax", TaxSchema);
+        const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
         const uploadedFiles = req.files.map((file) => `${file.filename}`);
 
@@ -78,7 +78,6 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
             await financialFund.save();
 
             const nextCounter = (await expensesModel.countDocuments()) + 1;
-            console.log("1");
             let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
 
             //Start create a record in reports financial fund table
@@ -168,8 +167,15 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
 
     const fundId = req.body.expenseFinancialFund; // replace with your actual ID
 
+    const dbName = req.query.databaseName;
+
+    const db = mongoose.connection.useDb(dbName);
+    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+    const expensesModel = db.model("Expenses", expensesSchema);
+    const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+
     // Find the financial fund by ID
-    const financialFund = await FinancialFunds.findByIdAndUpdate(fundId);
+    const financialFund = await FinancialFundsModel.findByIdAndUpdate(fundId);
     if (!financialFund) {
         return next(new ApiError(`Financial fund not found`, 404));
     }
