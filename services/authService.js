@@ -14,7 +14,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     try {
         const dbName = req.query.databaseName;
 
-        const subscribtionId = req.query.subscribtionId;
+        // const subscribtionId = req.query.subscribtionId;
         const db = mongoose.connection.useDb(dbName);
 
         const employeeModel = db.model("Employee", emoloyeeShcema);
@@ -60,7 +60,7 @@ exports.login = asyncHandler(async (req, res, next) => {
                 posRolesName: posRoleName,
                 token,
                 dbName,
-                subscribtionId,
+                
             });
         } catch (error) {
             console.error("Error finding roles:", error);
