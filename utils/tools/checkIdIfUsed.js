@@ -1,22 +1,30 @@
 const mongoose = require("mongoose");
 const ApiError = require("../apiError");
+// exceptionalCollections, fields,
+exports.checkIdIfUsed = async (id, exceptionalCollections, fields, db) => {
+    try {
+        // Get all collection names except the exceptional ones
+        const collections = await db.db.listCollections().toArray();
+        const filteredCollections = collections.filter((collection) => !exceptionalCollections.includes(collection.name));
+        for (const collection of filteredCollections) {
+            const collectionName = collection.name;
+            const collectionModel = db.model(collectionName);
 
-exports.checkIdIfUsed = async (id, ExceptionalSchema) => {
-    const modelNames = mongoose.modelNames();
-    for (const modelName of modelNames) {
-        if (modelName == ExceptionalSchema) {
-            continue;
+            const query = {};
+            fields.forEach((field) => {
+                query[field] = id;
+            });
+
+            const document = await collectionModel.findOne({ $or: [query] });
+            if (document) {
+                console.log(true); // Currency ID is found in another collection
+            } else {
+                console.log(false);
+            }
+            console.log(collection.name);
         }
-        // Use the model name to get the Mongoose model dynamically
-        const model = mongoose.model(modelName);
-
-        // Check if the document with the specified _id exists in the current collection
-        const document = await model.findById(id);
-
-        // If the document is found, delete it and break out of the loop
-        if (document) {
-            return next(new ApiError(`The is used`, 500));
-        }
+    } catch (err) {
+        console.error("Error checking ID:", err);
+        throw err; // Re-throw the error for proper handling
     }
-    return true;
 };
