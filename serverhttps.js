@@ -1,12 +1,12 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
-const morgan = require("morgan");
+const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
+const morgan = require("morgan");
 const https = require("https");
 const fs = require("fs");
 const dbConnection = require("./config/database");
-const globalError = require("./middlewares/errorMiddleware");
 
 dotenv.config({ path: "config.env" });
 //Routes
@@ -24,7 +24,6 @@ const unitRout = require("./routes/unitRout");
 const taxRout = require("./routes/taxRout");
 const discountRoute = require("./routes/discountRoute");
 const paymentTypes = require("./routes/paymentTypesRoute");
-const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
@@ -39,7 +38,7 @@ const pricingMethodRoute = require("./routes/pricingMethodRoute");
 
 dotenv.config({ path: "config.env" });
 
-//dbConnection();
+dbConnection();
 
 const app = express();
 
@@ -67,7 +66,6 @@ app.use("/api/discount", discountRoute);
 app.use("/api/unit", unitRout);
 app.use("/api/tax", taxRout);
 app.use("/api/paymenttype", paymentTypes);
-app.use("/api/cart", cartRout);
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 app.use("/api/orders", OrderRout);

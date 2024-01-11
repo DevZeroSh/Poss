@@ -12,6 +12,7 @@ const multer = require("multer");
 const mongoose = require("mongoose");
 const emoloyeeShcema = require("../models/employeeModel");
 const customarSchema = require("../models/customarModel");
+const { default: slugify } = require("slugify");
 const upload = multer();
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -338,7 +339,9 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: "true", data: order });
 });
-
+// @desc post order
+// @route post /api/orders/order
+// @access private
 exports.createOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -446,4 +449,38 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
   }
 
   res.status(201).json({ status: "success", data: order });
+});
+
+// @desc put order
+// @route put /api/orders/:id
+// @access private
+
+exports.editOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+
+  const { id } = req.params;
+  if (req.body.name) {
+    req.body.slug = slugify(req.body.name);
+  }
+
+  const orderModel = db.model("Orders", orderSchema);
+
+  const order = await orderModel.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
+  if (!order) {
+    return next(new ApiError(`No Order for this id ${req.params.id}`, 404));
+  }
+  res
+    .status(200)
+    .json({
+      status: "true",
+      message: "Order updated successfully",
+      data: order,
+    });
 });

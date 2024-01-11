@@ -6,6 +6,7 @@ const {
   findOneOrder,
   createCashOrderMultipelFunds,
   createOrder,
+  editOrder,
 } = require("../services/orderServices");
 
 const authService = require("../services/authService");
@@ -18,6 +19,6 @@ OrderRout.route("/").get(findAllOrder).post(createCashOrder);
 OrderRout.route("/funds").post(createCashOrderMultipelFunds);
 OrderRout.route("/order").post(createOrder);
 
-OrderRout.route("/:id").get(findOneOrder);
+OrderRout.route("/:id").get(findOneOrder).put(editOrder);
 
 module.exports = OrderRout;

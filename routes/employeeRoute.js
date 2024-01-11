@@ -10,7 +10,7 @@ const authService = require("../services/authService");
 
 const employeeRoute = express.Router();
 
-employeeRoute.route("/").get(getEmployees).post(authService.protect, authService.allowedTo("new employee"), createEmployeeValidator, createEmployee); //authService.allowedTo("new employee")
+employeeRoute.route("/").get(getEmployees).post( createEmployeeValidator, createEmployee); //authService.allowedTo("new employee")
 
 employeeRoute
     .route("/:id")
