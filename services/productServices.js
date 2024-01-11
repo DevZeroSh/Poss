@@ -8,13 +8,6 @@ const sharp = require("sharp");
 const multerStorage = multer.memoryStorage();
 const csvtojson = require("csvtojson");
 const xlsx = require("xlsx");
-const fs = require("fs");
-const labelsModel = require("../models/labelsModel");
-const unitModel = require("../models/UnitsModel");
-const taxModel = require("../models/taxModel");
-const valiantModel = require("../models/variantsModel");
-const currencyModel = require("../models/currencyModel");
-const path = require("path");
 const { default: mongoose } = require("mongoose");
 const brandSchema = require("../models/brandModel");
 const categorySchema = require("../models/CategoryModel");
@@ -22,6 +15,7 @@ const labelsSchema = require("../models/labelsModel");
 const variantSchema = require("../models/variantsModel");
 const UnitSchema = require("../models/UnitsModel");
 const TaxSchema = require("../models/taxModel");
+const currencySchema = require("../models/currencyModel");
 
 const multerFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
@@ -65,7 +59,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
-
+  db.model("Currency", currencySchema);
   // Search for product or qr
   let mongooseQuery = productModel.find({ archives: { $ne: true } });
 
@@ -96,9 +90,10 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
       }
     }
   });
-  res.status(200).json({ status: "true", results: product.length, data: product, notices });
+  res
+    .status(200)
+    .json({ status: "true", results: product.length, data: product, notices });
 });
-
 
 // @desc Create  product
 // @route Post /api/product
@@ -121,16 +116,17 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 // @route Get /api/product/:id
 // @access Private
 exports.getOneProduct = asyncHandler(async (req, res, next) => {
-    const dbName = req.query.databaseName;
+  const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
   const productModel = db.model("Product", productSchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema)
-  db.model("Unit", UnitSchema)
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
   const { id } = req.params;
   const product = await productModel
     .findById(id)
@@ -202,14 +198,12 @@ exports.addProduct = asyncHandler(async (req, res) => {
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
-  const taxModel= db.model("Tax", TaxSchema);
+  const taxModel = db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
-
-
+  db.model("Currency", currencySchema)
 
   try {
-
     const { buffer } = req.file;
 
     let csvData;
@@ -235,6 +229,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     }
     for (const item of csvData) {
       try {
+        
         const tax = await taxModel.findById(item.tax);
         const finalPrice = item.price * (1 + tax.tax / 100);
         item.taxPrice = finalPrice;

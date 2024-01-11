@@ -86,10 +86,7 @@ orderSchema.pre(/^find/, function (next) {
       path: "onefinancialFunds",
       select: "fundName",
     })
-    .populate({
-      path: "cartItems.product",
-      select: "name  price",
-    });
+
 
   next();
 });

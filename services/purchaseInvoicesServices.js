@@ -2,18 +2,18 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const productModel = require("../models/productModel");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
-const Supplier = require("../models/suppliersModel");
 const FinancialFunds = require("../models/financialFundsModel");
 const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const mongoose = require("mongoose");
 const supplierSchema = require("../models/suppliersModel");
 const emoloyeeShcema = require("../models/employeeModel");
+const currencySchema = require("../models/currencyModel");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const supplierModel = db.model("Supplier", supplierSchema);
-
+  db.model("Supplier", supplierSchema);
+  db.model("Currency", currencySchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
@@ -158,7 +158,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  db.model("Supplier", supplierSchema)
+  db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
 
   const PurchaseInvoicesModel = db.model(
@@ -198,7 +198,7 @@ exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
-
+  db.model("Currency", currencySchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
