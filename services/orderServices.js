@@ -460,27 +460,62 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Employee", emoloyeeShcema);
   db.model("Product", productSchema);
-  db.model("FinancialFunds", financialFundsSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("Orders", orderSchema);
 
   const { id } = req.params;
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
 
-  const orderModel = db.model("Orders", orderSchema);
+  const originalOrder = await orderModel.findById(id);
+  const originalfinancialFunds = await FinancialFundsModel.findById(
+    originalOrder.onefinancialFunds._id
+  );
 
+  originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
   const order = await orderModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
+
+  const financialFunds = await FinancialFundsModel.findById(
+    order.onefinancialFunds._id
+  );
+
   if (!order) {
     return next(new ApiError(`No Order for this id ${req.params.id}`, 404));
   }
-  res
-    .status(200)
-    .json({
-      status: "true",
-      message: "Order updated successfully",
-      data: order,
-    });
+
+  financialFunds.fundBalance += order.totalOrderPrice;
+
+  if (order) {
+    const bulkOption = req.body.cartItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item._id },
+        update: {
+          $inc: { quantity: -item.quantity, sold: +item.quantity },
+        },
+      },
+    }));
+    const bulkOption2 = originalOrder.cartItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item._id },
+        update: {
+          $inc: { quantity: +item.quantity, sold: -item.quantity },
+        },
+      },
+    }));
+
+    await productModel.bulkWrite(bulkOption, {});
+    await productModel.bulkWrite(bulkOption2, {});
+    await originalfinancialFunds.save();
+    await financialFunds.save();
+  }
+  res.status(200).json({
+    status: "true",
+    message: "Order updated successfully",
+    data: order,
+  });
 });
