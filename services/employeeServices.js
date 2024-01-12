@@ -67,7 +67,7 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
       if (req.body.userType && req.body.userType === "normal") {
         try {
           const createUserOnServer = await axios.post(
-            "https://nooncar.com:4000/api/allusers/",
+            "http://localhost:4000/api/allusers/",
             {
               userEmail: req.body.email,
               subscribtion: req.body.subscribtion,

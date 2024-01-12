@@ -19,7 +19,10 @@ const orderSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
-    onefinancialFunds: String,
+    onefinancialFunds: {
+      type: mongoose.Schema.ObjectId,
+      ref: "FinancialFunds",
+    },
 
     exchangeRate: Number,
 
@@ -29,7 +32,7 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.ObjectId,
           ref: "Product",
         },
-    
+
         quantity: Number,
         taxPrice: Number,
         taxRate: Number,
@@ -85,11 +88,9 @@ orderSchema.pre(/^find/, function (next) {
     .populate({
       path: "onefinancialFunds",
       select: "fundName",
-    })
-
+    });
 
   next();
 });
-
 
 module.exports = orderSchema;
