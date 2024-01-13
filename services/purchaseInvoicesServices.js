@@ -12,6 +12,7 @@ const currencySchema = require("../models/currencyModel");
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
   const PurchaseInvoicesModel = db.model(
@@ -66,7 +67,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   // Create an array to store the invoice items
   const invoiceItems = [];
   let bulkOption;
-  const financialFund = await FinancialFunds.findById(invoiceFinancialFund);
+  const financialFund = await FinancialFundsModel.findById(invoiceFinancialFund);
   for (const item of invoices) {
     const {
       quantity,
@@ -160,7 +161,7 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
-
+ const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
