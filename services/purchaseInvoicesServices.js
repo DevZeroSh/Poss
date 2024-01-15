@@ -8,6 +8,7 @@ const mongoose = require("mongoose");
 const supplierSchema = require("../models/suppliersModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const currencySchema = require("../models/currencyModel");
+const financialFundsSchema = require("../models/financialFundsModel");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -15,7 +16,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
    const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
-  
+  db.model("Employee", emoloyeeShcema);
+
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
@@ -160,6 +162,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  db.model("Employee", emoloyeeShcema);
+
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
@@ -180,7 +184,7 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
-
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
@@ -201,6 +205,7 @@ exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
   db.model("Currency", currencySchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
