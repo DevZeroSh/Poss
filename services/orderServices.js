@@ -74,7 +74,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // use totalOrderPrice as an array
   const financialFundsId = req.body.financialFunds;
 
-  console.log(financialFundsId);
   // 1) Find the financial funds document based on the provided ID
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
@@ -94,7 +93,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({
     employee: req.user._id,
+    priceExchangeRate: req.body.priceExchangeRate,
     cartItems,
+    currencyCode: req.body.currency,
     shippingAddress: req.body.shippingAddress,
     totalOrderPrice,
     paymentMethodType,
@@ -191,7 +192,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   let totalAllocatedAmount = 0;
   // Create order and update product stock
   const order = await orderModel.create({
-    taxPrice: 0,
+    priceExchangeRate: req.body.priceExchangeRate,
     employee: req.user._id,
     cartItems: cartItems,
     totalOrderPrice: 0,
@@ -324,7 +325,12 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   db.model("Product", productSchema);
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
-  const order = await orderModel.find();
+
+  const mongooseQuery = orderModel
+    .find({ archives: { $ne: true } })
+    .sort({ createdAt: -1 });
+  const order = await mongooseQuery;
+
   res.status(200).json({ status: "true", results: order.length, data: order });
 });
 

@@ -42,12 +42,14 @@ const orderSchema = new mongoose.Schema(
         qr: String,
       },
     ],
-    taxPrice: {
+    priceExchangeRate: {
       type: Number,
       default: 0,
     },
     // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
+
+    currencyCode: String,
     isPadid: {
       type: Boolean,
       default: false,

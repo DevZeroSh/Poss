@@ -1,23 +1,40 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
-const productModel = require("../models/productModel");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
-const FinancialFunds = require("../models/financialFundsModel");
-const ReportsFinancialFundsModel = require("../models/reportsFinancialFunds");
 const mongoose = require("mongoose");
 const supplierSchema = require("../models/suppliersModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const currencySchema = require("../models/currencyModel");
 const financialFundsSchema = require("../models/financialFundsModel");
+const productSchema = require("../models/productModel");
+
+const brandSchema = require("../models/brandModel");
+const categorySchema = require("../models/CategoryModel");
+const labelsSchema = require("../models/labelsModel");
+const variantSchema = require("../models/variantsModel");
+const UnitSchema = require("../models/UnitsModel");
+const TaxSchema = require("../models/taxModel");
+const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const productModel = db.model("Product", productSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
-
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
@@ -70,7 +87,9 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   // Create an array to store the invoice items
   const invoiceItems = [];
   let bulkOption;
-  const financialFund = await FinancialFundsModel.findById(invoiceFinancialFund);
+  const financialFund = await FinancialFundsModel.findById(
+    invoiceFinancialFund
+  );
   for (const item of invoices) {
     const {
       quantity,
@@ -166,12 +185,15 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
 
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
- const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const ProductInvoices = await PurchaseInvoicesModel.find();
+  const mongooseQuery = PurchaseInvoicesModel.find({
+    archives: { $ne: true },
+  }).sort({ createdAt: -1 });
+  const ProductInvoices = await mongooseQuery;
   res.status(200).json({
     status: "true",
     results: ProductInvoices.length,
