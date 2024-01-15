@@ -150,7 +150,12 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
-
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const productModel = db.model("Product", productSchema);
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -229,7 +234,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       continue;
     }
     // Validate financial fund and update fund balance
-    const financialFund = await FinancialFunds.findById(fundId);
+    const financialFund = await FinancialFundsModel.findById(fundId);
     if (!financialFund) {
       return next(new ApiError(`Financial fund ${fundId} not found`, 404));
     }
@@ -280,8 +285,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     },
   }));
 
-  await FinancialFunds.bulkWrite(bulkUpdates);
-  await Product.bulkWrite(bulkOption, {});
+  await FinancialFundsModel.bulkWrite(bulkUpdates);
+  await productModel.bulkWrite(bulkOption, {});
   // await Cart.findByIdAndDelete(cartId);
 
   res.status(201).json({ status: "success", data: order });

@@ -14,6 +14,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
+  
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema

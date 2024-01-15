@@ -5,6 +5,7 @@ const {
   deleteEmployee,
   getEmployee,
   updateEmployee,
+  createEmployeeInPos,
 } = require("../services/employeeServices");
 const {
   createEmployeeValidator,
@@ -23,7 +24,7 @@ employeeRoute
     authService.protect,
     authService.allowedTo("new employee"),
     createEmployeeValidator,
-    createEmployee
+    createEmployeeInPos
   );
 
 employeeRoute

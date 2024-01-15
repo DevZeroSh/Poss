@@ -37,16 +37,15 @@ exports.getEmployees = asyncHandler(async (req, res) => {
 // @rout Post /api/employee
 // @access priveta
 exports.createEmployee = asyncHandler(async (req, res, next) => {
-  console.log("query: ", req.query);
   console.log("body: ", req.body);
   const email = req.body.email;
 
   const dbName =
-    req.query.databaseName || req.query.databaseName === req.body.databaseName;
+    req.body.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
 
-  var employeeModel = db.model("Employee", emoloyeeShcema);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
   //Check if the email format is true or not
   if (isEmail(email)) {
     try {
@@ -60,7 +59,7 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
         message: `Hello ${req.body.name}, Your password is ${employeePass}`,
       });
       //Create the employee
-      const employee = await employeeModel.create(req.body);
+    
 
       // //insert the user on the main server
 
@@ -75,12 +74,69 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
             }
           );
           //Continue here
-          // console.log(createUserOnServer);
+           console.log(createUserOnServer);
         } catch (error) {
           console.log(error);
         }
       }
+      const employee = await employeeModel.create(req.body);
+      res.status(201).json({
+        status: "true",
+        message: "Employee Inserted",
+        data: employee,
+      });
+    } catch (error) {
+      return next(new ApiError("There is an error in sending email", 500));
+    }
+  } else {
+    return next(new ApiError("There is an error in email format", 500));
+  }
+});
 
+exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
+  console.log("body: ", req.body);
+  const email = req.body.email;
+
+  const dbName =
+    req.body.databaseName;
+
+  const db = mongoose.connection.useDb(dbName);
+
+  const employeeModel = db.model("Employee", emoloyeeShcema);
+  //Check if the email format is true or not
+  if (isEmail(email)) {
+    try {
+      //Generate Password
+      const employeePass = generatePassword();
+      req.body.password = employeePass;
+      //Sned password to email
+      await sendEmail({
+        email: req.body.email,
+        subject: "New Password",
+        message: `Hello ${req.body.name}, Your password is ${employeePass}`,
+      });
+      //Create the employee
+    
+
+      // //insert the user on the main server
+
+      if (req.body.userType && req.body.userType === "normal") {
+        try {
+          const createUserOnServer = await axios.post(
+            "http://localhost:4000/api/allusers/",
+            {
+              userEmail: req.body.email,
+              subscribtion: req.body.subscribtion,
+              userType: req.body.userType,
+            }
+          );
+          //Continue here
+           console.log(createUserOnServer);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+      const employee = await employeeModel.create(req.body);
       res.status(201).json({
         status: "true",
         message: "Employee Inserted",
