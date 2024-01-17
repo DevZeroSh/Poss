@@ -37,11 +37,9 @@ exports.getEmployees = asyncHandler(async (req, res) => {
 // @rout Post /api/employee
 // @access priveta
 exports.createEmployee = asyncHandler(async (req, res, next) => {
-  console.log("body: ", req.body);
   const email = req.body.email;
 
-  const dbName =
-    req.body.databaseName;
+  const dbName = req.body.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
 
@@ -59,7 +57,6 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
         message: `Hello ${req.body.name}, Your password is ${employeePass}`,
       });
       //Create the employee
-    
 
       // //insert the user on the main server
 
@@ -74,7 +71,6 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
             }
           );
           //Continue here
-           console.log(createUserOnServer);
         } catch (error) {
           console.log(error);
         }
@@ -94,11 +90,9 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
 });
 
 exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
-  console.log("body: ", req.body);
   const email = req.body.email;
 
-  const dbName =
-    req.body.databaseName;
+  const dbName = req.query.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
 
@@ -116,7 +110,6 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
         message: `Hello ${req.body.name}, Your password is ${employeePass}`,
       });
       //Create the employee
-    
 
       // //insert the user on the main server
 
@@ -131,7 +124,6 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
             }
           );
           //Continue here
-           console.log(createUserOnServer);
         } catch (error) {
           console.log(error);
         }

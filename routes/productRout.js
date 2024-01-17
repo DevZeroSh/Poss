@@ -23,7 +23,6 @@ const storage = multer.memoryStorage(); // Use memory storage for simplicity
 const uploads = multer({ storage: storage });
 
 const authService = require("../services/authService");
-const { createConnection } = require("../middlewares/switchConnectDb");
 
 const productRout = express.Router();
 

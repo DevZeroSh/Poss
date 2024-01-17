@@ -122,6 +122,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalPrice: totalPrice,
     };
     invoiceItems.push(invoiceItem);
+    console.log(quantity);
   }
   bulkOption = invoiceItems.map((item) => ({
     updateOne: {
