@@ -32,8 +32,6 @@ const productSchema = new mongoose.Schema(
     quantity: Number,
     price: {
       type: Number,
-      require: [true, "product price is required"],
-      trim: true,
     },
     buyingprice: {
       type: Number,

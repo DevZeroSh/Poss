@@ -128,7 +128,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   if (order) {
     const bulkOption = cartItems.map(
       (item) => (
-        console.log(item),
         {
           updateOne: {
             filter: { _id: item._id },

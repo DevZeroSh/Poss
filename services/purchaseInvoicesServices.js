@@ -68,6 +68,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
   const {
     invoices,
+    suppliersId,
     sup,
     supplierPhone,
     supplierEmail,
@@ -76,9 +77,12 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     totalProductTax,
     totalPriceWitheOutTax,
     finalPrice,
+    finalPriceExchangeRate,
     totalQuantity,
     totalbuyingprice,
+    invoiceCurrencyId,
     invoiceCurrency,
+    paid,
   } = req.body;
 
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
@@ -87,9 +91,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   // Create an array to store the invoice items
   const invoiceItems = [];
   let bulkOption;
-  const financialFund = await FinancialFundsModel.findById(
-    invoiceFinancialFund
-  );
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
+
   for (const item of invoices) {
     const {
       quantity,
@@ -100,6 +103,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       taxRate,
       taxPrice,
       totalTax,
+      currency,
     } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
@@ -117,73 +121,131 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       buyingprice: buyingprice,
       taxPrice: taxPrice,
       taxRate: taxRate.tax,
-      ta: taxRate,
+      taxId: taxRate,
+      currency: currency,
       totalTax: totalTax,
       totalPrice: totalPrice,
     };
     invoiceItems.push(invoiceItem);
-    console.log(quantity);
   }
-  bulkOption = invoiceItems.map((item) => ({
-    updateOne: {
-      filter: { _id: item.product },
-      update: {
-        $inc: { quantity: +item.quantity },
-        $set: {
-          serialNumber: item.serialNumber,
-          buyingprice: item.buyingprice,
-          tax: item.ta,
+
+  if (req.body.paid == "paid") {
+    const financialFund = await FinancialFundsModel.findById(
+      invoiceFinancialFund
+    );
+
+    // Get the next counter value
+
+    // Create a new purchase invoice with all the invoice items
+    const newPurchaseInvoice = new PurchaseInvoicesModel({
+      invoices: invoiceItems,
+      paidAt: formattedDate,
+      suppliers: suppliersId,
+      supplier: sup,
+      supplierPhone,
+      supplierEmail,
+      supplierAddress,
+      supplierCompany,
+      totalProductTax: totalProductTax,
+      totalPriceWitheOutTax: totalPriceWitheOutTax,
+      totalbuyingprice: totalbuyingprice,
+      finalPrice: finalPrice,
+      totalQuantity: totalQuantity,
+      employee: req.user._id,
+      invoiceCurrencyId,
+      invoiceCurrency,
+      counter: nextCounter,
+      paid: paid,
+    });
+
+    bulkOption = invoiceItems.map(
+      (item) => (
+        console.log(item),
+        {
+          updateOne: {
+            filter: { _id: item.product },
+            update: {
+              $inc: { quantity: +item.quantity },
+              $set: {
+                serialNumber: item.serialNumber,
+                buyingprice: item.buyingprice,
+                tax: item.ta,
+                taxPrice: item.taxPrice,
+              },
+            },
+          },
+        }
+      )
+    );
+    await productModel.bulkWrite(bulkOption, {});
+
+    const data = new Date();
+    const isaaaa = data.toISOString();
+    console.log(finalPriceExchangeRate);
+    financialFund.fundBalance -= finalPriceExchangeRate;
+
+    // Save the new purchase invoice to the database
+    const savedInvoice = await newPurchaseInvoice.save();
+    await ReportsFinancialFundsModel.create({
+      date: isaaaa,
+      invoice: savedInvoice._id,
+      amount: finalPrice,
+      type: "purchase",
+      exchangeRate: finalPriceExchangeRate,
+      financialFundId: invoiceFinancialFund,
+      financialFundRest: financialFund.fundBalance,
+    });
+    // Respond with the created invoice
+    await financialFund.save();
+    res.status(201).json({ status: "success", data: savedInvoice });
+  } else {
+    const newPurchaseInvoice = new PurchaseInvoicesModel({
+      invoices: invoiceItems,
+      paidAt: formattedDate,
+      suppliers: suppliersId,
+      supplier: sup,
+      supplierPhone,
+      supplierEmail,
+      supplierAddress,
+      supplierCompany,
+
+      totalProductTax: totalProductTax,
+      totalPriceWitheOutTax: totalPriceWitheOutTax,
+      totalbuyingprice: totalbuyingprice,
+      finalPrice: finalPrice,
+      totalQuantity: totalQuantity,
+      employee: req.user._id,
+      invoiceCurrencyId,
+      invoiceCurrency,
+      counter: nextCounter,
+    });
+    bulkOption = invoiceItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: { quantity: item.quantity },
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingprice,
+            tax: item.ta,
+            price: item.price,
+            taxPrice: item.taxPrice,
+          },
         },
       },
-    },
-  }));
-  await productModel.bulkWrite(bulkOption, {});
-
-  // Get the next counter value
-  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
-  // Create a new purchase invoice with all the invoice items
-  const newPurchaseInvoice = new PurchaseInvoicesModel({
-    invoices: invoiceItems,
-    paidAt: formattedDate,
-    supplier: sup,
-    supplierPhone,
-    supplierEmail,
-    supplierAddress,
-    supplierCompany,
-    totalProductTax: totalProductTax,
-    totalPriceWitheOutTax: totalPriceWitheOutTax,
-    totalbuyingprice: totalbuyingprice,
-    finalPrice: finalPrice,
-    totalQuantity: totalQuantity,
-    employee: req.user._id,
-    invoiceCurrency,
-    counter: nextCounter,
-  });
-
-  const data = new Date();
-  const isaaaa = data.toISOString();
-  financialFund.fundBalance -= finalPrice;
-
-  // Save the new purchase invoice to the database
-  const savedInvoice = await newPurchaseInvoice.save();
-  await ReportsFinancialFundsModel.create({
-    date: isaaaa,
-    invoice: savedInvoice._id,
-    amount: finalPrice,
-    type: "purchase",
-    financialFundId: invoiceFinancialFund,
-    financialFundRest: financialFund.fundBalance,
-  });
-  // Respond with the created invoice
-  await financialFund.save();
-  res.status(201).json({ status: "success", data: savedInvoice });
+    }));
+    await productModel.bulkWrite(bulkOption, {});
+    const savedInvoice = await newPurchaseInvoice.save();
+    res.status(201).json({ status: "success", data: savedInvoice });
+  }
 });
 
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   db.model("Employee", emoloyeeShcema);
-
+  db.model("Tax", TaxSchema);
+  db.model("Currency", currencySchema);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
@@ -207,6 +269,14 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
+  db.model("Currency", currencySchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Tax", TaxSchema);
+
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
@@ -222,6 +292,7 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   res.status(200).json({ status: "true", data: ProductInvoices });
 });
 
+/*
 exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -261,4 +332,91 @@ exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
     numberinvoices: cart.invoices.length,
     data: cart,
   });
+});
+*/
+
+exports.updateInvoices = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Tax", TaxSchema);
+  const productModel = db.model("Product", productSchema);
+  db.model("Supplier", supplierSchema);
+  db.model("Currency", currencySchema);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+
+  console.log(req.body);
+
+  const { id } = req.params;
+  const { financialFund, finalPrice } = req.body; // Assuming you have these values
+
+  // Find the financial fund
+  const existingFinancialFund = await FinancialFundsModel.findById(
+    financialFund
+  );
+  if (!existingFinancialFund) {
+    return next(new ApiError(`Financial fund not found`, 404));
+  }
+
+  // Find the purchase invoice
+  const existingInvoice = await PurchaseInvoicesModel.findById(id);
+  if (!existingInvoice) {
+    return next(new ApiError(`Purchase invoice not found`, 404));
+  }
+
+  // Update the financial fund balance
+  existingFinancialFund.fundBalance -= finalPrice;
+  await existingFinancialFund.save();
+
+  // Update the purchase invoice
+  const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
+    id,
+    {
+      ...req.body,
+      paid: req.body.paid,
+    },
+    { new: true }
+  );
+  console.log(req.body.invoices),
+    (bulkOption = req.body.invoices.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: { quantity: +item.quantity, quantity: -item.beforQuantity },
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingprice,
+            taxRate: item.taxRate,
+          },
+        },
+      },
+    })));
+  await productModel.bulkWrite(bulkOption, {});
+  // Create a financial record
+  const data = new Date();
+  const isaaaa = data.toISOString();
+  await ReportsFinancialFundsModel.create({
+    date: isaaaa,
+    invoice: updatedInvoice._id,
+    amount: finalPrice,
+    type: "purchase",
+    financialFundId: existingFinancialFund._id,
+    financialFundRest: existingFinancialFund.fundBalance,
+  });
+
+  // Respond with the updated invoice
+  res.status(200).json({ status: "success", data: updatedInvoice });
 });

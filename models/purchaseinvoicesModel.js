@@ -12,12 +12,17 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         name: String,
         qr: String,
         taxRate: Number,
+        taxId: {
+          type: mongoose.Schema.ObjectId,
+          ref: "Tax",
+        },
         buyingprice: Number,
         totalTax: Number,
         priceAfterPrice: Number,
         totalWitheOutTaxPrice: Number,
         totalWitheTaxPrice: Number,
         totalPrice: String,
+        currency:Number,
         serialNumber: [String],
       },
     ],
@@ -27,11 +32,14 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     finalPrice: Number,
     totalQuantity: Number,
     totalbuyingprice: Number,
+
+    suppliers: { type: mongoose.Schema.ObjectId, ref: "Supplier" },
     supplier: String,
     supplierPhone: String,
     supplierEmail: String,
     supplierAddress: String,
     supplierCompany: String,
+    invoiceCurrencyId: { type: mongoose.Schema.ObjectId, ref: "Currency" },
     invoiceCurrency: String,
     invoiceFinancialFund: String,
 
@@ -54,13 +62,17 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
 );
 PurchaseInvoicesSchema.pre(/^find/, function (next) {
   this.populate({
-    path: "supplier",
+    path: "suppliers",
     select: "supplierName companyName phoneNumber email address tax",
-  }).populate({ path: "employee", select: "name profileImg email phone" });
+  })
+    .populate({ path: "employee", select: "name profileImg email phone" })
+    .populate({ path: "invoices.taxId", select: "name tax " })
+    .populate({
+      path: "invoiceCurrencyId",
+      select: "currencyCode exchangeRate ",
+    });
 
   next();
 });
-
-
 
 module.exports = PurchaseInvoicesSchema;
