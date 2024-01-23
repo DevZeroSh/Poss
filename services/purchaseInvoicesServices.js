@@ -83,14 +83,16 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     invoiceCurrencyId,
     invoiceCurrency,
     paid,
+    finalPriceMainCurrency,
   } = req.body;
 
+  console.log(req.body);
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
   // Find the supplier
 
   // Create an array to store the invoice items
   const invoiceItems = [];
-  let bulkOption;
+
   const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
 
   for (const item of invoices) {
@@ -101,9 +103,13 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       buyingprice,
       totalPrice,
       taxRate,
+      price,
       taxPrice,
       totalTax,
       currency,
+      taxId,
+      buyingpriceOringal,
+      profitRatio,
     } = item;
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr });
@@ -117,19 +123,23 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       name: productDoc.name,
       quantity,
       qr,
+      price: price,
       serialNumber: serialNumber,
       buyingprice: buyingprice,
       taxPrice: taxPrice,
-      taxRate: taxRate.tax,
-      taxId: taxRate,
+      taxRate: taxRate,
+      buyingpriceOringal: buyingpriceOringal,
+      taxId: taxId,
       currency: currency,
       totalTax: totalTax,
       totalPrice: totalPrice,
+      profitRatio: profitRatio,
     };
     invoiceItems.push(invoiceItem);
   }
 
   if (req.body.paid == "paid") {
+    let bulkOption;
     const financialFund = await FinancialFundsModel.findById(
       invoiceFinancialFund
     );
@@ -151,6 +161,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalbuyingprice: totalbuyingprice,
       finalPrice: finalPrice,
       totalQuantity: totalQuantity,
+      finalPriceMainCurrency: finalPriceMainCurrency,
       employee: req.user._id,
       invoiceCurrencyId,
       invoiceCurrency,
@@ -158,25 +169,21 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       paid: paid,
     });
 
-    bulkOption = invoiceItems.map(
-      (item) => (
-        console.log(item),
-        {
-          updateOne: {
-            filter: { _id: item.product },
-            update: {
-              $inc: { quantity: +item.quantity },
-              $set: {
-                serialNumber: item.serialNumber,
-                buyingprice: item.buyingprice,
-                tax: item.ta,
-                taxPrice: item.taxPrice,
-              },
-            },
+    bulkOption = invoiceItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: { quantity: +item.quantity },
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
+            price: item.price,
+            taxPrice: item.taxPrice,
           },
-        }
-      )
-    );
+        },
+      },
+    }));
     await productModel.bulkWrite(bulkOption, {});
 
     const data = new Date();
@@ -192,6 +199,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       amount: finalPrice,
       type: "purchase",
       exchangeRate: finalPriceExchangeRate,
+      finalPriceMainCurrency: finalPriceMainCurrency,
       financialFundId: invoiceFinancialFund,
       financialFundRest: financialFund.fundBalance,
     });
@@ -208,7 +216,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       supplierEmail,
       supplierAddress,
       supplierCompany,
-
+      finalPriceMainCurrency: finalPriceMainCurrency,
       totalProductTax: totalProductTax,
       totalPriceWitheOutTax: totalPriceWitheOutTax,
       totalbuyingprice: totalbuyingprice,
@@ -226,8 +234,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           $inc: { quantity: item.quantity },
           $set: {
             serialNumber: item.serialNumber,
-            buyingprice: item.buyingprice,
-            tax: item.ta,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
             price: item.price,
             taxPrice: item.taxPrice,
           },
@@ -348,6 +356,7 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
   db.model("Labels", labelsSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
+
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
@@ -357,66 +366,113 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-
   console.log(req.body);
-
   const { id } = req.params;
-  const { financialFund, finalPrice } = req.body; // Assuming you have these values
+  if (req.body.paid == "paid") {
+    const {
+      financialFund,
+      finalPrice,
+      finalPriceExchangeRate,
+      finalPriceMainCurrency,
+    } = req.body; // Assuming you have these values
 
-  // Find the financial fund
-  const existingFinancialFund = await FinancialFundsModel.findById(
-    financialFund
-  );
-  if (!existingFinancialFund) {
-    return next(new ApiError(`Financial fund not found`, 404));
-  }
+    // Find the financial fund
+    const existingFinancialFund = await FinancialFundsModel.findById(
+      financialFund
+    );
+    if (!existingFinancialFund) {
+      return next(new ApiError(`Financial fund not found`, 404));
+    }
 
-  // Find the purchase invoice
-  const existingInvoice = await PurchaseInvoicesModel.findById(id);
-  if (!existingInvoice) {
-    return next(new ApiError(`Purchase invoice not found`, 404));
-  }
+    // Find the purchase invoice
+    const existingInvoice = await PurchaseInvoicesModel.findById(id);
+    if (!existingInvoice) {
+      return next(new ApiError(`Purchase invoice not found`, 404));
+    }
 
-  // Update the financial fund balance
-  existingFinancialFund.fundBalance -= finalPrice;
-  await existingFinancialFund.save();
+    // Update the financial fund balance
+    existingFinancialFund.fundBalance -= finalPriceExchangeRate;
+    await existingFinancialFund.save();
 
-  // Update the purchase invoice
-  const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
-    id,
-    {
-      ...req.body,
-      paid: req.body.paid,
-    },
-    { new: true }
-  );
-  console.log(req.body.invoices),
-    (bulkOption = req.body.invoices.map((item) => ({
+    // Update the purchase invoice
+    const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
+      id,
+      {
+        ...req.body,
+        paid: req.body.paid,
+      },
+      { new: true }
+    );
+
+    bulkOption = req.body.invoices.map((item) => ({
       updateOne: {
         filter: { _id: item.product },
         update: {
-          $inc: { quantity: +item.quantity, quantity: -item.beforQuantity },
+          $inc: { quantity: item.quantity - item.beforQuantity },
           $set: {
             serialNumber: item.serialNumber,
-            buyingprice: item.buyingprice,
-            taxRate: item.taxRate,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
+            price: item.price,
+            taxPrice: item.taxPrice,
           },
         },
       },
-    })));
-  await productModel.bulkWrite(bulkOption, {});
-  // Create a financial record
-  const data = new Date();
-  const isaaaa = data.toISOString();
-  await ReportsFinancialFundsModel.create({
-    date: isaaaa,
-    invoice: updatedInvoice._id,
-    amount: finalPrice,
-    type: "purchase",
-    financialFundId: existingFinancialFund._id,
-    financialFundRest: existingFinancialFund.fundBalance,
-  });
+    }));
+    await productModel.bulkWrite(bulkOption, {});
+    // Create a financial record
+    const data = new Date();
+    const isaaaa = data.toISOString();
+    await ReportsFinancialFundsModel.create({
+      date: isaaaa,
+      invoice: updatedInvoice._id,
+      // amount: finalPrice,
+      amount: finalPriceExchangeRate,
+      exchangeRate: finalPrice,
+      finalPriceMainCurrency: finalPriceMainCurrency,
+      type: "purchase",
+      financialFundId: existingFinancialFund._id,
+      financialFundRest: existingFinancialFund.fundBalance,
+    });
+    // Respond with the updated invoice
+    res.status(200).json({ status: "success", data: updatedInvoice });
+  } else {
+    let bulkOption;
+    // Find the purchase invoice
+    const existingInvoice = await PurchaseInvoicesModel.findById(id);
+    if (!existingInvoice) {
+      return next(new ApiError(`Purchase invoice not found`, 404));
+    }
 
-  // Respond with the updated invoice
-  res.status(200).json({ status: "success", data: updatedInvoice });
+    // Update the purchase invoice
+    const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
+      id,
+      {
+        ...req.body,
+        paid: req.body.paid,
+      },
+      { new: true }
+    );
+
+    bulkOption = req.body.invoices.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: { quantity: +item.quantity - item.beforQuantity },
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
+            price: item.price,
+            taxPrice: item.taxPrice,
+          },
+        },
+      },
+    }));
+
+    await productModel.bulkWrite(bulkOption, {});
+    console.log(req.body.invoices);
+    // Respond with the updated invoice
+    res.status(200).json({ status: "success", data: updatedInvoice });
+  }
 });

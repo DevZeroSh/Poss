@@ -33,6 +33,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "FinancialFunds",
     },
+    finalPriceMainCurrency:Number,
     financialFundRest: Number,
     exchangeRate: Number,
   },

@@ -18,6 +18,7 @@ const productSchema = new mongoose.Schema(
     },
     description: {
       type: String,
+      default: "Product description",
     },
     sold: {
       type: Number,
@@ -29,12 +30,14 @@ const productSchema = new mongoose.Schema(
         default: "undefined",
       },
     ],
-    quantity: Number,
+    quantity: { type: Number, default: 0 },
     price: {
       type: Number,
+      default: 0,
     },
     buyingprice: {
       type: Number,
+      default: 0,
     },
 
     priceAftereDiscount: {
@@ -48,6 +51,7 @@ const productSchema = new mongoose.Schema(
     },
     sku: {
       type: String,
+      default: 0,
     },
 
     image: {
@@ -78,7 +82,7 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value2: [String],
-    alarm: Number,
+    alarm: { type: Number, default: 0 },
     tax: {
       type: mongoose.Schema.ObjectId,
       ref: "Tax",
@@ -87,7 +91,7 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Labels",
     },
-    taxPrice: Number,
+    taxPrice: { type: Number, default: 0 },
     archives: {
       type: String,
       enum: ["true", "false"],
@@ -102,7 +106,7 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Currency",
     },
-    profitRatio: Number,
+    profitRatio: { type: Number, default: 5 },
   },
   { timestamps: true }
 );

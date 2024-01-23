@@ -16,14 +16,17 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
           type: mongoose.Schema.ObjectId,
           ref: "Tax",
         },
+        price: Number,
         buyingprice: Number,
         totalTax: Number,
-        priceAfterPrice: Number,
+        taxPrice: Number,
         totalWitheOutTaxPrice: Number,
         totalWitheTaxPrice: Number,
         totalPrice: String,
-        currency:Number,
+        currency: Number,
+        buyingpriceOringal: Number,
         serialNumber: [String],
+        profitRatio: Number,
       },
     ],
     paidAt: String,
@@ -42,7 +45,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     invoiceCurrencyId: { type: mongoose.Schema.ObjectId, ref: "Currency" },
     invoiceCurrency: String,
     invoiceFinancialFund: String,
-
+    finalPriceMainCurrency: Number,
     paid: {
       type: String,
       default: "unpaid",
@@ -66,7 +69,7 @@ PurchaseInvoicesSchema.pre(/^find/, function (next) {
     select: "supplierName companyName phoneNumber email address tax",
   })
     .populate({ path: "employee", select: "name profileImg email phone" })
-    .populate({ path: "invoices.taxId", select: "name tax " })
+    .populate({ path: "invoices.taxId", select: "tax " })
     .populate({
       path: "invoiceCurrencyId",
       select: "currencyCode exchangeRate ",
