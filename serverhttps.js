@@ -35,6 +35,7 @@ const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const pricingMethodRoute = require("./routes/pricingMethodRoute");
+const reportsSalesRoute = require("./routes/reportsSalesRoute");
 
 dotenv.config({ path: "config.env" });
 
@@ -47,8 +48,8 @@ app.use(cors());
 
 app.use(express.static(path.join(__dirname, "uploads")));
 if (process.env.NODE_ENV === "development") {
-  app.use(morgan("dev"));
-  console.log(`mode: ${process.env.NODE_ENV}`);
+    app.use(morgan("dev"));
+    console.log(`mode: ${process.env.NODE_ENV}`);
 }
 
 //Routes' links
@@ -76,22 +77,17 @@ app.use("/api/productinvoices", productInvoicesRout);
 app.use("/api/expenseCategories", expenseCategoriesRoute);
 app.use("/api/companyinfo", companyInfoRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
+app.use("/api/salesreports", reportsSalesRoute);
 app.use("/api/pricingmethod", pricingMethodRoute);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const privateKey = fs.readFileSync(
-  "/etc/letsencrypt/live/nooncar.com/privkey.pem",
-  "utf8"
-);
-const certificate = fs.readFileSync(
-  "/etc/letsencrypt/live/nooncar.com/fullchain.pem",
-  "utf8"
-);
+const privateKey = fs.readFileSync("/etc/letsencrypt/live/nooncar.com/privkey.pem", "utf8");
+const certificate = fs.readFileSync("/etc/letsencrypt/live/nooncar.com/fullchain.pem", "utf8");
 const credentials = { key: privateKey, cert: certificate };
 
 const httpsServer = https.createServer(credentials, app);
 
 httpsServer.listen(PORT, () => {
-  console.log(`App running on port ${PORT} using HTTPS`);
+    console.log(`App running on port ${PORT} using HTTPS`);
 });
