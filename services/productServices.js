@@ -180,6 +180,13 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 exports.deleteProduct = asyncHandler(async (req, res) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
 
   const productModel = db.model("Product", productSchema);
 
@@ -208,7 +215,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
   const taxModel = db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
-  db.model("Currency", currencySchema)
+  db.model("Currency", currencySchema);
 
   try {
     const { buffer } = req.file;
@@ -236,7 +243,6 @@ exports.addProduct = asyncHandler(async (req, res) => {
     }
     for (const item of csvData) {
       try {
-        
         const tax = await taxModel.findById(item.tax);
         const finalPrice = item.price * (1 + tax.tax / 100);
         item.taxPrice = finalPrice;

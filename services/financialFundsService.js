@@ -19,7 +19,9 @@ exports.getFinancialFunds = asyncHandler(async (req, res) => {
   db.model("PaymentType", paymentTypeSchema);
   db.model("Currency", currencySchema);
 
-  const financialFunds = await FinancialFundsModel.find()
+  const financialFunds = await FinancialFundsModel.find({
+    archives: { $ne: false },
+  })
     .populate({
       path: "fundCurrency",
       select: "_id currencyCode currencyName exchangeRate",
@@ -130,7 +132,10 @@ exports.transfer = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   db.model("PaymentType", paymentTypesSchema);
   db.model("Currency", currencySchema);
 
@@ -144,7 +149,9 @@ exports.transfer = asyncHandler(async (req, res, next) => {
   const { fund, quantity, amount } = req.body;
 
   // 1) Take the first Fund
-  const financialFund = await FinancialFundsModel.findByIdAndUpdate({ _id: id });
+  const financialFund = await FinancialFundsModel.findByIdAndUpdate({
+    _id: id,
+  });
   console.log("Befor: " + financialFund.fundBalance);
 
   // 2) Save the value with which the transfer will be made

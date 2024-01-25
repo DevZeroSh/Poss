@@ -28,6 +28,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
   const productModel = db.model("Product", productSchema);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
 
   const cartItems = req.body.cartItems;
   // app settings
@@ -156,6 +157,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
   const productModel = db.model("Product", productSchema);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
