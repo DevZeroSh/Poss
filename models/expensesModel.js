@@ -25,6 +25,7 @@ const expensesSchema = new mongoose.Schema({
     },
     expenseTax: String,
     expenseFinancialFund: String,
+    exchangeRate: Number,
     counter: {
         type: Number,
         default: 1,
