@@ -71,7 +71,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
             new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404)
         );
     }
-
     const exchangeRate = req.body.exchangeRate;
     const nextCounter = (await orderModel.countDocuments()) + 1;
     financialFunds.fundBalance += totalOrderPrice / exchangeRate;
@@ -131,6 +130,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
         date: timeIsoString,
         fund: financialFundsId,
         amount: totalOrderPrice,
+        employee: req.user._id,
         counter: nextCounter,
         paymentType: "Single Fund",
     });
@@ -286,6 +286,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
                 fundId: allocation.fundId,
                 allocatedAmount: allocation.amount,
             })),
+        employee: req.user._id,
         amount: totalAllocatedAmount,
         paymentType: "Multiple Funds",
     });
@@ -516,6 +517,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         orderId: id,
         fund: financialFunds,
         amount: order.totalOrderPrice,
+        employee: req.user._id,
         paymentType: "Edit Order",
     });
 
