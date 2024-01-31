@@ -74,7 +74,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     const exchangeRate = req.body.exchangeRate;
     const nextCounter = (await orderModel.countDocuments()) + 1;
     financialFunds.fundBalance += totalOrderPrice / exchangeRate;
-
+    console.log(cartItems);
     // 3) Create order with default paymentMethodType cash
     const order = await orderModel.create({
         employee: req.user._id,
@@ -130,6 +130,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
         date: timeIsoString,
         fund: financialFundsId,
         amount: totalOrderPrice,
+        cartItems: cartItems,
         employee: req.user._id,
         counter: nextCounter,
         paymentType: "Single Fund",
@@ -287,6 +288,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
                 allocatedAmount: allocation.amount,
             })),
         employee: req.user._id,
+        cartItems: order.cartItems,
         amount: totalAllocatedAmount,
         paymentType: "Multiple Funds",
     });
@@ -517,6 +519,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         orderId: id,
         fund: financialFunds,
         amount: order.totalOrderPrice,
+        cartItems: order.cartItems,
         employee: req.user._id,
         paymentType: "Edit Order",
     });

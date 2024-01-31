@@ -34,6 +34,22 @@ const ReportsSalesSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        cartItems: [
+            {
+                product: {
+                    type: mongoose.Schema.ObjectId,
+                    ref: "Product",
+                },
+                quantity: Number,
+                taxPrice: Number,
+                buyingPrice: Number,
+                taxRate: Number,
+                taxs: Number,
+                price: Number,
+                name: String,
+                qr: String,
+            },
+        ],
         paymentType: {
             type: String,
             default: "",
