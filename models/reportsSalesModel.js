@@ -34,9 +34,29 @@ const ReportsSalesSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        cartItems: [
+            {
+                product: {
+                    type: mongoose.Schema.ObjectId,
+                    ref: "Product",
+                },
+                quantity: Number,
+                taxPrice: Number,
+                buyingPrice: Number,
+                taxRate: Number,
+                taxs: Number,
+                price: Number,
+                name: String,
+                qr: String,
+            },
+        ],
         paymentType: {
             type: String,
             default: "",
+        },
+        employee: {
+            type: mongoose.Schema.ObjectId,
+            ref: "Employee",
         },
         counter: {
             type: Number,
@@ -51,10 +71,15 @@ ReportsSalesSchema.pre(/^find/, function (next) {
     this.populate({
         path: "financialFunds.fundId",
         select: "fundName",
-    }).populate({
-        path: "fund",
-        select: "fundName",
-    });
+    })
+        .populate({
+            path: "fund",
+            select: "fundName",
+        })
+        .populate({
+            path: "employee",
+            select: "name",
+        });
 
     next();
 });

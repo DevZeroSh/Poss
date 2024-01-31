@@ -16,7 +16,9 @@ const multerStorage = multer.diskStorage({
         const originalname = file.originalname;
         const lastDotIndex = originalname.lastIndexOf(".");
         const fileExtension = lastDotIndex !== -1 ? originalname.slice(lastDotIndex + 1) : "";
-        const filename = `ex-${uuidv4()}-${Date.now()}-${Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1}.${fileExtension}`;
+        const filename = `ex-${uuidv4()}-${Date.now()}-${
+            Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1
+        }.${fileExtension}`;
 
         callback(null, filename);
     },
@@ -50,7 +52,10 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
         const expensesModel = db.model("Expenses", expensesSchema);
         const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
         const TaxModel = db.model("Tax", TaxSchema);
-        const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+        const ReportsFinancialFundsModel = db.model(
+            "ReportsFinancialFunds",
+            reportsFinancialFundsSchema
+        );
 
         const uploadedFiles = req.files.map((file) => `${file.filename}`);
 
@@ -78,7 +83,11 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
             await financialFund.save();
 
             const nextCounter = (await expensesModel.countDocuments()) + 1;
-            let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
+            let expense = await expensesModel.create({
+                ...req.body,
+                counter: nextCounter,
+                expenseFile: uploadedFiles,
+            });
 
             //Start create a record in reports financial fund table
             let operationDate = req.body.expenseDate;
@@ -101,7 +110,11 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
         } else {
             req.body.expenseFinancialFund = "Unpaid";
             const nextCounter = (await expensesModel.countDocuments()) + 1;
-            let expense = await expensesModel.create({ ...req.body, counter: nextCounter, expenseFile: uploadedFiles });
+            let expense = await expensesModel.create({
+                ...req.body,
+                counter: nextCounter,
+                expenseFile: uploadedFiles,
+            });
             res.status(201).json({ status: "true", message: "Expense inserted", data: expense });
         }
     } catch (error) {
@@ -119,7 +132,10 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
     const expensesModel = db.model("Expenses", expensesSchema);
     db.model("ExpensesCategory", expensesCategorySchama);
 
-    const expenses = await expensesModel.find().populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" });
+    const expenses = await expensesModel.find().populate({
+        path: "expenseCategory",
+        select: "expenseCategoryName expenseCategoryDescription _id",
+    });
     res.status(200).json({ status: "true", data: expenses });
 });
 
@@ -134,9 +150,10 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
     const expensesModel = db.model("Expenses", expensesSchema);
     db.model("ExpensesCategory", expensesCategorySchama);
 
-    const expense = await expensesModel
-        .findById(id)
-        .populate({ path: "expenseCategory", select: "expenseCategoryName expenseCategoryDescription _id" });
+    const expense = await expensesModel.findById(id).populate({
+        path: "expenseCategory",
+        select: "expenseCategoryName expenseCategoryDescription _id",
+    });
 
     if (!expense) {
         return next(new ApiError(`There is no expense with this id ${id}`, 404));
@@ -165,14 +182,17 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 exports.updateExpense = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
-    const fundId = req.body.expenseFinancialFund; // replace with your actual ID
+    const fundId = req.body.expenseFinancialFund;
 
     const dbName = req.query.databaseName;
 
     const db = mongoose.connection.useDb(dbName);
     const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
     const expensesModel = db.model("Expenses", expensesSchema);
-    const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+    const ReportsFinancialFundsModel = db.model(
+        "ReportsFinancialFunds",
+        reportsFinancialFundsSchema
+    );
 
     // Find the financial fund by ID
     const financialFund = await FinancialFundsModel.findByIdAndUpdate(fundId);

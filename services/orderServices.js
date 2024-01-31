@@ -76,40 +76,37 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // 1) Find the financial funds document based on the provided ID
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
-  if (!financialFunds) {
-    return next(
-      new ApiError(
-        `There is no such financial funds with id ${financialFundsId}`,
-        404
-      )
-    );
-  }
+    if (!financialFunds) {
+        return next(
+            new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404)
+        );
+    }
 
-  const exchangeRate = req.body.exchangeRate;
-  const nextCounter = (await orderModel.countDocuments()) + 1;
-  financialFunds.fundBalance += totalOrderPrice / exchangeRate;
+    const exchangeRate = req.body.exchangeRate;
+    const nextCounter = (await orderModel.countDocuments()) + 1;
+    financialFunds.fundBalance += totalOrderPrice / exchangeRate;
 
-  // 3) Create order with default paymentMethodType cash
-  const order = await orderModel.create({
-    employee: req.user._id,
-    priceExchangeRate: req.body.priceExchangeRate,
-    cartItems,
-    currencyCode: req.body.currency,
-    shippingAddress: req.body.shippingAddress,
-    totalOrderPrice,
-    paymentMethodType,
-    taxs: req.body.taxs,
-    price: req.body.price,
-    taxRate: req.body.taxRate,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customarAddress: req.body.customarAddress,
-    onefinancialFunds: financialFundsId,
-    paidAt: formattedDate,
-    counter: nextCounter,
-    exchangeRate: exchangeRate,
-  });
+    // 3) Create order with default paymentMethodType cash
+    const order = await orderModel.create({
+        employee: req.user._id,
+        priceExchangeRate: req.body.priceExchangeRate,
+        cartItems,
+        currencyCode: req.body.currency,
+        shippingAddress: req.body.shippingAddress,
+        totalOrderPrice,
+        paymentMethodType,
+        taxs: req.body.taxs,
+        price: req.body.price,
+        taxRate: req.body.taxRate,
+        customarName: req.body.customarName,
+        customarEmail: req.body.customarEmail,
+        customarPhone: req.body.customarPhone,
+        customarAddress: req.body.customarAddress,
+        onefinancialFunds: financialFundsId,
+        paidAt: formattedDate,
+        counter: nextCounter,
+        exchangeRate: exchangeRate,
+    });
 
   const data = new Date();
   const timeIsoString = data.toISOString();
@@ -141,16 +138,16 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     await financialFunds.save();
   }
 
-  // 5) Create sales report
-  await ReportsSalesModel.create({
-    customer: req.body.customarName,
-    orderId: order._id,
-    date: timeIsoString,
-    fund: financialFundsId,
-    amount: totalOrderPrice,
-    counter: nextCounter,
-    paymentType: "Single Fund",
-  });
+    // 5) Create sales report
+    await ReportsSalesModel.create({
+        customer: req.body.customarName,
+        orderId: order._id,
+        date: timeIsoString,
+        fund: financialFundsId,
+        amount: totalOrderPrice,
+        counter: nextCounter,
+        paymentType: "Single Fund",
+    });
 
   res.status(201).json({ status: "success", data: order });
 });
@@ -308,20 +305,20 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOption, {});
   // await Cart.findByIdAndDelete(cartId);
 
-  // Create sales report
-  await ReportsSalesModel.create({
-    customer: req.body.customarName,
-    orderId: order._id,
-    date: timeIsoString,
-    financialFunds: financialFunds
-      .filter((allocation) => allocation.amount !== 0)
-      .map((allocation) => ({
-        fundId: allocation.fundId,
-        allocatedAmount: allocation.amount,
-      })),
-    amount: totalAllocatedAmount,
-    paymentType: "Multiple Funds",
-  });
+    // Create sales report
+    await ReportsSalesModel.create({
+        customer: req.body.customarName,
+        orderId: order._id,
+        date: timeIsoString,
+        financialFunds: financialFunds
+            .filter((allocation) => allocation.amount !== 0)
+            .map((allocation) => ({
+                fundId: allocation.fundId,
+                allocatedAmount: allocation.amount,
+            })),
+        amount: totalAllocatedAmount,
+        paymentType: "Multiple Funds",
+    });
 
   res.status(201).json({ status: "success", data: order });
 });
@@ -551,14 +548,14 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     await financialFunds.save();
   }
 
-  // Create sales report
-  await ReportsSalesModel.create({
-    date: timeIsoString,
-    orderId: id,
-    fund: financialFunds,
-    amount: order.totalOrderPrice,
-    paymentType: "Edit Order",
-  });
+    // Create sales report
+    await ReportsSalesModel.create({
+        date: timeIsoString,
+        orderId: id,
+        fund: financialFunds,
+        amount: order.totalOrderPrice,
+        paymentType: "Edit Order",
+    });
 
   res.status(200).json({
     status: "true",

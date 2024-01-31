@@ -60,7 +60,6 @@ exports.login = asyncHandler(async (req, res, next) => {
                 posRolesName: posRoleName,
                 token,
                 dbName,
-                
             });
         } catch (error) {
             console.error("Error finding roles:", error);
@@ -74,7 +73,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 exports.protect = asyncHandler(async (req, res, next) => {
     //1-Check if token exist, if exist get
     const dbName = req.query.databaseName;
-  
+
     const db = mongoose.connection.useDb(dbName);
     const employeeModel = db.model("Employee", emoloyeeShcema);
 
@@ -92,7 +91,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
             //3-Check if user exists
             const curentUser = await employeeModel.findById(decoded.userId);
             if (!curentUser) {
-                return next(new ApiError("The user doesnot exit", 401));
+                return next(new ApiError("The user does not exit", 404));
             }
             req.user = curentUser;
             next();
@@ -122,7 +121,9 @@ exports.allowedTo = (role) =>
             const rolesModel = db.model("Roles", rolesShcema);
 
             //get all user's roles
-            const employee = await employeeModel.findById(id).populate({ path: "selectedRoles", select: "name _id" });
+            const employee = await employeeModel
+                .findById(id)
+                .populate({ path: "selectedRoles", select: "name _id" });
             if (!employee) {
                 return next(new ApiError(`No employee by this id ${id}`, 404));
             }
@@ -135,7 +136,10 @@ exports.allowedTo = (role) =>
             }
 
             const { rolesDashboard, rolesPos } = roles;
-            const [dashRoleName, poseRoleName] = await Promise.all([getDashboardRoles(rolesDashboard, db), getPosRoles(rolesPos, db)]);
+            const [dashRoleName, poseRoleName] = await Promise.all([
+                getDashboardRoles(rolesDashboard, db),
+                getPosRoles(rolesPos, db),
+            ]);
 
             let allUserRoles = [...dashRoleName, ...poseRoleName];
 
