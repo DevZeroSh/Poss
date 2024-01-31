@@ -121,6 +121,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       { title: "edit pricing method", desc: "pricing method" },
       { title: "delete pricing method", desc: "pricing method" },
       { title: "new pricing method", desc: "pricing method" },
+      { title: "view reports", desc: "reports" },
     ];
 
     const mainDashboardRoles = await roleDashboardModel.insertMany(

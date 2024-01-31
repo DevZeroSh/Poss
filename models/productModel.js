@@ -97,6 +97,10 @@ const productSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
+
+    activeCount: { type: Number, default: 0 },
+    deactivateCount: { type: Number, default: 0 },
+
     serialNumberType: {
       type: String,
       enum: ["true", "false"],

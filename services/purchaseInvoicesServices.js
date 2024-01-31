@@ -173,7 +173,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       updateOne: {
         filter: { _id: item.product },
         update: {
-          $inc: { quantity: +item.quantity },
+          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
           $set: {
             serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,
@@ -408,7 +408,10 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
       updateOne: {
         filter: { _id: item.product },
         update: {
-          $inc: { quantity: item.quantity - item.beforQuantity },
+          $inc: {
+            quantity: item.quantity - item.beforQuantity,
+            activeCount: item.quantity - item.beforQuantity,
+          },
           $set: {
             serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,
@@ -458,7 +461,10 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
       updateOne: {
         filter: { _id: item.product },
         update: {
-          $inc: { quantity: +item.quantity - item.beforQuantity },
+          $inc: {
+            quantity: +item.quantity - item.beforQuantity,
+            activeCount: item.quantity - item.beforQuantity,
+          },
           $set: {
             serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,

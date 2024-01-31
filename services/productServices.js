@@ -34,8 +34,9 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 
   if (req.file) {
     await sharp(req.file.buffer)
-      .toFormat("jpeg")
-      .jpeg({ quality: 90 })
+      .resize(600, 600)
+      .toFormat("png")
+      .jpeg({ quality: 70 })
       .toFile(`uploads/product/${filename}`);
 
     //save image into our db
@@ -60,8 +61,13 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
+
+  const pageSize = 50;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
   // Search for product or qr
-  let mongooseQuery = productModel.find({ archives: { $ne: true } });
+  let mongooseQuery = productModel.find();
 
   if (req.query.keyword) {
     const query = {
@@ -77,11 +83,23 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     };
     mongooseQuery = mongooseQuery.find(query);
   }
-
   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
+  // Count total items without pagination
+  const totalItems = await productModel.countDocuments();
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Apply pagination
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+
   const product = await mongooseQuery;
+
   const notices = [];
+  const nonArchivedProductCount = product.filter(
+    (item) => item.archives !== "true"
+  ).length;
 
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
@@ -90,9 +108,14 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
       }
     }
   });
-  res
-    .status(200)
-    .json({ status: "true", results: product.length, data: product, notices });
+
+  res.status(200).json({
+    status: "true",
+    results: nonArchivedProductCount,
+    Pages: totalPages,
+    data: product,
+    notices,
+  });
 });
 
 // @desc Create  product
@@ -104,9 +127,8 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 
   const productModel = db.model("Product", productSchema);
 
-  req.body.slug = slugify(req.body.name);
-
   const product = await productModel.create(req.body);
+
   res
     .status(201)
     .json({ status: "true", message: "Product Inserted", data: product });
@@ -277,4 +299,50 @@ exports.addProduct = asyncHandler(async (req, res) => {
     console.error(error);
     res.status(500).json({ error: "Internal Server Error" });
   }
+});
+
+// @desc put Deactivate Quantity prodcut
+// @route put /api/product/deactivate
+// @access Private
+exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
+
+  const { id } = req.params;
+  const productModel = db.model("Product", productSchema);
+
+  const { newQuantity } = req.body;
+  // Find the product by ID
+  const product = await productModel.findById(id);
+
+  if (!product) {
+    return res
+      .status(404)
+      .json({ status: "false", message: "Product not found" });
+  }
+
+  if (req.body.type === "deActive") {
+    // Update the product
+    await productModel.findByIdAndUpdate(id, {
+      $inc: {
+        deactivateCount: +newQuantity,
+        activeCount: -newQuantity,
+      },
+    });
+  } else if (req.body.type === "active") {
+    await productModel.findByIdAndUpdate(id, {
+      $inc: {
+        deactivateCount: -newQuantity,
+        activeCount: +newQuantity,
+      },
+    });
+  }
+  res.status(200).json({ status: "true", message: "Product Deactivated" });
 });
