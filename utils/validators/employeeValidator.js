@@ -1,7 +1,9 @@
+const bcrypt = require("bcryptjs");
 const { check, body, param } = require("express-validator");
 const validatorMiddleware = require("../../middlewares/validatorMiddleware");
 const emoloyeeShcema = require("../../models/employeeModel");
 const mongoose = require("mongoose");
+const ApiError = require("../apiError");
 
 //Validator for adding an employee
 exports.createEmployeeValidator = [
@@ -78,8 +80,54 @@ exports.updateEmployeeValidator = [
     validatorMiddleware,
 ];
 
+exports.updateNameValidator = [
+    param("id").isMongoId().withMessage("Invalid employee id"),
+    check("name")
+        .notEmpty()
+        .withMessage("The name can not be empty")
+        .isLength({ min: 3 })
+        .withMessage("The Name is too short")
+        .isLength({ max: 30 })
+        .withMessage("The name is too long"),
+    validatorMiddleware,
+];
+
+exports.updatePasswordValidator = [
+    body("currentPassword").notEmpty().withMessage("You must enter your current password"),
+    body("passwordConfirm").notEmpty().withMessage("Please enter the password confirmation"),
+    body("newPassword")
+        .notEmpty()
+        .withMessage("Please enter the new password")
+        .custom(async (newPass, { req }) => {
+            const dbName = req.query.databaseName;
+            const db = mongoose.connection.useDb(dbName);
+            var employeeModel = db.model("Employee", emoloyeeShcema);
+            //1- Verify current password
+            const user = await employeeModel.findById(req.query.id);
+            if (!user) {
+                throw new ApiError("There's no user for this ID", 404);
+            }
+            const isCorrectPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+            if (!isCorrectPassword) {
+                throw new ApiError("Your current password is incorrect", 401);
+            }
+            //2- Verify password confirmation
+            if (newPass !== req.body.passwordConfirm) {
+                throw new ApiError("Your password confirmation is incorrect", 401);
+            }
+            return true;
+        }),
+    validatorMiddleware,
+];
+
 //Validator to id when get one Employee
-exports.getEmployeeVlaidator = [check("id").isMongoId().withMessage("Invalid employee id"), validatorMiddleware];
+exports.getEmployeeVlaidator = [
+    check("id").isMongoId().withMessage("Invalid employee id"),
+    validatorMiddleware,
+];
 
 //Validator to id when delete an Employee
-exports.deleteEmployeeVlaidator = [check("id").isMongoId().withMessage("Invalid employee id"), validatorMiddleware];
+exports.deleteEmployeeVlaidator = [
+    check("id").isMongoId().withMessage("Invalid employee id"),
+    validatorMiddleware,
+];

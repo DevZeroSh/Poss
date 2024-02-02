@@ -22,7 +22,15 @@ const emoloyeeShcema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
-        password: String,
+        password: {
+            type: String,
+            required: [true, "Password is required"],
+            minlength: [4, "Password must be at least 4 characters long"],
+        },
+        passwordChangedAt: Date,
+        passwordResetCode: String,
+        passwordResetExpires: Date,
+        passwordResetVerified: Boolean,
         selectedRoles: [
             {
                 type: mongoose.Schema.ObjectId,
