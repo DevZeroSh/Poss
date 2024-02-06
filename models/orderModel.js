@@ -48,7 +48,7 @@ const orderSchema = new mongoose.Schema(
     },
     // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
-
+    totalPriceAfterDiscount: Number,
     currencyCode: String,
     isPadid: {
       type: Boolean,
