@@ -139,6 +139,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
         cartItems: cartItems,
         counter: nextCounter,
         paymentType: "Single Fund",
+        employee: req.user._id,
     });
 
     res.status(201).json({ status: "success", data: order });
@@ -299,6 +300,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         amount: totalAllocatedAmount,
         cartItems: cartItems,
         paymentType: "Multiple Funds",
+        employee: req.user._id,
     });
 
     res.status(201).json({ status: "success", data: order });
@@ -537,6 +539,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         amount: order.totalOrderPrice,
         cartItems: cartItems,
         paymentType: "Edit Order",
+        employee: req.user._id,
     });
 
     res.status(200).json({
