@@ -33,9 +33,9 @@ const expensesRoute = require("./routes/expensesRoute");
 const productInvoicesRout = require("./routes/purchaseInvoices");
 const expenseCategoriesRoute = require("./routes/expensesCategoryRoute");
 const companyInfoRoute = require("./routes/companyInfoRoute");
-const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const pricingMethodRoute = require("./routes/pricingMethodRoute");
 const dbContacion = require("./config/database");
+const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const reportsSalesRoute = require("./routes/reportsSalesRoute");
 
 dbContacion();
@@ -74,9 +74,9 @@ app.use("/api/expenses", expensesRoute);
 app.use("/api/productinvoices", productInvoicesRout);
 app.use("/api/expenseCategories", expenseCategoriesRoute);
 app.use("/api/companyinfo", companyInfoRoute);
+app.use("/api/pricingmethod", pricingMethodRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
 app.use("/api/salesreports", reportsSalesRoute);
-app.use("/api/pricingmethod", pricingMethodRoute);
 
 //Global error handling middleware for express
 app.use(globalError);
