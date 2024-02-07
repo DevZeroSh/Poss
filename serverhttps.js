@@ -24,6 +24,7 @@ const unitRout = require("./routes/unitRout");
 const taxRout = require("./routes/taxRout");
 const discountRoute = require("./routes/discountRoute");
 const paymentTypes = require("./routes/paymentTypesRoute");
+// const cartRout = require("./routes/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
