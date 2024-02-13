@@ -1,24 +1,11 @@
 const mongoose = require("mongoose");
 
-const orderSchema = new mongoose.Schema(
+const returnOrderSchema = new mongoose.Schema(
   {
     employee: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
     },
-    financialFunds: [
-      {
-        fundId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "FinancialFunds",
-          required: true,
-        },
-        allocatedAmount: {
-          type: Number,
-        },
-        exchangeRate: Number,
-      },
-    ],
     onefinancialFunds: {
       type: mongoose.Schema.ObjectId,
       ref: "FinancialFunds",
@@ -54,10 +41,6 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    financialFundsRef: {
-      type: mongoose.Schema.ObjectId,
-      ref: "FinancialFunds",
-    },
     paymentMethodType: String,
     quantity: Number,
     paidAt: String,
@@ -66,33 +49,32 @@ const orderSchema = new mongoose.Schema(
     couponType: String,
     counter: {
       type: String,
-      default: 0,
       unique: true,
     },
     customarName: String,
     customarEmail: String,
     customarPhone: String,
     customaraddres: String,
+    type: {
+      type: String,
+      default: "return",
+    },
   },
 
   { timestamps: true }
 );
 
-orderSchema.pre(/^find/, function (next) {
+returnOrderSchema.pre(/^find/, function (next) {
   this.populate({
     path: "employee",
     select: "name profileImg email phone",
   })
-    .populate({
-      path: "financialFunds.fundId",
-      select: "fundName",
-    })
-    .populate({
-      path: "onefinancialFunds",
-      select: "fundName",
-    });
+  .populate({
+    path: "onefinancialFunds",
+    select: "fundName",
+  });
 
   next();
 });
 
-module.exports = orderSchema;
+module.exports = returnOrderSchema;

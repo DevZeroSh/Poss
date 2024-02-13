@@ -1,7 +1,7 @@
 const asyncHandler = require("express-async-handler");
 const productSchema = require("../models/productModel");
 const slugify = require("slugify");
-const multer = require("multer")
+const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
@@ -127,6 +127,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 
   const productModel = db.model("Product", productSchema);
 
+  req.body.slug = slugify(req.body.name);
   const product = await productModel.create(req.body);
 
   res

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const supplierSchema = require("../models/suppliersModel");
+const { Search } = require("../utils/search");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -21,9 +22,16 @@ exports.getSuppliers = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
-  const supplier = await supplierModel.find({ archives: { $ne: true } });
+  const { totalPages, mongooseQuery } = await Search(supplierModel, req);
+  
+  const supplier = await mongooseQuery;
 
-  res.status(200).json({ status: "true", data: supplier });
+  res.status(200).json({
+    status: "true",
+    totalPages: totalPages,
+    results: supplier.length,
+    data: supplier,
+  });
 });
 
 //Get One Supplier

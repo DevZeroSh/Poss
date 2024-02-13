@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const customarSchema = require("../models/customarModel");
+const { Search } = require("../utils/search");
 
 //Create New Customar
 //@rol: Who has rol can create
@@ -22,9 +23,14 @@ exports.getCustomars = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customarsModel = db.model("Customar", customarSchema);
-
-  const customars = await customarsModel.find({ archives: { $ne: true } });
-  res.status(200).json({ status: "true", data: customars });
+  const { totalPages, mongooseQuery } = await Search(customarsModel, req);
+  const customars = await mongooseQuery;
+  res.status(200).json({
+    status: "true",
+    totalPages: totalPages,
+    results: customars.length,
+    data: customars,
+  });
 });
 
 //Get One Customar

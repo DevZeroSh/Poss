@@ -56,8 +56,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       ref: "Employee",
     },
     counter: {
-      type: Number,
-      default: 0,
+      type: String,
       unique: true,
     },
   },

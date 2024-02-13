@@ -1,10 +1,12 @@
 const express = require("express");
 const {
-    createCashOrder,
-    findAllOrder,
-    findOneOrder,
-    createCashOrderMultipelFunds,
-    editOrder,
+  createCashOrder,
+  findAllOrder,
+  findOneOrder,
+  createCashOrderMultipelFunds,
+  editOrder,
+  returnOrder,
+  getReturnOrder,
 } = require("../services/orderServices");
 
 const authService = require("../services/authService");
@@ -12,6 +14,10 @@ const authService = require("../services/authService");
 const OrderRout = express.Router();
 
 OrderRout.use(authService.protect);
+
+// Define more specific routes before general ones
+OrderRout.route("/return").post(returnOrder);
+OrderRout.route("/getReturnOrder").get(getReturnOrder);
 
 OrderRout.route("/").get(findAllOrder).post(createCashOrder);
 OrderRout.route("/funds").post(createCashOrderMultipelFunds);

@@ -15,6 +15,7 @@ const variantSchema = require("../models/variantsModel");
 const UnitSchema = require("../models/UnitsModel");
 const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
+const { Search } = require("../utils/search");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -256,17 +257,21 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   db.model("Currency", currencySchema);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  db.model("FinancialFunds", financialFundsSchema);
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const mongooseQuery = PurchaseInvoicesModel.find({
-    archives: { $ne: true },
-  }).sort({ createdAt: -1 });
+
+  const { totalPages, mongooseQuery } = await Search(
+    PurchaseInvoicesModel,
+    req
+  );
+
   const ProductInvoices = await mongooseQuery;
   res.status(200).json({
     status: "true",
+    totalPages: totalPages,
     results: ProductInvoices.length,
     data: ProductInvoices,
   });
@@ -299,49 +304,6 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: "true", data: ProductInvoices });
 });
-
-/*
-exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  db.model("Supplier", supplierSchema);
-  db.model("Employee", emoloyeeShcema);
-  db.model("Currency", currencySchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const PurchaseInvoicesModel = db.model(
-    "PurchaseInvoices",
-    PurchaseInvoicesSchema
-  );
-  const { quantity } = req.body;
-  const cart = await PurchaseInvoicesModel.findOne({ employee: req.user._id });
-  if (!cart) {
-    return next(
-      new ApiError(`there is no cart for user ${req.user._id} `, 404)
-    );
-  }
-  const itemIndex = cart.invoices.findIndex(
-    (item) => item._id.toString() === req.params.itemId
-  );
-
-  if (itemIndex > -1) {
-    const cartItem = cart.invoices[itemIndex];
-    cartItem.quantity = quantity;
-    cartItem.quantity = quantity;
-    cart.invoices[itemIndex] = cartItem;
-  } else {
-    return next(
-      new ApiError(`there is no item for this id: ${req.params.itemId}`, 404)
-    );
-  }
-
-  await cart.save();
-  res.status(200).json({
-    status: "success",
-    numberinvoices: cart.invoices.length,
-    data: cart,
-  });
-});
-*/
 
 exports.updateInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -482,3 +444,46 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     res.status(200).json({ status: "success", data: updatedInvoice });
   }
 });
+
+/*
+exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Supplier", supplierSchema);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Currency", currencySchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+  const { quantity } = req.body;
+  const cart = await PurchaseInvoicesModel.findOne({ employee: req.user._id });
+  if (!cart) {
+    return next(
+      new ApiError(`there is no cart for user ${req.user._id} `, 404)
+    );
+  }
+  const itemIndex = cart.invoices.findIndex(
+    (item) => item._id.toString() === req.params.itemId
+  );
+
+  if (itemIndex > -1) {
+    const cartItem = cart.invoices[itemIndex];
+    cartItem.quantity = quantity;
+    cartItem.quantity = quantity;
+    cart.invoices[itemIndex] = cartItem;
+  } else {
+    return next(
+      new ApiError(`there is no item for this id: ${req.params.itemId}`, 404)
+    );
+  }
+
+  await cart.save();
+  res.status(200).json({
+    status: "success",
+    numberinvoices: cart.invoices.length,
+    data: cart,
+  });
+});
+*/
