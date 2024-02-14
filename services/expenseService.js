@@ -149,7 +149,7 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
   const expenses = await mongooseQuery;
   res.status(200).json({
     status: "true",
-    totalPages: totalPages,
+    Pages: totalPages,
     results: expenses.length,
     data: expenses,
   });

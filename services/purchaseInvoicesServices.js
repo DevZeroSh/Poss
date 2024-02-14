@@ -252,30 +252,65 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+
   db.model("Employee", emoloyeeShcema);
   db.model("Tax", TaxSchema);
   db.model("Currency", currencySchema);
   db.model("Supplier", supplierSchema);
   db.model("Employee", emoloyeeShcema);
   db.model("FinancialFunds", financialFundsSchema);
+
   const PurchaseInvoicesModel = db.model(
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
 
-  const { totalPages, mongooseQuery } = await Search(
-    PurchaseInvoicesModel,
-    req
+  const pageSize = 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  // Define the match pipeline based on the search conditions
+  const matchPipeline = [
+    { $match: { archives: { $ne: true } } },
+  ];
+
+  if (req.query.keyword) {
+    matchPipeline.push({
+      $match: {
+        $or: [
+          { name: { $regex: req.query.keyword, $options: "i" } },
+          { supplierName: { $regex: req.query.keyword, $options: "i" } },
+          { counter: { $regex: req.query.keyword, $options: "i" } },
+          { discountName: { $regex: req.query.keyword, $options: "i" } },
+        ],
+      },
+    });
+  }
+
+  // Add the sort and pagination stages
+  matchPipeline.push(
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: pageSize }
   );
 
-  const ProductInvoices = await mongooseQuery;
+  // Execute the aggregation pipeline
+  const aggregationResult = await PurchaseInvoicesModel.aggregate(matchPipeline);
+
+  // Count total items without pagination
+  const totalItems = await PurchaseInvoicesModel.countDocuments();
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+
   res.status(200).json({
     status: "true",
-    totalPages: totalPages,
-    results: ProductInvoices.length,
-    data: ProductInvoices,
+    Pages: totalPages,
+    results: aggregationResult.length,
+    data: aggregationResult,
   });
 });
+
 
 exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
