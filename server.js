@@ -37,6 +37,7 @@ const pricingMethodRoute = require("./routes/pricingMethodRoute");
 const dbContacion = require("./config/database");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const reportsSalesRoute = require("./routes/reportsSalesRoute");
+const StockReconciliationRoute = require("./routes/stockReconciliationRoute");
 
 dbContacion();
 // Middleware
@@ -77,6 +78,7 @@ app.use("/api/companyinfo", companyInfoRoute);
 app.use("/api/pricingmethod", pricingMethodRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
 app.use("/api/salesreports", reportsSalesRoute);
+app.use("/api/stockreconciliation", StockReconciliationRoute);
 
 //Global error handling middleware for express
 app.use(globalError);

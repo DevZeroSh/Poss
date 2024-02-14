@@ -37,6 +37,7 @@ const companyInfoRoute = require("./routes/companyInfoRoute");
 const reportsFinancialFundRoute = require("./routes/reportsFinancialFundsRoute");
 const pricingMethodRoute = require("./routes/pricingMethodRoute");
 const reportsSalesRoute = require("./routes/reportsSalesRoute");
+const StockReconciliationRoute = require("./routes/stockReconciliationRoute");
 
 dotenv.config({ path: "config.env" });
 
@@ -80,6 +81,7 @@ app.use("/api/companyinfo", companyInfoRoute);
 app.use("/api/financialfundsreports", reportsFinancialFundRoute);
 app.use("/api/salesreports", reportsSalesRoute);
 app.use("/api/pricingmethod", pricingMethodRoute);
+app.use("/api/stockreconciliation", StockReconciliationRoute);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
