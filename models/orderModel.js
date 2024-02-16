@@ -32,7 +32,24 @@ const orderSchema = new mongoose.Schema(
           type: mongoose.Schema.ObjectId,
           ref: "Product",
         },
+        buyingPrice: Number,
+        quantity: Number,
+        taxPrice: Number,
+        taxRate: Number,
+        taxs: Number,
+        price: Number,
+        name: String,
+        qr: String,
+      },
+    ],
 
+    returnCartItem: [
+      {
+        product: {
+          type: mongoose.Schema.ObjectId,
+          ref: "Product",
+        },
+        buyingPrice: Number,
         quantity: Number,
         taxPrice: Number,
         taxRate: Number,
@@ -73,6 +90,11 @@ const orderSchema = new mongoose.Schema(
     customarEmail: String,
     customarPhone: String,
     customaraddres: String,
+    type: {
+      type: String,
+      enum:["pos","normal"],
+      default: "normal"
+    },
   },
 
   { timestamps: true }

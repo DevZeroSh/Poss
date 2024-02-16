@@ -97,6 +97,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     priceExchangeRate: req.body.priceExchangeRate,
     cartItems,
+    returnCartItem: cartItems,
     currencyCode: req.body.currency,
     shippingAddress: req.body.shippingAddress,
     totalOrderPrice,
@@ -109,6 +110,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
     customarAddress: req.body.customarAddress,
+    coupon: req.body.coupon,
+    couponCount: req.body.couponCount,
+    couponType: req.body.couponType,
+    type: req.body.type,
     onefinancialFunds: financialFundsId,
     paidAt: formattedDate,
     counter: nextCounter,
@@ -218,6 +223,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     priceExchangeRate: req.body.priceExchangeRate,
     employee: req.user._id,
     cartItems: cartItems,
+    returnCartItem: cartItems,
     totalOrderPrice: 0,
     paymentMethodType: req.body.paymentMethodType,
     taxs: req.body.taxs,
@@ -229,9 +235,11 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     customaraddres: req.body.customaraddres,
     totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
     paidAt: dates,
-    // coupon: coupon,
-    // couponCount: couponCount,
-    // couponType: couponType,
+    coupon: req.body.coupon,
+    couponCount: req.body.couponCount,
+    couponType: req.body.couponType,
+    type: req.body.type,
+
     counter: (await orderModel.countDocuments()) + 1,
     financialFunds: financialFunds
       .filter((allocation) => allocation.amount !== 0)
@@ -371,7 +379,33 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
-  const { totalPages, mongooseQuery } = await Search(orderModel, req);
+  const pageSize = 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  // Search for product or qr
+  let mongooseQuery = orderModel.find();
+
+  if (req.query.keyword) {
+    const query = {
+      $and: [
+        {
+          $or: [{ counter: { $regex: req.query.keyword, $options: "i" } }],
+        },
+        { archives: { $ne: true } },
+      ],
+    };
+    mongooseQuery = mongooseQuery.find(query);
+  }
+  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+
+  // Count total items without pagination
+  const totalItems = await orderModel.countDocuments();
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Apply pagination
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
 
   const order = await mongooseQuery;
 
@@ -460,7 +494,6 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         update: {
           $inc: {
             quantity: +item.quantity,
-            sold: -item.quantity,
             activeCount: +item.quantity,
           },
         },
@@ -503,11 +536,12 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("returnOrder", returnOrderSchema);
-  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const orderModelO = db.model("Orders", orderSchema);
+
   const financialFundsId = req.body.onefinancialFunds;
 
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
@@ -540,6 +574,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     req.body.paidAt = formattedDate;
 
     const order = await orderModel.create(req.body);
+
     const bulkOption = req.body.cartItems.map((item) => ({
       updateOne: {
         filter: { _id: item._id },
@@ -551,20 +586,21 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         },
       },
     }));
+    await orderModelO.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption, {});
-    financialFunds.fundBalance -= req.body.priceExchangeRate;
-    await financialFunds.save();
+    // financialFunds.fundBalance -= req.body.priceExchangeRate;
+    // await financialFunds.save();
     const data2 = new Date();
     const timeIsoString1 = data2.toISOString();
-    await ReportsFinancialFundsModel.create({
-      date: timeIsoString1,
-      amount: totalOrderPrice,
-      order: order._id,
-      type: "return",
-      financialFundId: financialFundsId,
-      financialFundRest: financialFunds.fundBalance,
-      exchangeRate: req.body.exchangeRate,
-    });
+    // await ReportsFinancialFundsModel.create({
+    //   date: timeIsoString1,
+    //   amount: totalOrderPrice,
+    //   order: order._id,
+    //   type: "return",
+    //   financialFundId: financialFundsId,
+    //   financialFundRest: financialFunds.fundBalance,
+    //   exchangeRate: req.body.exchangeRate,
+    // });
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
@@ -593,20 +629,22 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           },
         },
       }));
+      await orderModelO.bulkWrite(bulkOption, {});
+
       await productModel.bulkWrite(bulkOption, {});
-      financialFunds.fundBalance -= req.body.priceExchangeRate;
-      await financialFunds.save();
+      // financialFunds.fundBalance -= req.body.priceExchangeRate;
+      // await financialFunds.save();
       const data2 = new Date();
       const timeIsoString1 = data2.toISOString();
-      await ReportsFinancialFundsModel.create({
-        date: timeIsoString1,
-        amount: req.body.priceExchangeRate,
-        order: order._id,
-        type: "return",
-        financialFundId: financialFundsId,
-        financialFundRest: financialFunds.fundBalance,
-        exchangeRate: req.body.exchangeRate,
-      });
+      // await ReportsFinancialFundsModel.create({
+      //   date: timeIsoString1,
+      //   amount: req.body.priceExchangeRate,
+      //   order: order._id,
+      //   type: "return",
+      //   financialFundId: financialFundsId,
+      //   financialFundRest: financialFunds.fundBalance,
+      //   exchangeRate: req.body.exchangeRate,
+      // });
       res.status(200).json({
         status: "success",
         message: "The product has been returned",

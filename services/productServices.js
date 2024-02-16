@@ -62,7 +62,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
 
-  const pageSize = 50;
+  const pageSize = 25;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
