@@ -177,7 +177,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           $inc: { quantity: +item.quantity, activeCount: +item.quantity },
           $set: {
             serialNumber: item.serialNumber,
-            buyingprice: item.buyingprice,
+            buyingprice: item.buyingpriceOringal,
             tax: item.taxId,
             price: item.price,
             taxPrice: item.taxPrice,
