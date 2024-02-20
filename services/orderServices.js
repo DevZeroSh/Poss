@@ -131,24 +131,30 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     financialFundRest: financialFunds.fundBalance,
     exchangeRate: exchangeRate,
   });
-
   // 4) After creating order, decrement product quantity, increment product sold
-  if (order) {
-    const bulkOption = cartItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item._id },
-        update: {
-          $inc: {
-            quantity: -item.quantity,
-            sold: +item.quantity,
-            activeCount: -item.quantity,
+  const bulkOption = cartItems
+    .map((item) => {
+      if (item.type !== "Service") {
+        return {
+          updateOne: {
+            filter: { _id: item._id },
+            update: {
+              $inc: {
+                quantity: -item.quantity,
+                sold: +item.quantity,
+                activeCount: -item.quantity,
+              },
+            },
           },
-        },
-      },
-    }));
-    await productModel.bulkWrite(bulkOption, {});
-    await financialFunds.save();
-  }
+        };
+      } else {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  await productModel.bulkWrite(bulkOption, {});
+  await financialFunds.save();
 
   // 5) Create sales report
   await ReportsSalesModel.create({
@@ -196,12 +202,12 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   let minutes = padZero(date_ob.getMinutes());
   let seconds = padZero(date_ob.getSeconds());
   const dates =
-    date +
+    year +
     "-" +
     month +
     "-" +
-    year +
-    "-" +
+    date +
+    " " +
     hours +
     ":" +
     minutes +
@@ -307,18 +313,26 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   }
 
   // Update product stock
-  const bulkOption = cartItems.map((item) => ({
-    updateOne: {
-      filter: { _id: item._id },
-      update: {
-        $inc: {
-          quantity: -item.quantity,
-          sold: +item.quantity,
-          activeCount: -item.quantity,
-        },
-      },
-    },
-  }));
+  const bulkOption = cartItems
+    .map((item) => {
+      if (item.type !== "Service") {
+        return {
+          updateOne: {
+            filter: { _id: item._id },
+            update: {
+              $inc: {
+                quantity: -item.quantity,
+                sold: +item.quantity,
+                activeCount: -item.quantity,
+              },
+            },
+          },
+        };
+      } else {
+        return null;
+      }
+    })
+    .filter(Boolean);
 
   await FinancialFundsModel.bulkWrite(bulkUpdates);
   await productModel.bulkWrite(bulkOption, {});
@@ -588,19 +602,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     }));
     await orderModelO.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption, {});
-    // financialFunds.fundBalance -= req.body.priceExchangeRate;
-    // await financialFunds.save();
+    financialFunds.fundBalance -= req.body.priceExchangeRate;
+    await financialFunds.save();
     const data2 = new Date();
     const timeIsoString1 = data2.toISOString();
-    // await ReportsFinancialFundsModel.create({
-    //   date: timeIsoString1,
-    //   amount: totalOrderPrice,
-    //   order: order._id,
-    //   type: "return",
-    //   financialFundId: financialFundsId,
-    //   financialFundRest: financialFunds.fundBalance,
-    //   exchangeRate: req.body.exchangeRate,
-    // });
+    await ReportsFinancialFundsModel.create({
+      date: timeIsoString1,
+      amount: req.body.totalOrderPrice,
+      order: order._id,
+      type: "return",
+      financialFundId: financialFundsId,
+      financialFundRest: financialFunds.fundBalance,
+      exchangeRate: req.body.priceExchangeRate,
+    });
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
@@ -632,19 +646,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       await orderModelO.bulkWrite(bulkOption, {});
 
       await productModel.bulkWrite(bulkOption, {});
-      // financialFunds.fundBalance -= req.body.priceExchangeRate;
-      // await financialFunds.save();
+      financialFunds.fundBalance -= req.body.priceExchangeRate;
+      await financialFunds.save();
       const data2 = new Date();
       const timeIsoString1 = data2.toISOString();
-      // await ReportsFinancialFundsModel.create({
-      //   date: timeIsoString1,
-      //   amount: req.body.priceExchangeRate,
-      //   order: order._id,
-      //   type: "return",
-      //   financialFundId: financialFundsId,
-      //   financialFundRest: financialFunds.fundBalance,
-      //   exchangeRate: req.body.exchangeRate,
-      // });
+      await ReportsFinancialFundsModel.create({
+        date: timeIsoString1,
+        amount: req.body.totalOrderPrice,
+        order: order._id,
+        type: "return",
+        financialFundId: financialFundsId,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.priceExchangeRate,
+      });
       res.status(200).json({
         status: "success",
         message: "The product has been returned",

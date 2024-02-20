@@ -3,12 +3,12 @@ const {
   getProduct,
   createProduct,
   getOneProduct,
-  deleteProduct,
   updateProduct,
   uploadProductImage,
   resizerImage,
   addProduct,
   deActiveProductQuantity,
+  archiveProduct,
 } = require("../services/productServices");
 const {
   getProdictValidator,
@@ -62,7 +62,7 @@ productRout
     authService.protect,
     authService.allowedTo("product"),
     deleteProductValdiator,
-    deleteProduct
+    archiveProduct
   );
 
 module.exports = productRout;

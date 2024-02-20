@@ -200,7 +200,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 // @desc Delete specific product
 // @route Delete /api/product/:id
 // @access Private
-exports.deleteProduct = asyncHandler(async (req, res) => {
+exports.archiveProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   db.model("Category", categorySchema);
@@ -214,16 +214,32 @@ exports.deleteProduct = asyncHandler(async (req, res) => {
   const productModel = db.model("Product", productSchema);
 
   const { id } = req.params;
-  const product = await productModel.findByIdAndUpdate(
+
+  // Find the product by ID
+  const product = await productModel.findById(id);
+
+  if (!product) {
+    return next(new ApiError(`No Product for this id ${id}`, 404));
+  }
+
+  // Toggle the value of 'archives'
+  product.archives = product.archives === "true" ? "false" : "true";
+
+  // Update only the 'archives' field
+  const updatedProduct = await productModel.findByIdAndUpdate(
     id,
-    { archives: "true" },
+    { $set: { archives: product.archives } },
     { new: true }
   );
-  if (!product) {
-    return next(new ApiError(`No Product for this id ${req.params.id}`, 404));
-  }
-  res.status(200).json({ status: "true", message: "Product Deleted" });
+
+  res.status(200).json({
+    status: "success",
+    message: "Product Archived",
+    data: updatedProduct,
+  });
 });
+
+
 
 // @desc import Exsel product
 // @route add /api/add
