@@ -744,6 +744,23 @@ exports.getReturnOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
+exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Employee", emoloyeeShcema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  db.model("Product", productSchema);
+  const returnOrderModel = db.model("returnOrder", returnOrderSchema);
+  db.model("ReportsSales", ReportsSalesSchema);
+
+  const { id } = req.params;
+  const order = await returnOrderModel.findById(id);
+  if (!order) {
+    return next(new ApiError(`No order for this id ${id}`, 404));
+  }
+  res.status(200).json({ status: "true", data: order });
+});
 /*
 // @desc post order
 // @route POST /api/orders/order
