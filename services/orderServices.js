@@ -539,7 +539,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
 });
 
 // @desc put Return
-// @route PUT /api/orders/:id
+// @route PUT /api/return
 // @access private
 exports.returnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -547,7 +547,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   db.model("Employee", emoloyeeShcema);
   db.model("Product", productSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("returnOrder", returnOrderSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -557,36 +556,26 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   const orderModelO = db.model("Orders", orderSchema);
 
   const financialFundsId = req.body.onefinancialFunds;
-
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
+  const orderId = req.body.orderId;
+  const orders = await orderModelO.findById(orderId);
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  let data = Date.now();
+  let timeIsoString = new Date(data);
+  let date = padZero(timeIsoString.getDate());
+  let month = padZero(timeIsoString.getMonth() + 1);
+  let year = timeIsoString.getFullYear();
+  let hours = padZero(timeIsoString.getHours());
+  let minutes = padZero(timeIsoString.getMinutes());
+  let seconds = padZero(timeIsoString.getSeconds());
+  const formattedDate = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+  req.body.paidAt = formattedDate;
+
   try {
-    function padZero(value) {
-      return value < 10 ? `0${value}` : value;
-    }
-
-    let data = Date.now();
-    let timeIsoString = new Date(data);
-    let date = padZero(timeIsoString.getDate());
-    let month = padZero(timeIsoString.getMonth() + 1);
-    let year = timeIsoString.getFullYear();
-    let hours = padZero(timeIsoString.getHours());
-    let minutes = padZero(timeIsoString.getMinutes());
-    let seconds = padZero(timeIsoString.getSeconds());
-    const formattedDate =
-      year +
-      "-" +
-      month +
-      "-" +
-      date +
-      " " +
-      hours +
-      ":" +
-      minutes +
-      ":" +
-      seconds;
-    req.body.paidAt = formattedDate;
-
     const order = await orderModel.create(req.body);
 
     const bulkOption = req.body.cartItems.map((item) => ({
@@ -600,12 +589,14 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         },
       },
     }));
-    await orderModelO.bulkWrite(bulkOption, {});
+
+    await orderModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption, {});
+
     financialFunds.fundBalance -= req.body.priceExchangeRate;
     await financialFunds.save();
-    const data2 = new Date();
-    const timeIsoString1 = data2.toISOString();
+
+    const timeIsoString1 = new Date().toISOString();
     await ReportsFinancialFundsModel.create({
       date: timeIsoString1,
       amount: req.body.totalOrderPrice,
@@ -615,6 +606,35 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: req.body.priceExchangeRate,
     });
+    let test = [];
+
+    for (let i = 0; i < req.body.cartItems.length; i++) {
+      const incomingItem = req.body.cartItems[i];
+      //find qr for all arrays
+      const matchingIndex = orders.returnCartItem.findIndex(
+        (item) => item.qr === incomingItem.qr
+      );
+
+      if (matchingIndex !== -1) {
+        const test1 = orders.returnCartItem[matchingIndex].quantity;
+        const t = test1 - incomingItem.quantity;
+
+        const updateOperation = {
+          updateOne: {
+            filter: { _id: orderId },
+            update: {
+              $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+            },
+          },
+        };
+
+        test.push(updateOperation);
+      }
+    }
+
+    console.log(test);
+    await orderModelO.bulkWrite(test);
+
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
@@ -622,8 +642,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
-      // Check if req.body.counter is a string and has the split method
-
       const nextCounter =
         (await orderModel.countDocuments({
           counter: new RegExp(`^${req.body.counter}-`),
@@ -643,13 +661,13 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           },
         },
       }));
-      await orderModelO.bulkWrite(bulkOption, {});
 
+      await orderModelO.bulkWrite(bulkOption, {});
       await productModel.bulkWrite(bulkOption, {});
       financialFunds.fundBalance -= req.body.priceExchangeRate;
       await financialFunds.save();
-      const data2 = new Date();
-      const timeIsoString1 = data2.toISOString();
+
+      const timeIsoString1 = new Date().toISOString();
       await ReportsFinancialFundsModel.create({
         date: timeIsoString1,
         amount: req.body.totalOrderPrice,
@@ -659,6 +677,36 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         financialFundRest: financialFunds.fundBalance,
         exchangeRate: req.body.priceExchangeRate,
       });
+
+      let test = [];
+
+      for (let i = 0; i < req.body.cartItems.length; i++) {
+        const incomingItem = req.body.cartItems[i];
+        //find qr for all arrays
+        const matchingIndex = orders.returnCartItem.findIndex(
+          (item) => item.qr === incomingItem.qr
+        );
+
+        if (matchingIndex !== -1) {
+          const test1 = orders.returnCartItem[matchingIndex].quantity;
+          const t = test1 - incomingItem.quantity;
+
+          const updateOperation = {
+            updateOne: {
+              filter: { _id: orderId },
+              update: {
+                $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+              },
+            },
+          };
+
+          test.push(updateOperation);
+        }
+      }
+
+      console.log(test);
+      await orderModelO.bulkWrite(test);
+
       res.status(200).json({
         status: "success",
         message: "The product has been returned",
@@ -670,6 +718,10 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     }
   }
 });
+
+// @desc    Get All order
+// @route   GET /api/getReturnOrder
+// @access  privet
 
 exports.getReturnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
