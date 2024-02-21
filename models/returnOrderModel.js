@@ -33,6 +33,10 @@ const returnOrderSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    invoicePrice: {
+      type: Number,
+      default: 0,
+    },
     // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
     totalPriceAfterDiscount: Number,
@@ -68,8 +72,7 @@ returnOrderSchema.pre(/^find/, function (next) {
   this.populate({
     path: "employee",
     select: "name profileImg email phone",
-  })
-  .populate({
+  }).populate({
     path: "onefinancialFunds",
     select: "fundName",
   });

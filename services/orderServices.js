@@ -574,7 +574,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   let seconds = padZero(timeIsoString.getSeconds());
   const formattedDate = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
   req.body.paidAt = formattedDate;
-
+  req.body.employee = req.user._id;
   try {
     const order = await orderModel.create(req.body);
 
