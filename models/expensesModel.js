@@ -14,6 +14,10 @@ const expensesSchema = new mongoose.Schema({
         type: Number,
         require: true,
     },
+    expenseTotalMainCurrency: {
+        type: Number,
+        require: true,
+    },
     expenseCategory: {
         type: mongoose.Schema.ObjectId,
         ref: "ExpensesCategory",
