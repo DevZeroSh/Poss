@@ -15,15 +15,11 @@ exports.createProfitLossReport = asyncHandler(async (req, res, next) => {
 
         const existingReport = await checkIfReportExists(year, month, req);
 
-        if (existingReport) {
-            return res
-                .status(409)
-                .json({ message: "Report already exists for the given year and month" });
+        if (!existingReport) {
+            const newReport = new ProfitLoss(reportData);
+            const savedReport = await newReport.save();
+            res.status(201).json(savedReport);
         }
-
-        const newReport = new ProfitLoss(reportData);
-        const savedReport = await newReport.save();
-        res.status(201).json(savedReport);
     } catch (error) {
         return next(new ApiError("Error creating profit loss report: " + error.message));
     }
