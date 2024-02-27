@@ -189,9 +189,18 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         const db = mongoose.connection.useDb(dbName);
         const CompanyInfnoModel = db.model("CompanyInfo", companyIfnoSchema);
 
-        const companyInfo = await CompanyInfnoModel.findByIdAndUpdate({ _id: id }, req.body, {
-            new: true,
-        });
+        const companyInfo = await CompanyInfnoModel.findByIdAndUpdate(
+            { _id: id },
+            {
+                companyAddress: req.body.companyAddress,
+                companyTax: req.body.companyTax,
+                companyTel: req.body.companyTel,
+                companyLogo: req.body.companyLogo,
+            },
+            {
+                new: true,
+            }
+        );
         if (!companyInfo) {
             return next(new ApiError(`There is no company with this id ${id}`, 404));
         } else {
