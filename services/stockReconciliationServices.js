@@ -11,6 +11,7 @@ const TaxSchema = require("../models/taxModel");
 const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
 const currencySchema = require("../models/currencyModel");
+const { createProductMovement } = require("../utils/productMovement");
 
 // @desc    Create a new stock reconciliation
 // @route   POST /api/stockReconciliation
@@ -71,6 +72,10 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
         await productModel.bulkWrite(bulkOption2, {});
         await newStockReconcil.save();
 
+        req.body.items.map((item) => {
+            createProductMovement(item.productId, item.realCount, "edit", "reconcile", dbName);
+        });
+
         return res.status(201).json({ success: true, data: newStockReconcil });
     } catch (error) {
         console.error("Error creating stock reconciliation:", error);
@@ -128,8 +133,6 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
     const reconciliationModel = db.model("Reconciliation", reconcilSchema);
     db.model("Employee", emoloyeeShcema);
     const productModel = db.model("Product", productSchema);
-    console.log(req.params);
-    console.log(req.body);
     const reconcileReport = await reconciliationModel.findByIdAndUpdate(
         { $in: req.params.id },
         { $set: req.body },
@@ -157,6 +160,11 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
     if (!reconcileReport) {
         return next(new ApiError(`No reconcileReport found for id ${req.params.id}`, 404));
     }
+
+    req.body.items.map((item) => {
+        createProductMovement(item.productId, item.realCount, "edit", "reconcile", dbName);
+    });
+
     res.status(200).json({
         status: "success",
         message: "reconcileReport updated",
