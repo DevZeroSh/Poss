@@ -5,15 +5,18 @@ const {
   findOneProductInvoices,
   createProductInvoices,
   updateInvoices,
+  returnPurchaseInvoice,
+  getReturnPurchase,
+  getOneReturnPurchase,
 } = require("../services/purchaseInvoicesServices");
-const productInvoicesRout = express.Router();
-productInvoicesRout.use(authService.protect);
+const PurchaseInvoices = express.Router();
+PurchaseInvoices.use(authService.protect);
 
-productInvoicesRout
-  .route("/")
+PurchaseInvoices.route("/refund").get(getReturnPurchase).post(returnPurchaseInvoice);
+PurchaseInvoices.route("/refund/:id").get(getOneReturnPurchase)
+PurchaseInvoices.route("/")
   .post(createProductInvoices)
   .get(findAllProductInvoices);
-// productInvoicesRout.route("/:itemId").put(updateInvoicesQuantity);
-productInvoicesRout.route("/:id").get(findOneProductInvoices).put(updateInvoices);
+PurchaseInvoices.route("/:id").get(findOneProductInvoices).put(updateInvoices);
 
-module.exports = productInvoicesRout;
+module.exports = PurchaseInvoices;

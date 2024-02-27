@@ -7,7 +7,7 @@ const companyIfnoSchema = new mongoose.Schema({
         minlength: [3, "Name is too short"],
     },
     companyAddress: String,
-    companyTax: Number,
+    companyTax: String,
     companyEmail: String,
     companyTel: String,
     companyLogo: {

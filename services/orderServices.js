@@ -89,8 +89,15 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const exchangeRate = req.body.exchangeRate;
   const nextCounter = (await orderModel.countDocuments()) + 1;
-  console.log(req.body.priceExchangeRate);
-  financialFunds.fundBalance += req.body.priceExchangeRate;
+  if (req.body.type !== "pos") {
+    financialFunds.fundBalance += req.body.priceExchangeRate;
+  } else {
+    if (req.body.totalPriceAfterDiscount !== 0) {
+      financialFunds.fundBalance += req.body.totalPriceAfterDiscount;
+    } else {
+      financialFunds.fundBalance += req.body.priceExchangeRate;
+    }
+  }
 
   // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({

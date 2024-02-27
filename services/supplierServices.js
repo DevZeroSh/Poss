@@ -3,6 +3,14 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const supplierSchema = require("../models/suppliersModel");
 const { Search } = require("../utils/search");
+const productSchema = require("../models/productModel");
+const categorySchema = require("../models/CategoryModel");
+const brandSchema = require("../models/brandModel");
+const labelsSchema = require("../models/labelsModel");
+const TaxSchema = require("../models/taxModel");
+const UnitSchema = require("../models/UnitsModel");
+const variantSchema = require("../models/variantsModel");
+const currencySchema = require("../models/currencyModel");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -22,8 +30,16 @@ exports.getSuppliers = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
+  db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
   const { totalPages, mongooseQuery } = await Search(supplierModel, req);
-  
+
   const supplier = await mongooseQuery;
 
   res.status(200).json({
