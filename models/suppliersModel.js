@@ -32,6 +32,7 @@ const supplierSchema = new mongoose.Schema(
         qr: String,
         name: String,
         buyingprice: Number,
+        taxRate: Number,
         quantity: Number,
         exchangeRate: Number,
       },

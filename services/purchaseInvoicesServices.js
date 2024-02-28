@@ -202,13 +202,15 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       console.log(newInvoiceItem);
 
       if (existingProductIndex !== -1) {
-        // If the product already exists, increment its quantity
+        console.log(newInvoiceItem);
         supplier.products[existingProductIndex].quantity +=
           newInvoiceItem.quantity;
         supplier.products[existingProductIndex].buyingprice =
           newInvoiceItem.buyingpriceOringal;
         supplier.products[existingProductIndex].exchangeRate =
           newInvoiceItem.buyingprice;
+        supplier.products[existingProductIndex].taxRate =
+          newInvoiceItem.taxRate;
       } else {
         // If the product doesn't exist, add it to the prodcuts array
         supplier.products.push({
@@ -218,6 +220,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           buyingprice: newInvoiceItem.buyingpriceOringal,
           quantity: newInvoiceItem.quantity,
           exchangeRate: newInvoiceItem.buyingprice,
+          taxRate: newInvoiceItem.taxRate,
         });
       }
     });
@@ -452,146 +455,161 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
 
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
-      "ReportsFinancialFunds",
-      reportsFinancialFundsSchema
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
   );
-  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
   const { id } = req.params;
   if (req.body.paid == "paid") {
-      const { financialFund, finalPrice, finalPriceExchangeRate, finalPriceMainCurrency } =
-          req.body;
+    const {
+      financialFund,
+      finalPrice,
+      finalPriceExchangeRate,
+      finalPriceMainCurrency,
+    } = req.body;
 
-      // Find the financial fund
-      const existingFinancialFund = await FinancialFundsModel.findById(financialFund);
-      if (!existingFinancialFund) {
-          return next(new ApiError(`Financial fund not found`, 404));
-      }
+    // Find the financial fund
+    const existingFinancialFund = await FinancialFundsModel.findById(
+      financialFund
+    );
+    if (!existingFinancialFund) {
+      return next(new ApiError(`Financial fund not found`, 404));
+    }
 
-      // Find the purchase invoice
-      const existingInvoice = await PurchaseInvoicesModel.findById(id);
-      if (!existingInvoice) {
-          return next(new ApiError(`Purchase invoice not found`, 404));
-      }
+    // Find the purchase invoice
+    const existingInvoice = await PurchaseInvoicesModel.findById(id);
+    if (!existingInvoice) {
+      return next(new ApiError(`Purchase invoice not found`, 404));
+    }
 
-      // Update the financial fund balance
-      existingFinancialFund.fundBalance -= finalPriceExchangeRate;
-      await existingFinancialFund.save();
+    // Update the financial fund balance
+    existingFinancialFund.fundBalance -= finalPriceExchangeRate;
+    await existingFinancialFund.save();
 
-      // Update the purchase invoice
-      const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
-          id,
-          {
-              ...req.body,
-              paid: req.body.paid,
+    // Update the purchase invoice
+    const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
+      id,
+      {
+        ...req.body,
+        paid: req.body.paid,
+      },
+      { new: true }
+    );
+
+    bulkOption = req.body.invoices.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: {
+            quantity: item.quantity - item.beforQuantity,
+            activeCount: item.quantity - item.beforQuantity,
           },
-          { new: true }
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
+            price: item.price,
+            taxPrice: item.taxPrice,
+          },
+        },
+      },
+    }));
+    try {
+      await productModel.bulkWrite(bulkOption, {});
+      // Create a financial record
+      const data = new Date();
+      const isaaaa = data.toISOString();
+      await ReportsFinancialFundsModel.create({
+        date: isaaaa,
+        invoice: updatedInvoice._id,
+        // amount: finalPrice,
+        amount: finalPriceExchangeRate,
+        exchangeRate: finalPrice,
+        finalPriceMainCurrency: finalPriceMainCurrency,
+        type: "purchase",
+        financialFundId: existingFinancialFund._id,
+        financialFundRest: existingFinancialFund.fundBalance,
+      });
+      req.body.invoices.map(async (item) => {
+        const { quantity } = await productModel.findOne({ qr: item.qr });
+        createProductMovement(
+          item.product,
+          quantity,
+          item.quantity - item.beforQuantity,
+          "edit",
+          "updatepurchase",
+          dbName
+        );
+      });
+      // Respond with the updated invoice
+      res.status(200).json({ status: "success", data: updatedInvoice });
+    } catch (error) {
+      return new ApiError(
+        `Error updating purchase invoice: ${error.message}`,
+        500
       );
-
-      bulkOption = req.body.invoices.map((item) => ({
-          updateOne: {
-              filter: { _id: item.product },
-              update: {
-                  $inc: {
-                      quantity: item.quantity - item.beforQuantity,
-                      activeCount: item.quantity - item.beforQuantity,
-                  },
-                  $set: {
-                      serialNumber: item.serialNumber,
-                      buyingprice: item.buyingpriceOringal,
-                      tax: item.taxId,
-                      price: item.price,
-                      taxPrice: item.taxPrice,
-                  },
-              },
-          },
-      }));
-      try {
-          await productModel.bulkWrite(bulkOption, {});
-          // Create a financial record
-          const data = new Date();
-          const isaaaa = data.toISOString();
-          await ReportsFinancialFundsModel.create({
-              date: isaaaa,
-              invoice: updatedInvoice._id,
-              // amount: finalPrice,
-              amount: finalPriceExchangeRate,
-              exchangeRate: finalPrice,
-              finalPriceMainCurrency: finalPriceMainCurrency,
-              type: "purchase",
-              financialFundId: existingFinancialFund._id,
-              financialFundRest: existingFinancialFund.fundBalance,
-          });
-          req.body.invoices.map(async (item) => {
-              const { quantity } = await productModel.findOne({ qr: item.qr });
-              createProductMovement(
-                  item.product,
-                  quantity,
-                  item.quantity - item.beforQuantity,
-                  "edit",
-                  "updatepurchase",
-                  dbName
-              );
-          });
-          // Respond with the updated invoice
-          res.status(200).json({ status: "success", data: updatedInvoice });
-      } catch (error) {
-          return new ApiError(`Error updating purchase invoice: ${error.message}`, 500);
-      }
+    }
   } else {
-      let bulkOption;
-      // Find the purchase invoice
-      const existingInvoice = await PurchaseInvoicesModel.findById(id);
-      if (!existingInvoice) {
-          return next(new ApiError(`Purchase invoice not found`, 404));
-      }
+    let bulkOption;
+    // Find the purchase invoice
+    const existingInvoice = await PurchaseInvoicesModel.findById(id);
+    if (!existingInvoice) {
+      return next(new ApiError(`Purchase invoice not found`, 404));
+    }
 
-      // Update the purchase invoice
-      const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
-          id,
-          {
-              ...req.body,
-              paid: req.body.paid,
+    // Update the purchase invoice
+    const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
+      id,
+      {
+        ...req.body,
+        paid: req.body.paid,
+      },
+      { new: true }
+    );
+
+    bulkOption = req.body.invoices.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: {
+            quantity: +item.quantity - item.beforQuantity,
+            activeCount: item.quantity - item.beforQuantity,
           },
-          { new: true }
+          $set: {
+            serialNumber: item.serialNumber,
+            buyingprice: item.buyingpriceOringal,
+            tax: item.taxId,
+            price: item.price,
+            taxPrice: item.taxPrice,
+          },
+        },
+      },
+    }));
+
+    try {
+      await productModel.bulkWrite(bulkOption, {});
+      req.body.invoices.map(async (item) => {
+        const { quantity } = await productModel.findOne({ qr: item.qr });
+        createProductMovement(
+          item.product,
+          quantity,
+          item.quantity,
+          "in",
+          "updatepurchase",
+          dbName
+        );
+      });
+      // Respond with the updated invoice
+      res.status(200).json({ status: "success", data: updatedInvoice });
+    } catch (error) {
+      return new ApiError(
+        `Error updating purchase invoice: ${error.message}`,
+        500
       );
-
-      bulkOption = req.body.invoices.map((item) => ({
-          updateOne: {
-              filter: { _id: item.product },
-              update: {
-                  $inc: {
-                      quantity: +item.quantity - item.beforQuantity,
-                      activeCount: item.quantity - item.beforQuantity,
-                  },
-                  $set: {
-                      serialNumber: item.serialNumber,
-                      buyingprice: item.buyingpriceOringal,
-                      tax: item.taxId,
-                      price: item.price,
-                      taxPrice: item.taxPrice,
-                  },
-              },
-          },
-      }));
-
-      try {
-          await productModel.bulkWrite(bulkOption, {});
-          req.body.invoices.map(async (item) => {
-              const { quantity } = await productModel.findOne({ qr: item.qr });
-              createProductMovement(
-                  item.product,
-                  quantity,
-                  item.quantity,
-                  "in",
-                  "updatepurchase",
-                  dbName
-              );
-          });
-          // Respond with the updated invoice
-          res.status(200).json({ status: "success", data: updatedInvoice });
-      } catch (error) {
-          return new ApiError(`Error updating purchase invoice: ${error.message}`, 500);
-      }
+    }
   }
 });
 
@@ -661,10 +679,10 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     totalbuyingprice,
     invoiceCurrencyId,
     invoiceCurrency,
+
     paid,
     finalPriceMainCurrency,
   } = req.body;
-
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
 
   const invoiceItems = [];
@@ -701,6 +719,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
       name: productDoc.name,
       quantity,
       qr,
+      taxRate,
       buyingprice: buyingprice,
     };
     invoiceItems.push(invoiceItem);
@@ -721,7 +740,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     supplierAddress,
     supplierCompany,
     finalPriceMainCurrency: finalPriceMainCurrency,
-    totalProductTax: totalProductTax,
+    priceExchangeRate: priceExchangeRate,
     totalPriceWitheOutTax: totalPriceWitheOutTax,
     totalbuyingprice: totalbuyingprice,
     finalPrice: finalPrice,
@@ -729,9 +748,9 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     invoiceCurrencyId,
     invoiceCurrency,
+    totalPurchasePrice: req.body.totalPurchasePrice,
     counter: nextCounter,
   });
-
   bulkOption = invoiceItems.map((item) => ({
     updateOne: {
       filter: { _id: item.product },
@@ -743,8 +762,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOption, {});
 
   const supplier = await suppl.findById(suppliersId);
-  console.log(invoiceItems);
-  console.log(supplier);
+
   invoiceItems.forEach((newInvoiceItem) => {
     const existingProductIndex = supplier.products.findIndex(
       (existingProduct) => existingProduct.qr === newInvoiceItem.qr
@@ -753,7 +771,6 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
       // If the product already exists, increment its quantity
       supplier.products[existingProductIndex].quantity -=
         newInvoiceItem.quantity;
-      console.log("test");
     }
   });
   await supplier.save();

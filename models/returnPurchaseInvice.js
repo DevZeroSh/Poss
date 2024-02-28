@@ -19,6 +19,7 @@ const returnPurchaseInvicesSchema = new mongoose.Schema(
         qr: String,
         name: String,
         buyingprice: Number,
+        taxRate: Number,
         quantity: Number,
         exchangeRate: Number,
       },
@@ -28,7 +29,7 @@ const returnPurchaseInvicesSchema = new mongoose.Schema(
       default: 0,
     },
     totalPurchasePrice: Number,
-    currencyCode: String,
+    invoiceCurrency: String,
     isPadid: {
       type: Boolean,
       default: false,
@@ -43,7 +44,7 @@ const returnPurchaseInvicesSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      default: "return",
+      default: "return Purchase",
     },
   },
 
