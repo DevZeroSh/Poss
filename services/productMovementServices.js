@@ -42,7 +42,13 @@ exports.getProductMovementByID = asyncHandler(async (req, res, next) => {
 
     const productMovement = db.model("ProductMovement", ProductMovement);
     try {
-        const movements = await productMovement.find({ productId: id });
+        let movements;
+        if (id) {
+            movements = await productMovement.find({ productId: id });
+        } else {
+            movements = [];
+        }
+        console.log(movements);
         res.status(200).json({ status: "true", data: movements });
         next();
     } catch (error) {
