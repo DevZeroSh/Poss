@@ -11,7 +11,7 @@ reportsSalesRoute.use(authService.protect);
 
 reportsSalesRoute
   .route("/")
-  .get(authService.allowedTo("Sales Reports"), getSales);
+  .get(authService.allowedTo("view reports"), getSales);
 //reportsSalesRoute.route("/:id").get(getSpecificReports);
 
 module.exports = reportsSalesRoute;
