@@ -12,6 +12,6 @@ currencyRoute
     .route("/:id")
     .get(getCurrency)
     .put(authService.allowedTo("currency"), updataCurrency)
-    .delete(authService.allowedTo("currency"), deleteCurrency);
+    .delete(authService.allowedTo("delete currency"), deleteCurrency);
 
 module.exports = currencyRoute;

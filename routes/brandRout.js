@@ -22,14 +22,14 @@ brandRout
     .route("/")
     .get(getBrands)
     .post(
-        authService.allowedTo("new brand"),
+        authService.allowedTo("new Definitions"),
         createBrandValidator,
         createBrand
     );
 brandRout
     .route("/:id")
     .get(getBrandValidator, getBrand)
-    .put(authService.allowedTo("edit brand"),updataBrandValidator, updataBrand)
-    .delete(authService.allowedTo("delete brand"),deleteBrandValidator, deleteBrand);
+    .put(authService.allowedTo("edit Definitions"),updataBrandValidator, updataBrand)
+    .delete(authService.allowedTo("delete Definitions"),deleteBrandValidator, deleteBrand);
 
 module.exports = brandRout;

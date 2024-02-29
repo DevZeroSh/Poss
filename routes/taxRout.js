@@ -14,11 +14,11 @@ taxRout.use(authService.protect);
 taxRout
     .route("/")
     .get(getTax)
-    .post(authService.allowedTo("new tax"), createTax);
+    .post(authService.allowedTo("new Definitions"), createTax);
 taxRout
     .route("/:id")
     .get(getOneTax)
-    .put(authService.allowedTo("edit tax"), updataTax)
-    .delete(authService.allowedTo("delete tax"), deleteTax);
+    .put(authService.allowedTo("edit Definitions"), updataTax)
+    .delete(authService.allowedTo("delete Definitions"), deleteTax);
 
 module.exports = taxRout;

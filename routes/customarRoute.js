@@ -19,12 +19,12 @@ router.use(authService.protect);
 
 router
   .route("/")
-  .post(authService.allowedTo("new customer"), createCustomar)
+  .post(authService.allowedTo("customer"), createCustomar)
   .get(getCustomars);
 router
   .route("/:id")
   .get(getCustomarVlaidator, getCustomar)
-  .put(authService.allowedTo("edit customer"), updataCustomar)
+  .put(authService.allowedTo("customer"), updataCustomar)
   .delete(authService.allowedTo("delete customer"), deleteCustomar);
 
 module.exports = router;

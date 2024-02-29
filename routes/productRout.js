@@ -60,7 +60,7 @@ productRout
   )
   .delete(
     authService.protect,
-    authService.allowedTo("product"),
+    authService.allowedTo("delete product"),
     deleteProductValdiator,
     archiveProduct
   );

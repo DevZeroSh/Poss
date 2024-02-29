@@ -20,12 +20,12 @@ unitRout.use(authService.protect);
 
 unitRout.route("/")
     .get(getUnits)
-    .post(authService.allowedTo("new unit"), createUnitValidator, createUnit);
+    .post(authService.allowedTo("new Definitions"), createUnitValidator, createUnit);
 unitRout.route("/:id")
     .get(getUnitValidator, getUnit)
-    .put(authService.allowedTo("edit unit"), updataUnitValidator, updataUnit)
+    .put(authService.allowedTo("edit Definitions"), updataUnitValidator, updataUnit)
     .delete(
-        authService.allowedTo("delete unit"),
+        authService.allowedTo("delete Definitions"),
         deleteUnitValidator,
         deleteUnit
     );

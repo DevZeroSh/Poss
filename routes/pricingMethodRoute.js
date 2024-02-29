@@ -7,7 +7,7 @@ const authService = require("../services/authService");
 const pricingMethodRoute = express.Router();
 pricingMethodRoute.use(authService.protect);
 
-pricingMethodRoute.route("/").get(getPricingMethods).post(createPricingMethod);
+pricingMethodRoute.route("/").get(getPricingMethods).post(authService.allowedTo("Category pricing"),createPricingMethod);
 pricingMethodRoute.route("/:id").get(getSpecificCategoryPricing);
 
 module.exports = pricingMethodRoute;

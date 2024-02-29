@@ -14,10 +14,10 @@ paymentTypes.use(authService.protect);
 
 paymentTypes.route("/")
     .get(getPaymentTypes)
-    .post(authService.allowedTo("new payment"),createPaymentType);
+    .post(authService.allowedTo("payment"),createPaymentType);
 paymentTypes.route("/:id")
     .get(getOnePaymentType)
-    .put(authService.allowedTo("edit payment"),updataPaymentType)
+    .put(authService.allowedTo("payment"),updataPaymentType)
     .delete(authService.allowedTo("delete payment"),deleteOnePaymentType);
 
 module.exports = paymentTypes;

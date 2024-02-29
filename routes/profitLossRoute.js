@@ -11,8 +11,8 @@ const {
 const profitLossRoute = express.Router();
 profitLossRoute.use(authService.protect);
 
-profitLossRoute.route("/initialize").post(createInitialProfitLossReports);
-profitLossRoute.route("/").get(getAllProfitLossReports).post(createProfitLossReport);
-profitLossRoute.route("/:year/:month").put(updateProfitLossReportByYearMonth);
+profitLossRoute.route("/initialize").post(authService.allowedTo("ProfitLoss"),createInitialProfitLossReports);
+profitLossRoute.route("/").get(getAllProfitLossReports).post(authService.allowedTo("ProfitLoss"),createProfitLossReport);
+profitLossRoute.route("/:year/:month").put(authService.allowedTo("ProfitLoss"),updateProfitLossReportByYearMonth);
 
 module.exports = profitLossRoute;

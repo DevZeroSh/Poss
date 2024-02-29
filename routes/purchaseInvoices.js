@@ -12,11 +12,11 @@ const {
 const PurchaseInvoices = express.Router();
 PurchaseInvoices.use(authService.protect);
 
-PurchaseInvoices.route("/refund").get(getReturnPurchase).post(returnPurchaseInvoice);
+PurchaseInvoices.route("/refund").get(getReturnPurchase).post(authService.allowedTo("Refund Purchase Invoice"),returnPurchaseInvoice);
 PurchaseInvoices.route("/refund/:id").get(getOneReturnPurchase)
 PurchaseInvoices.route("/")
-  .post(createProductInvoices)
+  .post(authService.allowedTo("Purchase Invoice"),createProductInvoices)
   .get(findAllProductInvoices);
-PurchaseInvoices.route("/:id").get(findOneProductInvoices).put(updateInvoices);
+PurchaseInvoices.route("/:id").get(findOneProductInvoices).put(authService.allowedTo("Purchase Invoice"),updateInvoices);
 
 module.exports = PurchaseInvoices;

@@ -9,7 +9,7 @@ const {
 const productMovementsRoute = express.Router();
 
 productMovementsRoute.use(authService.protect);
-productMovementsRoute.route("/").get(getAllProductsMovements);
-productMovementsRoute.route("/:id").get(getProductMovementByID);
+productMovementsRoute.route("/").get(authService.allowedTo("Product Movments"),getAllProductsMovements);
+productMovementsRoute.route("/:id").get(authService.allowedTo("Product Movments"),getProductMovementByID);
 
 module.exports = productMovementsRoute;

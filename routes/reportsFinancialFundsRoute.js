@@ -7,7 +7,7 @@ const { getReportsFinancialFunds, getSpecificReports } = require("../services/re
 
 reportsFinancialFundRoute.use(authService.protect);
 
-reportsFinancialFundRoute.route("/").get(getReportsFinancialFunds);
-reportsFinancialFundRoute.route("/:id").get(getSpecificReports);
+reportsFinancialFundRoute.route("/").get(authService.allowedTo("Financial Funds Reports"),getReportsFinancialFunds);
+reportsFinancialFundRoute.route("/:id").get(authService.allowedTo("Financial Funds Reports"),getSpecificReports);
 
 module.exports = reportsFinancialFundRoute;

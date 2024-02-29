@@ -20,11 +20,11 @@ categoryRout.use(authService.protect);
 categoryRout
   .route("/")
   .get(getCategories)
-  .post(authService.allowedTo("new category"),createCategoryVlaidator, createCategory);
+  .post(authService.allowedTo("new Definitions"),createCategoryVlaidator, createCategory);
 
 categoryRout
   .route("/:id")
   .get(getCategoryValidator, getCategory)
-  .put(authService.allowedTo("edit category"),updateCategoryValidator, updateCategory)
-  .delete(authService.allowedTo("delete category"),deleteCategoryValidator, deleteCategory);
+  .put(authService.allowedTo("edit Definitions"),updateCategoryValidator, updateCategory)
+  .delete(authService.allowedTo("delete Definitions"),deleteCategoryValidator, deleteCategory);
 module.exports = categoryRout;

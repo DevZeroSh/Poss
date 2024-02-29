@@ -17,7 +17,7 @@ expenseCategoriesRoute.route("/").post(authService.allowedTo("expense category")
 expenseCategoriesRoute
     .route("/:id")
     .get(getOneExpenseCategory)
-    .delete(authService.allowedTo("expense category"), deleteOneExpenseCategory)
+    .delete(authService.allowedTo("delete expense category"), deleteOneExpenseCategory)
     .put(authService.allowedTo("expense category"), updateOneExpenseCategory);
 
 module.exports = expenseCategoriesRoute;
