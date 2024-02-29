@@ -30,7 +30,7 @@ productRout.post("/add", uploads.single("file"), addProduct);
 
 productRout
   .route("/")
-  .get(getProduct)
+  .get(authService.protect, authService.allowedTo("Show Product"), getProduct)
   .post(
     authService.protect,
     authService.allowedTo("product"),
@@ -43,13 +43,18 @@ productRout
   .route("/deactive/:id")
   .put(
     authService.protect,
-    authService.allowedTo("product"),
+    authService.allowedTo("delete product"),
     deActiveProductQuantity
   );
 
 productRout
   .route("/:id")
-  .get(authService.protect, getProdictValidator, getOneProduct)
+  .get(
+    authService.protect,
+    authService.allowedTo("Show Product"),
+    getProdictValidator,
+    getOneProduct
+  )
   .put(
     authService.protect,
     authService.allowedTo("product"),

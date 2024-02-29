@@ -25,7 +25,7 @@ employeeRoute
     .get(getEmployees)
     .post(
         authService.protect,
-        authService.allowedTo("new employee"),
+        authService.allowedTo("employee"),
         createEmployeeValidator,
         createEmployeeInPos
     );
