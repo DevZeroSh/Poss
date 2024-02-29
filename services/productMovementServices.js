@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const ApiError = require("../utils/apiError");
 const asyncHandler = require("express-async-handler");
 const ProductMovement = require("../models/productMovementModel");
 const productSchema = require("../models/productModel");
@@ -48,7 +47,6 @@ exports.getProductMovementByID = asyncHandler(async (req, res, next) => {
         } else {
             movements = [];
         }
-        console.log(movements);
         res.status(200).json({ status: "true", data: movements });
         next();
     } catch (error) {
