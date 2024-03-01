@@ -16,13 +16,13 @@ financialFundsRoute.use(authService.protect);
 financialFundsRoute
   .route("/")
   .get(getFinancialFunds)
-  .post(authService.allowedTo("financial funds"), createFinancialFunds);
+  .post(createFinancialFunds);
 financialFundsRoute
   .route("/:id")
   .get(getOneFinancialFund)
-  .put(authService.allowedTo("financial funds"), financialFund)
-  .delete(authService.allowedTo("delete financial funds"), deletefinancialFund);
+  .put(financialFund)
+  .delete(deletefinancialFund);
 financialFundsRoute
   .route("/trans/:id")
-  .put(authService.allowedTo("transfer financial funds"), transfer);
+  .put(transfer);
 module.exports = financialFundsRoute;

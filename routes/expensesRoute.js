@@ -13,14 +13,8 @@ const {
 const expensesRoute = express.Router();
 
 expensesRoute.use(authService.protect);
-expensesRoute
-  .route("/")
-  .post(authService.allowedTo("expenses"), uploadFiles, createExpenses)
-  .get(getExpenses);
-expensesRoute
-  .route("/:id")
-  .get(getExpense)
-  .put(authService.allowedTo("expenses"), updateExpense);
+expensesRoute.route("/").post(uploadFiles, createExpenses).get(getExpenses);
+expensesRoute.route("/:id").get(getExpense).put(updateExpense);
 // .delete(authService.allowedTo("expenses"), deleteExpense)
 
 module.exports = expensesRoute;

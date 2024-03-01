@@ -110,44 +110,45 @@ exports.protect = asyncHandler(async (req, res, next) => {
 
 //Permissions
 //Verify user permissions
-exports.allowedTo = (role) =>
-    asyncHandler(async (req, res, next) => {
-        const id = req.user._id;
-        const dbName = req.query.databaseName;
-        try {
-            const db = mongoose.connection.useDb(dbName);
+// exports.allowedTo = (role) =>
+//     asyncHandler(async (req, res, next) => {
+//         const id = req.user._id;
+//         const dbName = req.query.databaseName;
+//         try {
+//             const db = mongoose.connection.useDb(dbName);
 
-            const employeeModel = db.model("Employee", emoloyeeShcema);
-            const rolesModel = db.model("Roles", rolesShcema);
+//             const employeeModel = db.model("Employee", emoloyeeShcema);
+//             const rolesModel = db.model("Roles", rolesShcema);
 
-            //get all user's roles
-            const employee = await employeeModel
-                .findById(id)
-                .populate({ path: "selectedRoles", select: "name _id" });
-            if (!employee) {
-                return next(new ApiError(`No employee by this id ${id}`, 404));
-            }
+//             //get all user's roles
+//             const employee = await employeeModel
+//                 .findById(id)
+//                 .populate({ path: "selectedRoles", select: "name _id" });
+//             if (!employee) {
+//                 return next(new ApiError(`No employee by this id ${id}`, 404));
+//             }
 
-            //4-get all roles
-            const roles = await rolesModel.findById(employee.selectedRoles[0]);
+//             //4-get all roles
+//             const roles = await rolesModel.findById(employee.selectedRoles[0]);
 
-            if (!roles) {
-                return next(new ApiError("Roles not found for the user", 404));
-            }
+//             if (!roles) {
+//                 return next(new ApiError("Roles not found for the user", 404));
+//             }
 
-            const { rolesDashboard, rolesPos } = roles;
-            const [dashRoleName, poseRoleName] = await Promise.all([
-                getDashboardRoles(rolesDashboard, db),
-                getPosRoles(rolesPos, db),
-            ]);
+//             const { rolesDashboard, rolesPos } = roles;
+//             const [dashRoleName, poseRoleName] = await Promise.all([
+//                 getDashboardRoles(rolesDashboard, db),
+//                 getPosRoles(rolesPos, db),
+//             ]);
 
-            let allUserRoles = [...dashRoleName, ...poseRoleName];
+//             let allUserRoles = [...dashRoleName, ...poseRoleName];
 
-            if (!allUserRoles.includes(role)) {
-                return next(new ApiError("Block access", 403));
-            }
-            next();
-        } catch (error) {
-            return next(error);
-        }
-    });
+//             // Use the some method to check if any role in allUserRoles is included in the provided role array
+//             if (!allUserRoles.some(userRole => role.includes(userRole))) {
+//                 return next(new ApiError("Block access", 403));
+//             }
+//             next();
+//         } catch (error) {
+//             return next(error);
+//         }
+//     });

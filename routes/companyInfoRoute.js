@@ -19,7 +19,6 @@ companyInfoRoute
   .route("/:id")
   .put(
     authService.protect,
-    authService.allowedTo("company info"),
     uploadCompanyLogo,
     resizerLogo,
     updataCompanyInfo

@@ -26,48 +26,28 @@ const authService = require("../services/authService");
 
 const productRout = express.Router();
 
+productRout.use(authService.protect);
 productRout.post("/add", uploads.single("file"), addProduct);
 
 productRout
   .route("/")
-  .get(authService.protect, authService.allowedTo("Show Product"), getProduct)
-  .post(
-    authService.protect,
-    authService.allowedTo("product"),
-    uploadProductImage,
-    resizerImage,
-    createProduct
-  );
+  .get(authService.protect, getProduct)
+  .post(authService.protect, uploadProductImage, resizerImage, createProduct);
 
 productRout
   .route("/deactive/:id")
-  .put(
-    authService.protect,
-    authService.allowedTo("delete product"),
-    deActiveProductQuantity
-  );
+  .put(authService.protect, deActiveProductQuantity);
 
 productRout
   .route("/:id")
-  .get(
-    authService.protect,
-    authService.allowedTo("Show Product"),
-    getProdictValidator,
-    getOneProduct
-  )
+  .get(authService.protect, getProdictValidator, getOneProduct)
   .put(
     authService.protect,
-    authService.allowedTo("product"),
     uploadProductImage,
     resizerImage,
     updateProductValidator,
     updateProduct
   )
-  .delete(
-    authService.protect,
-    authService.allowedTo("delete product"),
-    deleteProductValdiator,
-    archiveProduct
-  );
+  .delete(authService.protect, deleteProductValdiator, archiveProduct);
 
 module.exports = productRout;

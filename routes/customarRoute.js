@@ -17,14 +17,11 @@ const {
 
 router.use(authService.protect);
 
-router
-  .route("/")
-  .post(authService.allowedTo("customer"), createCustomar)
-  .get(getCustomars);
+router.route("/").post(createCustomar).get(getCustomars);
 router
   .route("/:id")
   .get(getCustomarVlaidator, getCustomar)
-  .put(authService.allowedTo("customer"), updataCustomar)
-  .delete(authService.allowedTo("delete customer"), deleteCustomar);
+  .put(updataCustomar)
+  .delete(deleteCustomar);
 
 module.exports = router;

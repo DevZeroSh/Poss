@@ -11,15 +11,12 @@ const authService = require("../services/authService");
 const variantRout = express.Router();
 variantRout.use(authService.protect);
 
-variantRout
-  .route("/")
-  .get(getVariants)
-  .post(authService.allowedTo("new Definitions"), createVariant);
+variantRout.route("/").get(getVariants).post(createVariant);
 
 variantRout
   .route("/:id")
   .get(getVariant)
-  .put(authService.allowedTo("edit Definitions"), updataeVariant)
-  .delete(authService.allowedTo("delete Definitions"), deleteVariant);
+  .put(updataeVariant)
+  .delete(deleteVariant);
 
 module.exports = variantRout;

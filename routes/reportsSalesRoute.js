@@ -9,9 +9,7 @@ const {
 
 reportsSalesRoute.use(authService.protect);
 
-reportsSalesRoute
-  .route("/")
-  .get(authService.allowedTo("view reports"), getSales);
+reportsSalesRoute.route("/").get(getSales);
 //reportsSalesRoute.route("/:id").get(getSpecificReports);
 
 module.exports = reportsSalesRoute;

@@ -7,12 +7,12 @@ const router = express.Router();
 router.use(authService.protect);
 
 router.route('/')
-    .post(authService.allowedTo("supllier"),createSupplierValidator,createSupplier)
+    .post(createSupplierValidator,createSupplier)
     .get(getSuppliers);
     
 router.route('/:id')
     .get(getSupplierVlaidator,getSupplier)
-    .put(authService.allowedTo("supllier"),updataSupplierVlaidator,updataSupplier)
-    .delete(authService.allowedTo("delete supllier"),deleteSupplierVlaidator,deleteSupplier);
+    .put(updataSupplierVlaidator,updataSupplier)
+    .delete(deleteSupplierVlaidator,deleteSupplier);
 
 module.exports = router;

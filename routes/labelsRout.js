@@ -13,11 +13,11 @@ LabelRout.use(authService.protect);
 // authService.allowedTo("label"),
   LabelRout.route("/")
     .get(getLabels)
-    .post(authService.allowedTo("new Definitions"), createLabel);
+    .post(createLabel);
 
 LabelRout.route("/:id")
   .get(getLabel)
-  .put(authService.allowedTo("edit Definitions"), updataLabel)
-  .delete(authService.allowedTo("delete Definitions"), deleteLabel);
+  .put(updataLabel)
+  .delete(deleteLabel);
 
 module.exports = LabelRout;
