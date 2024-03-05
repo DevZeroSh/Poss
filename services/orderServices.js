@@ -14,6 +14,14 @@ const ReportsSalesSchema = require("../models/reportsSalesModel");
 const returnOrderSchema = require("../models/returnOrderModel");
 const { Search } = require("../utils/search");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
+const { createProductMovement } = require("../utils/productMovement");
+const currencySchema = require("../models/currencyModel");
+const categorySchema = require("../models/CategoryModel");
+const brandSchema = require("../models/brandModel");
+const labelsSchema = require("../models/labelsModel");
+const TaxSchema = require("../models/taxModel");
+const UnitSchema = require("../models/UnitsModel");
+const variantSchema = require("../models/variantsModel");
 
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -30,7 +38,13 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   );
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
-
+  db.model("Currency", currencySchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
   const cartItems = req.body.cartItems;
   // app settings
   function padZero(value) {
@@ -178,6 +192,18 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
   });
 
+  cartItems.map(async (item) => {
+    const { quantity } = await productModel.findOne({ qr: item.qr });
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "out",
+      "sales",
+      dbName
+    );
+  });
+
   const history = createInvoiceHistory(
     dbName,
     order._id,
@@ -194,7 +220,13 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
+  db.model("Currency", currencySchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -372,6 +404,17 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     counter: nextCounter,
   });
 
+  cartItems.map(async (item) => {
+    const { quantity } = await productModel.findOne({ qr: item.qr });
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "out",
+      "sales",
+      dbName
+    );
+  });
   const history = createInvoiceHistory(
     dbName,
     order._id,
@@ -553,7 +596,17 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     paymentType: "Edit Order",
     employee: req.user._id,
   });
-
+  originalOrder.cartItems.map(async (item) => {
+    const { quantity } = await productModel.findOne({ qr: item.qr });
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "in",
+      "Edit Sales",
+      dbName
+    );
+  });
   const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
 
   res.status(200).json({
@@ -572,6 +625,13 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Employee", emoloyeeShcema);
   db.model("Product", productSchema);
+  db.model("Currency", currencySchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("returnOrder", returnOrderSchema);
@@ -669,6 +729,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     }
 
     await orderModelO.bulkWrite(test);
+
+    orders.returnCartItem.map(async (item) => {
+      const { quantity } = await productModel.findOne({ qr: item.qr });
+      createProductMovement(
+        item.product,
+        quantity,
+        item.quantity,
+        "in",
+        "refund Sales",
+        dbName
+      );
+    });
+
     const history = createInvoiceHistory(
       dbName,
       orderId,
@@ -758,6 +831,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       }
 
       await orderModelO.bulkWrite(test);
+
+
+      orders.returnCartItem.map(async (item) => {
+        const { quantity } = await productModel.findOne({ qr: item.qr });
+        createProductMovement(
+          item.product,
+          quantity,
+          item.quantity,
+          "in",
+          "refund Sales",
+          dbName
+        );
+      });
 
       const history = createInvoiceHistory(
         dbName,

@@ -210,7 +210,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         await supplier.save();
         const data = new Date();
         const isaaaa = data.toISOString();
-        financialFund.fundBalance += finalPriceExchangeRate;
+        financialFund.fundBalance -= finalPriceExchangeRate;
 
         // Save the new purchase invoice to the database
         const savedInvoice = await newPurchaseInvoice.save();
