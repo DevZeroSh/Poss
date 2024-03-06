@@ -832,7 +832,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
       await orderModelO.bulkWrite(test);
 
-
       orders.returnCartItem.map(async (item) => {
         const { quantity } = await productModel.findOne({ qr: item.qr });
         createProductMovement(
@@ -840,7 +839,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           quantity,
           item.quantity,
           "in",
-          "refund Sales",
+          "returnSales",
           dbName
         );
       });

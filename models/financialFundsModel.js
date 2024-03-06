@@ -7,6 +7,8 @@ const financialFundsSchema = new mongoose.Schema(
             required: true,
             minlength: [1, "The fund name is too short"],
             maxlength: [200, "The fund name is too long"],
+            unique: [true, "fund Name must be unique"],
+
         },
         fundCurrency: {
             type: mongoose.Schema.ObjectId,

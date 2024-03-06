@@ -7,6 +7,8 @@ const customarSchema = new mongoose.Schema(
             require: [true, "Customar Name Required"],
             minlength: [3, "Too short customar name"],
             maxlength: [30, "Too long customar name"],
+            unique: [true, " Customar Name must be unique"],
+
         },
         phoneNumber: {
             type: String,

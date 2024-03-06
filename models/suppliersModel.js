@@ -7,6 +7,8 @@ const supplierSchema = new mongoose.Schema(
       require: [true, "supplier Name Required"],
       minlength: [3, "Too short supplier name"],
       maxlength: [30, "Too long supplier name"],
+      unique: [true, " Supplier Name must be unique"],
+
     },
     phoneNumber: {
       type: String,

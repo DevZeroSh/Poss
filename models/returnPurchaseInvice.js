@@ -50,5 +50,9 @@ const returnPurchaseInvicesSchema = new mongoose.Schema(
 
   { timestamps: true }
 );
+returnPurchaseInvicesSchema.pre(/^find/, function (next) {
+  this.populate({ path: "employee", select: "name -_id" })
 
+  next();
+});
 module.exports = returnPurchaseInvicesSchema;
