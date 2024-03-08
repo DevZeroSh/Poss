@@ -719,6 +719,15 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
     }
+    if (productDoc.quantity < quantity) {
+      console.log(`Insufficient quantity for product with QR code: ${qr}`);
+      return res
+        .status(400)
+        .json({
+          status: "error",
+          message: `Insufficient quantity for product with QR code: ${qr}`,
+        });
+    }
     // Create an invoice item
     const invoiceItem = {
       product: productDoc._id,
@@ -735,7 +744,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     invoiceFinancialFund
   );
-  console.log(req.user)
+  console.log(req.user);
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new returnModel({
     invoices: invoiceItems,

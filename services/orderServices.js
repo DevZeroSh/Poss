@@ -114,7 +114,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       financialFunds.fundBalance += req.body.priceExchangeRate;
     }
   }
-  console.log(req.body.priceExchangeRate);
+  console.log(cartItems);
   // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({
     employee: req.user._id,
@@ -160,7 +160,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       if (item.type !== "Service") {
         return {
           updateOne: {
-            filter: { _id: item._id },
+            filter: { _id: item._id || item.product },
             update: {
               $inc: {
                 quantity: -item.quantity,

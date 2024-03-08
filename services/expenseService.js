@@ -85,7 +85,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
       req.body.expenseFinancialFund = financialFund.fundName;
       // Decrease the fundBalance
-      financialFund.fundBalance -= req.body.expenseQuantityAfterKdv;
+      financialFund.fundBalance -= req.body.priceExchangeRate;
       // Save the updated financial fund
       await financialFund.save();
 
@@ -98,7 +98,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
       //Start create a record in reports financial fund table
       let operationDate = req.body.expenseDate;
-      let amount = req.body.expenseQuantityAfterKdv;
+      let amount = req.body.priceExchangeRate;
       let expenseId = expense._id;
       let type = "expense";
       let financialFundId = fundId;
@@ -107,6 +107,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
       await ReportsFinancialFundsModel.create({
         date: operationDate,
         amount: amount,
+        exchangeRate: req.body.expenseQuantityAfterKdv,
         expense: expenseId,
         type: type,
         financialFundId: financialFundId,

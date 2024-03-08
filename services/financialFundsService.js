@@ -37,8 +37,21 @@ exports.createFinancialFunds = asyncHandler(async (req, res) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const data = new Date();
+  const Time = data.toISOString();
 
   const financialFunds = await FinancialFundsModel.create(req.body);
+  await ReportsFinancialFundsModel.create({
+    date: Time,
+    amount: req.body.fundBalance,
+    type: "Opening Balance",
+    financialFundId: financialFunds._id,
+    financialFundRest: req.body.fundBalance,
+  });
   res.status(201).json({
     status: "true",
     message: "Financial Fund Inserted",
@@ -146,7 +159,7 @@ exports.transfer = asyncHandler(async (req, res, next) => {
   const Time = data.toISOString();
 
   const { id } = req.params;
-  const { fund, quantity, amount } = req.body;
+  const { fund, quantity, amount, fundNameto, fundNamefrom } = req.body;
 
   // 1) Take the first Fund
   const financialFund = await FinancialFundsModel.findByIdAndUpdate({
@@ -173,6 +186,7 @@ exports.transfer = asyncHandler(async (req, res, next) => {
     date: Time,
     amount: after,
     type: "transfer_to",
+    fundNameto: fundNameto,
     financialFundId: id,
     financialFundRest: financialFund.fundBalance,
   });
@@ -181,8 +195,8 @@ exports.transfer = asyncHandler(async (req, res, next) => {
     date: Time,
     amount: after,
     exchangeAmount: amount,
-
-    type: "transfer",
+    fundNameform: fundNamefrom,
+    type: "transfer-form",
     financialFundId: fund,
     financialFundRest: funds.fundBalance,
   });

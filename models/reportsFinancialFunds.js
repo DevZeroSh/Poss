@@ -6,6 +6,10 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    fundNameform: String,
+
+    fundNameto: String,
+
     amount: {
       type: Number,
       required: true,
@@ -31,9 +35,10 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
         "expense",
         "order",
         "purchase",
-        "transfer",
+        "transfer-form",
         "transfer_to",
-        "return"
+        "Opening Balance",
+        "return",
       ],
     },
     financialFundId: {
