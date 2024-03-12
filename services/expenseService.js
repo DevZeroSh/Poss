@@ -98,16 +98,14 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 
       //Start create a record in reports financial fund table
       let operationDate = req.body.expenseDate;
-      let amount = req.body.priceExchangeRate;
       let expenseId = expense._id;
       let type = "expense";
       let financialFundId = fundId;
       let financialFundRest = financialFund.fundBalance;
-
       await ReportsFinancialFundsModel.create({
         date: operationDate,
-        amount: amount,
-        exchangeRate: req.body.expenseQuantityAfterKdv,
+        amount: req.body.expenseQuantityAfterKdv,
+        exchangeRate: req.body.priceExchangeRate,
         expense: expenseId,
         type: type,
         financialFundId: financialFundId,
@@ -231,13 +229,13 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No expense for this id ${req.params.id}`, 404));
   }
 
-  financialFund.fundBalance -= expense.expenseQuantityAfterKdv;
+  financialFund.fundBalance -= req.body.priceExchangeRate;
   // Save the updated financial fund
   await financialFund.save();
 
   //Start create a record in reports financial fund table
   let operationDate = req.body.payDate;
-  let amount = expense.expenseQuantityAfterKdv;
+  let amount = req.body.priceExchangeRate;
   let expenseId = id;
   let type = "expense";
   let financialFundId = fundId;
@@ -245,7 +243,8 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
 
   await ReportsFinancialFundsModel.create({
     date: operationDate,
-    amount: amount,
+    amount: expense.expenseQuantityAfterKdv,
+    exchangeRate: amount,
     expense: expenseId,
     type: type,
     financialFundId: financialFundId,
