@@ -109,12 +109,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   } else {
     if (req.body.totalPriceAfterDiscount !== 0) {
       financialFunds.fundBalance += req.body.totalPriceAfterDiscount;
-      console.log(req.body.totalPriceAfterDiscount);
     } else {
       financialFunds.fundBalance += req.body.priceExchangeRate;
     }
   }
-  console.log(cartItems);
   // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({
     employee: req.user._id,
