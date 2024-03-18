@@ -40,6 +40,7 @@ const orderSchema = new mongoose.Schema(
         price: Number,
         name: String,
         qr: String,
+        exchangeRate: Number,
       },
     ],
 
@@ -57,6 +58,7 @@ const orderSchema = new mongoose.Schema(
         price: Number,
         name: String,
         qr: String,
+        exchangeRate: Number,
       },
     ],
     priceExchangeRate: {
@@ -92,8 +94,8 @@ const orderSchema = new mongoose.Schema(
     customaraddres: String,
     type: {
       type: String,
-      enum:["pos","normal"],
-      default: "normal"
+      enum: ["pos", "normal"],
+      default: "normal",
     },
   },
 
