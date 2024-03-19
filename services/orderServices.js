@@ -570,6 +570,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const orderModelO = db.model("Orders", orderSchema);
 
+  let movementCreated = false;
   const financialFundsId = req.body.onefinancialFunds;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
@@ -654,15 +655,24 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         test.push(updateOperation);
       }
     }
-
     await orderModelO.bulkWrite(test);
-
-    orders.returnCartItem.map(async (item) => {
-      const { quantity } = await productModel.findOne({ qr: item.qr });
-      createProductMovement(item.product, quantity, item.quantity, "in", "refund Sales", dbName);
-    });
-
     const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
+
+    if (!movementCreated) {
+      for (let i = 0; i < req.body.cartItems.length; i++) {
+        const incomingItem = req.body.cartItems[i];
+        const { quantity } = await productModel.findOne({ qr: incomingItem.qr });
+        createProductMovement(
+          incomingItem._id,
+          quantity,
+          incomingItem.quantity,
+          "in",
+          "returnSales",
+          dbName
+        );
+        movementCreated = true;
+      }
+    }
 
     res.status(200).json({
       status: "success",
@@ -743,16 +753,24 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           test.push(updateOperation);
         }
       }
-
       await orderModelO.bulkWrite(test);
-
-      orders.returnCartItem.map(async (item) => {
-        const { quantity } = await productModel.findOne({ qr: item.qr });
-        createProductMovement(item.product, quantity, item.quantity, "in", "returnSales", dbName);
-      });
-
       const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
 
+      if (!movementCreated) {
+        for (let i = 0; i < req.body.cartItems.length; i++) {
+          const incomingItem = req.body.cartItems[i];
+          const { quantity } = await productModel.findOne({ qr: incomingItem.qr });
+          createProductMovement(
+            incomingItem._id,
+            quantity,
+            incomingItem.quantity,
+            "in",
+            "returnSales",
+            dbName
+          );
+          movementCreated = true;
+        }
+      }
       res.status(200).json({
         status: "success",
         message: "The product has been returned",
