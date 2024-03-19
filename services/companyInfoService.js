@@ -260,6 +260,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const allPosRoles = [
       { title: "discount", desc: "discount" },
       { title: "pos", desc: "pos" },
+      { title: "Refund Sales", desc: "Refund" },
     ];
 
     const mainPosRoles = await rolePosModel.insertMany(allPosRoles);
