@@ -25,10 +25,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const suppl = db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
@@ -39,10 +36,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
-  const PurchaseInvoicesModel = db.model(
-    "PurchaseInvoices",
-    PurchaseInvoicesSchema
-  );
+  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -58,17 +52,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   let seconds = padZero(date_ob.getSeconds());
 
   const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
+    year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 
   const {
     invoices,
@@ -81,6 +65,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     totalProductTax,
     totalPriceWitheOutTax,
     finalPrice,
+    addedValue,
     finalPriceExchangeRate,
     totalQuantity,
     totalbuyingprice,
@@ -143,9 +128,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
   if (req.body.paid == "paid") {
     let bulkOption;
-    const financialFund = await FinancialFundsModel.findById(
-      invoiceFinancialFund
-    );
+    const financialFund = await FinancialFundsModel.findById(invoiceFinancialFund);
 
     // Get the next counter value
 
@@ -163,6 +146,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalPriceWitheOutTax: totalPriceWitheOutTax,
       totalbuyingprice: totalbuyingprice,
       finalPrice: finalPrice,
+      addedValue,
       totalQuantity: totalQuantity,
       finalPriceMainCurrency: finalPriceMainCurrency,
       employee: req.user._id,
@@ -204,14 +188,10 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
       if (existingProductIndex !== -1) {
         console.log(newInvoiceItem);
-        supplier.products[existingProductIndex].quantity +=
-          newInvoiceItem.quantity;
-        supplier.products[existingProductIndex].buyingprice =
-          newInvoiceItem.buyingpriceOringal;
-        supplier.products[existingProductIndex].exchangeRate =
-          newInvoiceItem.buyingprice;
-        supplier.products[existingProductIndex].taxRate =
-          newInvoiceItem.taxRate;
+        supplier.products[existingProductIndex].quantity += newInvoiceItem.quantity;
+        supplier.products[existingProductIndex].buyingprice = newInvoiceItem.buyingpriceOringal;
+        supplier.products[existingProductIndex].exchangeRate = newInvoiceItem.buyingprice;
+        supplier.products[existingProductIndex].taxRate = newInvoiceItem.taxRate;
       } else {
         // If the product doesn't exist, add it to the prodcuts array
         supplier.products.push({
@@ -247,22 +227,10 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     invoiceItems.map(async (item) => {
       const { quantity } = await productModel.findOne({ qr: item.qr });
-      createProductMovement(
-        item.product,
-        quantity,
-        item.quantity,
-        "in",
-        "purchase",
-        dbName
-      );
+      createProductMovement(item.product, quantity, item.quantity, "in", "purchase", dbName);
     });
 
-    const history = createInvoiceHistory(
-      dbName,
-      savedInvoice._id,
-      "create",
-      req.user._id
-    );
+    const history = createInvoiceHistory(dbName, savedInvoice._id, "create", req.user._id);
 
     res.status(201).json({ status: "success", data: savedInvoice, history });
   } else {
@@ -280,6 +248,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalPriceWitheOutTax: totalPriceWitheOutTax,
       totalbuyingprice: totalbuyingprice,
       finalPrice: finalPrice,
+      addedValue,
       totalQuantity: totalQuantity,
       employee: req.user._id,
       invoiceCurrencyId,
@@ -309,16 +278,14 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       // console.log("existingProduct.product:", existingProduct.product);
       const existingProductIndex = supplier.products.findIndex(
         (existingProduct) =>
-          existingProduct.product.toString() ===
-          newInvoiceItem.product.toString()
+          existingProduct.product.toString() === newInvoiceItem.product.toString()
       );
 
       console.log(existingProductIndex);
 
       if (existingProductIndex !== -1) {
         // If the product already exists, increment its quantity
-        supplier.products[existingProductIndex].quantity +=
-          newInvoiceItem.quantity;
+        supplier.products[existingProductIndex].quantity += newInvoiceItem.quantity;
       } else {
         // If the product doesn't exist, add it to the prodcuts array
         supplier.products.push({
@@ -335,22 +302,10 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
       invoiceItems.map(async (item) => {
         const { quantity } = await productModel.findOne({ qr: item.qr });
-        createProductMovement(
-          item.product,
-          quantity,
-          item.quantity,
-          "in",
-          "purchase",
-          dbName
-        );
+        createProductMovement(item.product, quantity, item.quantity, "in", "purchase", dbName);
       });
 
-      const history = createInvoiceHistory(
-        dbName,
-        savedInvoice._id,
-        "create",
-        req.user._id
-      );
+      const history = createInvoiceHistory(dbName, savedInvoice._id, "create", req.user._id);
 
       res.status(201).json({
         status: "success",
@@ -359,10 +314,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       });
     } catch (error) {
       console.log(error.message);
-      return new ApiError(
-        `Error creating unpaid purchase invoice: ${error.message}`,
-        500
-      );
+      return new ApiError(`Error creating unpaid purchase invoice: ${error.message}`, 500);
     }
   }
 });
@@ -378,14 +330,8 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   db.model("Employee", emoloyeeShcema);
   db.model("FinancialFunds", financialFundsSchema);
 
-  const PurchaseInvoicesModel = db.model(
-    "PurchaseInvoices",
-    PurchaseInvoicesSchema
-  );
-  const { totalPages, mongooseQuery } = await Search(
-    PurchaseInvoicesModel,
-    req
-  );
+  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
+  const { totalPages, mongooseQuery } = await Search(PurchaseInvoicesModel, req);
 
   const purchaseInvoices = await mongooseQuery;
 
@@ -411,10 +357,7 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   db.model("Tax", TaxSchema);
   db.model("Product", productSchema);
   db.model("FinancialFunds", financialFundsSchema);
-  const PurchaseInvoicesModel = db.model(
-    "PurchaseInvoices",
-    PurchaseInvoicesSchema
-  );
+  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
 
   const { id } = req.params;
   const ProductInvoices = await PurchaseInvoicesModel.findById(id);
@@ -440,27 +383,14 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
 
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
-  const PurchaseInvoicesModel = db.model(
-    "PurchaseInvoices",
-    PurchaseInvoicesSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
   const { id } = req.params;
   if (req.body.paid == "paid") {
-    const {
-      financialFund,
-      finalPrice,
-      finalPriceExchangeRate,
-      finalPriceMainCurrency,
-    } = req.body;
+    const { financialFund, finalPrice, finalPriceExchangeRate, finalPriceMainCurrency } = req.body;
 
     // Find the financial fund
-    const existingFinancialFund = await FinancialFundsModel.findById(
-      financialFund
-    );
+    const existingFinancialFund = await FinancialFundsModel.findById(financialFund);
     if (!existingFinancialFund) {
       return next(new ApiError(`Financial fund not found`, 404));
     }
@@ -531,23 +461,13 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         );
       });
 
-      const history = createInvoiceHistory(
-        dbName,
-        updatedInvoice._id,
-        "edit",
-        req.user._id
-      );
+      const history = createInvoiceHistory(dbName, updatedInvoice._id, "edit", req.user._id);
       console.log(history);
 
       // Respond with the updated invoice
-      res
-        .status(200)
-        .json({ status: "success", data: updatedInvoice, history });
+      res.status(200).json({ status: "success", data: updatedInvoice, history });
     } catch (error) {
-      return new ApiError(
-        `Error updating purchase invoice: ${error.message}`,
-        500
-      );
+      return new ApiError(`Error updating purchase invoice: ${error.message}`, 500);
     }
   } else {
     let bulkOption;
@@ -600,21 +520,11 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         );
       });
 
-      const history = createInvoiceHistory(
-        dbName,
-        updatedInvoice._id,
-        "edit",
-        req.user._id
-      );
+      const history = createInvoiceHistory(dbName, updatedInvoice._id, "edit", req.user._id);
 
-      res
-        .status(200)
-        .json({ status: "success", data: updatedInvoice, history });
+      res.status(200).json({ status: "success", data: updatedInvoice, history });
     } catch (error) {
-      return new ApiError(
-        `Error updating purchase invoice: ${error.message}`,
-        500
-      );
+      return new ApiError(`Error updating purchase invoice: ${error.message}`, 500);
     }
   }
 });
@@ -623,15 +533,9 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
-  const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
-  );
+  const returnModel = db.model("ReturenPurchaseInvoice", returnPurchaseInvicesSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const suppl = db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
@@ -657,17 +561,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   let seconds = padZero(date_ob.getSeconds());
 
   const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
+    year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 
   const {
     invoices,
@@ -721,12 +615,10 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     }
     if (productDoc.quantity < quantity) {
       console.log(`Insufficient quantity for product with QR code: ${qr}`);
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: `Insufficient quantity for product with QR code: ${qr}`,
-        });
+      return res.status(400).json({
+        status: "error",
+        message: `Insufficient quantity for product with QR code: ${qr}`,
+      });
     }
     // Create an invoice item
     const invoiceItem = {
@@ -741,9 +633,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   }
 
   let bulkOption;
-  const financialFund = await FinancialFundsModel.findById(
-    invoiceFinancialFund
-  );
+  const financialFund = await FinancialFundsModel.findById(invoiceFinancialFund);
   console.log(req.user);
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new returnModel({
@@ -785,8 +675,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     );
     if (existingProductIndex !== -1) {
       // If the product already exists, increment its quantity
-      supplier.products[existingProductIndex].quantity -=
-        newInvoiceItem.quantity;
+      supplier.products[existingProductIndex].quantity -= newInvoiceItem.quantity;
     }
   });
   await supplier.save();
@@ -811,21 +700,9 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   invoiceItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "pruchaseReturn",
-      dbName
-    );
+    createProductMovement(item.product, quantity, item.quantity, "out", "pruchaseReturn", dbName);
   });
-  const history = createInvoiceHistory(
-    dbName,
-    savedInvoice._id,
-    "return",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, savedInvoice._id, "return", req.user._id);
 
   res.status(201).json({ status: "success", data: savedInvoice, history });
 });
@@ -839,10 +716,7 @@ exports.getReturnPurchase = asyncHandler(async (req, res, next) => {
   db.model("Supplier", supplierSchema);
   db.model("FinancialFunds", financialFundsSchema);
   db.model("Currency", currencySchema);
-  const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
-  );
+  const returnModel = db.model("ReturenPurchaseInvoice", returnPurchaseInvicesSchema);
 
   const { totalPages, mongooseQuery } = await Search(returnModel, req);
 
@@ -863,10 +737,7 @@ exports.getOneReturnPurchase = asyncHandler(async (req, res, next) => {
   db.model("Supplier", supplierSchema);
   db.model("FinancialFunds", financialFundsSchema);
   db.model("Currency", currencySchema);
-  const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
-  );
+  const returnModel = db.model("ReturenPurchaseInvoice", returnPurchaseInvicesSchema);
 
   const { id } = req.params;
   const order = await returnModel.findById(id);
