@@ -19,10 +19,7 @@ const orderSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
-    onefinancialFunds: {
-      type: mongoose.Schema.ObjectId,
-      ref: "FinancialFunds",
-    },
+    onefinancialFunds: String,
 
     exchangeRate: Number,
 
@@ -88,6 +85,7 @@ const orderSchema = new mongoose.Schema(
       default: 0,
       unique: true,
     },
+    customarId: String,
     customarName: String,
     customarEmail: String,
     customarPhone: String,
@@ -96,6 +94,12 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pos", "normal"],
       default: "normal",
+    },
+
+    paid: {
+      type: String,
+      default: "unpaid",
+      enum: ["paid", "unpaid"],
     },
   },
 

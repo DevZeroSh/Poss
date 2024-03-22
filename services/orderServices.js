@@ -22,6 +22,7 @@ const labelsSchema = require("../models/labelsModel");
 const TaxSchema = require("../models/taxModel");
 const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
+const customarSchema = require("../models/customarModel");
 
 // @desc    create cash order
 // @route   POST /api/orders/cartId
@@ -32,9 +33,14 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
+  const customarsModel = db.model("Customar", customarSchema);
+
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
@@ -58,7 +64,17 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   let seconds = padZero(date_ob.getSeconds());
 
   const formattedDate =
-    year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
 
   // Retrieve cart data from localStorage
   // const cartItems = JSON.parse(localStorage.getItem('cart'));
@@ -81,18 +97,26 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
   if (!financialFunds) {
-    return next(new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404));
+    return next(
+      new ApiError(
+        `There is no such financial funds with id ${financialFundsId}`,
+        404
+      )
+    );
   }
 
   const exchangeRate = req.body.exchangeRate;
+  const paid = req.body.paid;
   const nextCounter = (await orderModel.countDocuments()) + 1;
-  if (req.body.type !== "pos") {
-    financialFunds.fundBalance += req.body.priceExchangeRate;
-  } else {
-    if (req.body.totalPriceAfterDiscount !== 0) {
-      financialFunds.fundBalance += req.body.totalPriceAfterDiscount;
-    } else {
+  if (paid === "paid" || req.body.type === "pos") {
+    if (req.body.type !== "pos") {
       financialFunds.fundBalance += req.body.priceExchangeRate;
+    } else {
+      if (req.body.totalPriceAfterDiscount !== 0) {
+        financialFunds.fundBalance += req.body.totalPriceAfterDiscount;
+      } else {
+        financialFunds.fundBalance += req.body.priceExchangeRate;
+      }
     }
   }
   // 3) Create order with default paymentMethodType cash
@@ -121,19 +145,28 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     paidAt: formattedDate,
     counter: nextCounter,
     exchangeRate: exchangeRate,
+    customarId: req.body.customarId,
+    paid: paid,
   });
-
   const data = new Date();
   const timeIsoString = data.toISOString();
-  await ReportsFinancialFundsModel.create({
-    date: timeIsoString,
-    amount: totalOrderPrice,
-    order: order._id,
-    type: "order",
-    financialFundId: financialFundsId,
-    financialFundRest: financialFunds.fundBalance,
-    exchangeRate: exchangeRate,
-  });
+  if (paid === "paid" || req.body.type === "pos") {
+    await ReportsFinancialFundsModel.create({
+      date: timeIsoString,
+      amount: totalOrderPrice,
+      order: order._id,
+      type: "order",
+      financialFundId: financialFundsId,
+      financialFundRest: financialFunds.fundBalance,
+      exchangeRate: exchangeRate,
+    });
+    await financialFunds.save();
+  } else {
+    const customars = await customarsModel.findById(req.body.customarId);
+    customars.total += totalOrderPrice;
+    customars.TotalUnpaid += totalOrderPrice;
+    await customars.save();
+  }
   // 4) After creating order, decrement product quantity, increment product sold
   const bulkOption = cartItems
     .map((item) => {
@@ -157,7 +190,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     .filter(Boolean);
 
   await productModel.bulkWrite(bulkOption, {});
-  await financialFunds.save();
 
   // 5) Create sales report
   await ReportsSalesModel.create({
@@ -174,10 +206,22 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(item.product, quantity, item.quantity, "out", "sales", dbName);
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "out",
+      "sales",
+      dbName
+    );
   });
 
-  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
+  const history = createInvoiceHistory(
+    dbName,
+    order._id,
+    "create",
+    req.user._id
+  );
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -197,7 +241,10 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   db.model("Employee", emoloyeeShcema);
   const productModel = db.model("Product", productSchema);
@@ -214,7 +261,18 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   let hours = padZero(date_ob.getHours());
   let minutes = padZero(date_ob.getMinutes());
   let seconds = padZero(date_ob.getSeconds());
-  const dates = year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+  const dates =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
   const data = new Date();
   const timeIsoString = data.toISOString();
   const cartItems = req.body.cartItems;
@@ -309,7 +367,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   if (totalAllocatedAmount === 0) {
     return res.status(400).json({
       status: "error",
-      message: "Total allocated amount is zero. Please review your allocations.",
+      message:
+        "Total allocated amount is zero. Please review your allocations.",
     });
   }
 
@@ -359,9 +418,21 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 
   cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(item.product, quantity, item.quantity, "out", "sales", dbName);
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "out",
+      "sales",
+      dbName
+    );
   });
-  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
+  const history = createInvoiceHistory(
+    dbName,
+    order._id,
+    "create",
+    req.user._id
+  );
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -468,6 +539,12 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("Orders", orderSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const customarsModel = db.model("Customar", customarSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+
   const data = new Date();
   const timeIsoString = data.toISOString();
 
@@ -475,25 +552,16 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
-
+  const order = await orderModel.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
+  if (!order) {
+    return next(new ApiError(`No Order for this id ${req.params.id}`, 404));
+  }
   const originalOrder = await orderModel.findById(id);
   const originalfinancialFunds = await FinancialFundsModel.findById(
     originalOrder.onefinancialFunds._id
   );
-
-  originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
-  const order = await orderModel.findByIdAndUpdate(id, req.body, {
-    new: true,
-  });
-
-  const financialFunds = await FinancialFundsModel.findById(order.onefinancialFunds._id);
-
-  if (!order) {
-    return next(new ApiError(`No Order for this id ${req.params.id}`, 404));
-  }
-
-  financialFunds.fundBalance += order.totalOrderPrice;
-
   if (order) {
     const bulkOption = req.body.cartItems.map((item) => ({
       updateOne: {
@@ -519,25 +587,64 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       },
     }));
 
+
+    
     await productModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption2, {});
-    await originalfinancialFunds.save();
-    await financialFunds.save();
+
+    const financialFunds = await FinancialFundsModel.findById(
+      order.onefinancialFunds._id
+    );
+    const customars = await customarsModel.findById(req.body.customerId);
+    if (req.body.paid === "paid") {
+      originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
+
+      financialFunds.fundBalance += order.totalOrderPrice;
+      await originalfinancialFunds.save();
+      await ReportsFinancialFundsModel.create({
+        date: timeIsoString,
+        amount: order.totalOrderPrice,
+        order: order._id,
+        type: "order",
+        financialFundId: order.onefinancialFunds._id,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.exchangeRate,
+      });
+
+      await financialFunds.save();
+      customars.TotalUnpaid -= originalOrder.totalOrderPrice;
+      await customars.save();
+
+      // Create sales report
+      await ReportsSalesModel.create({
+        date: timeIsoString,
+        orderId: id,
+        fund: financialFunds,
+        amount: order.totalOrderPrice,
+        cartItems: cartItems,
+        paymentType: "Edit Order",
+        employee: req.user._id,
+      });
+    } else {
+      console.log(customars);
+      customars.total -= originalOrder.totalOrderPrice;
+      customars.TotalUnpaid -= originalOrder.totalOrderPrice;
+      customars.total += order.totalOrderPrice;
+      customars.TotalUnpaid += order.totalOrderPrice;
+      await customars.save();
+    }
   }
 
-  // Create sales report
-  await ReportsSalesModel.create({
-    date: timeIsoString,
-    orderId: id,
-    fund: financialFunds,
-    amount: order.totalOrderPrice,
-    cartItems: cartItems,
-    paymentType: "Edit Order",
-    employee: req.user._id,
-  });
   originalOrder.cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(item.product, quantity, item.quantity, "in", "Edit Sales", dbName);
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "in",
+      "Edit Sales",
+      dbName
+    );
   });
   const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
 
@@ -567,7 +674,10 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("returnOrder", returnOrderSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   const orderModelO = db.model("Orders", orderSchema);
 
   let movementCreated = false;
@@ -637,7 +747,9 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     for (let i = 0; i < req.body.cartItems.length; i++) {
       const incomingItem = req.body.cartItems[i];
       //find qr for all arrays
-      const matchingIndex = orders.returnCartItem.findIndex((item) => item.qr === incomingItem.qr);
+      const matchingIndex = orders.returnCartItem.findIndex(
+        (item) => item.qr === incomingItem.qr
+      );
 
       if (matchingIndex !== -1) {
         const test1 = orders.returnCartItem[matchingIndex].quantity;
@@ -656,12 +768,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       }
     }
     await orderModelO.bulkWrite(test);
-    const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
+    const history = createInvoiceHistory(
+      dbName,
+      orderId,
+      "return",
+      req.user._id
+    );
 
     if (!movementCreated) {
       for (let i = 0; i < req.body.cartItems.length; i++) {
         const incomingItem = req.body.cartItems[i];
-        const { quantity } = await productModel.findOne({ qr: incomingItem.qr });
+        const { quantity } = await productModel.findOne({
+          qr: incomingItem.qr,
+        });
         createProductMovement(
           incomingItem._id,
           quantity,
@@ -704,7 +823,8 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         };
 
         if (item.refundLocattion === "Damaged") {
-          updateOperation.updateOne.update.$inc.deactivateCount = +item.quantity;
+          updateOperation.updateOne.update.$inc.deactivateCount =
+            +item.quantity;
         } else {
           updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
         }
@@ -754,12 +874,19 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         }
       }
       await orderModelO.bulkWrite(test);
-      const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
+      const history = createInvoiceHistory(
+        dbName,
+        orderId,
+        "return",
+        req.user._id
+      );
 
       if (!movementCreated) {
         for (let i = 0; i < req.body.cartItems.length; i++) {
           const incomingItem = req.body.cartItems[i];
-          const { quantity } = await productModel.findOne({ qr: incomingItem.qr });
+          const { quantity } = await productModel.findOne({
+            qr: incomingItem.qr,
+          });
           createProductMovement(
             incomingItem._id,
             quantity,

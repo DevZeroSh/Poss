@@ -119,7 +119,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
     }
-    console.log(productDoc);
     // Create an invoice item
     const invoiceItem = {
       product: product,
@@ -199,11 +198,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         (existingProduct) => existingProduct.qr === newInvoiceItem.qr
       );
 
-      console.log(existingProductIndex);
-      console.log(newInvoiceItem);
-
       if (existingProductIndex !== -1) {
-        console.log(newInvoiceItem);
         supplier.products[existingProductIndex].quantity +=
           newInvoiceItem.quantity;
         supplier.products[existingProductIndex].buyingprice =
@@ -290,7 +285,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       updateOne: {
         filter: { _id: item.product },
         update: {
-          $inc: { quantity: item.quantity },
+          $inc: { quantity: item.quantity, activeCount: +item.quantity },
           $set: {
             serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,
@@ -302,18 +297,15 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       },
     }));
     const supplier = await suppl.findById(suppliersId);
-
+    supplier.total += req.body.finalPricetest;
+    supplier.TotalUnpaid += req.body.finalPricetest;
     // Loop through each item in the invoiceItems array
     invoiceItems.forEach((newInvoiceItem) => {
       // console.log("newInvoiceItem.product:", newInvoiceItem.product);
       // console.log("existingProduct.product:", existingProduct.product);
       const existingProductIndex = supplier.products.findIndex(
-        (existingProduct) =>
-          existingProduct.product.toString() ===
-          newInvoiceItem.product.toString()
+        (existingProduct) => existingProduct.product === newInvoiceItem.product
       );
-
-      console.log(existingProductIndex);
 
       if (existingProductIndex !== -1) {
         // If the product already exists, increment its quantity
@@ -327,6 +319,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         });
       }
     });
+
     try {
       // Save the updated supplier
       await supplier.save();
@@ -430,7 +423,6 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
   db.model("Tax", TaxSchema);
-  db.model("Supplier", supplierSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
   db.model("Category", categorySchema);
@@ -439,6 +431,7 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
 
+  const supplier = db.model("Supplier", supplierSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
@@ -470,9 +463,12 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     if (!existingInvoice) {
       return next(new ApiError(`Purchase invoice not found`, 404));
     }
-
+    const supplierId = await supplier.findById(req.body.suppliers);
     // Update the financial fund balance
     existingFinancialFund.fundBalance -= finalPriceExchangeRate;
+    supplierId.TotalUnpaid -= finalPriceMainCurrency;
+    await supplierId.save();
+
     await existingFinancialFund.save();
 
     // Update the purchase invoice
@@ -537,7 +533,6 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         "edit",
         req.user._id
       );
-      console.log(history);
 
       // Respond with the updated invoice
       res
@@ -556,7 +551,14 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     if (!existingInvoice) {
       return next(new ApiError(`Purchase invoice not found`, 404));
     }
+    console.log(req.body.finalPriceBefor);
+    const supplierId = await supplier.findById(req.body.suppliers);
+    supplierId.TotalUnpaid -= req.body.finalPriceBefor;
+    supplierId.TotalUnpaid += req.body.finalPriceAfter;
+    supplierId.total -= req.body.finalPriceBefor;
+    supplierId.total += req.body.finalPriceAfter;
 
+    await supplierId.save();
     // Update the purchase invoice
     const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
       id,
@@ -573,7 +575,7 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         update: {
           $inc: {
             quantity: +item.quantity - item.beforQuantity,
-            activeCount: item.quantity - item.beforQuantity,
+            activeCount: +item.quantity - item.beforQuantity,
           },
           $set: {
             serialNumber: item.serialNumber,
@@ -721,12 +723,10 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     }
     if (productDoc.quantity < quantity) {
       console.log(`Insufficient quantity for product with QR code: ${qr}`);
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: `Insufficient quantity for product with QR code: ${qr}`,
-        });
+      return res.status(400).json({
+        status: "error",
+        message: `Insufficient quantity for product with QR code: ${qr}`,
+      });
     }
     // Create an invoice item
     const invoiceItem = {
@@ -744,7 +744,6 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     invoiceFinancialFund
   );
-  console.log(req.user);
   // Create a new purchase invoice with all the invoice items
   const newPurchaseInvoice = new returnModel({
     invoices: invoiceItems,

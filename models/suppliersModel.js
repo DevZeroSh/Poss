@@ -8,16 +8,12 @@ const supplierSchema = new mongoose.Schema(
       minlength: [3, "Too short supplier name"],
       maxlength: [30, "Too long supplier name"],
       unique: [true, " Supplier Name must be unique"],
-
     },
     phoneNumber: {
       type: String,
-      // unique: true,
     },
     email: {
       type: String,
-      // unique: true,
-      // trim:true,
       lowercase: true,
     },
     companyName: String,
@@ -28,6 +24,8 @@ const supplierSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
+    total: { type: Number, default: 0 },
+    TotalUnpaid: { type: Number, default: 0 },
     products: [
       {
         product: String,
