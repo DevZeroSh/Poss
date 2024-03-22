@@ -5,8 +5,9 @@ const sendEmail = async (options) => {
   try {
     //1- Create transporter (service thatll send email like "gmail","Mailgun","Mialtrap",...)
     const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT, // if secure false port = 587, if true port = 465
+      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465, // if secure false port = 587, if true port = 465
       secure: true,
       auth: {
         user: process.env.EMAIL_USER,
@@ -16,7 +17,7 @@ const sendEmail = async (options) => {
 
     //2-Define email options (Like from , to , subject, email, email content)
     const mailOpts = {
-      from: "SmartPos",
+      from: { name: "SmartPos <smartinb.co@gmail.com>" },
       to: options.email,
       subject: options.subject,
       text: options.message,

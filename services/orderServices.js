@@ -154,6 +154,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     await ReportsFinancialFundsModel.create({
       date: timeIsoString,
       amount: totalOrderPrice,
+      totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
       order: order._id,
       type: "order",
       financialFundId: financialFundsId,
@@ -587,8 +588,6 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       },
     }));
 
-
-    
     await productModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption2, {});
 
