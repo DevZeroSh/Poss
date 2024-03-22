@@ -33,6 +33,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     totalProductTax: Number,
     totalPriceWitheOutTax: Number,
     finalPrice: Number,
+    addedValue: Number,
     totalQuantity: Number,
     totalbuyingprice: Number,
 
