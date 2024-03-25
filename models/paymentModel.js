@@ -2,16 +2,31 @@ const mongoose = require("mongoose");
 
 const PaymentSchema = new mongoose.Schema(
   {
-    supplerName: {
+    supplierName: {
       type: String,
     },
-    CustomerName: {
+    supplerId: {
       type: String,
     },
-    tottal: {
+    customerName: {
+      type: String,
+    },
+    customerId: {
+      type: String,
+    },
+    total: {
       type: Number,
       require: true,
     },
+    totalMainCurrency: {
+      type: Number,
+      default: 0,
+    },
+    exchangeRate:{
+      type: Number,
+      default: 1,
+    },
+    currencyCode:String,
   },
   { timestamps: true }
 );

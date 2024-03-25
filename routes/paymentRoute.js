@@ -10,7 +10,7 @@ const {
 } = require("../services/paymentService");
 
 const paymentRout = express.Router();
-paymentRout.use(authService.protect);
+// paymentRout.use(authService.protect);
 
 paymentRout.route("/").get(getPayment).post(createPayment);
 paymentRout.route("/:id").get(getOnePayment);

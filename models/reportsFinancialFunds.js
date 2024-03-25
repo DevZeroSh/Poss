@@ -26,6 +26,10 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Orders",
     },
+    payment: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Payment",
+    },
     invoice: {
       type: mongoose.Schema.ObjectId,
       ref: "PurchaseInvoices",
@@ -40,6 +44,8 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
         "transfer_to",
         "Opening Balance",
         "return",
+        "payment-sup",
+        "payment-cut",
       ],
     },
     financialFundId: {
