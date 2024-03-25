@@ -16,22 +16,32 @@ const ProfitLossReportsSchema = new mongoose.Schema(
     },
     totalReturns: {
       type: Number,
+      default: 0,
       require: [true, "Total returns missing"],
     },
     totalSellingCost: {
       type: Number,
+      default: 0,
       require: [true, "Selling cost missing"],
+    },
+    totalStockLoss: {
+      type: Number,
+      default: 0,
+      require: [true, "Stock loss missing"],
     },
     totalExpenses: {
       type: Number,
+      default: 0,
       require: [true, "Expenses missing"],
     },
     profit: {
       type: Number,
+      default: 0,
       require: [true, "Profit missing"],
     },
     netProfit: {
       type: Number,
+      default: 0,
       require: [true, "Net profit missing"],
     },
   },

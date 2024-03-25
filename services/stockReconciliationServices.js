@@ -4,13 +4,6 @@ const mongoose = require("mongoose");
 const productSchema = require("../models/productModel");
 const reconcilSchema = require("../models/stockReconciliationModel");
 const emoloyeeShcema = require("../models/employeeModel");
-const categorySchema = require("../models/CategoryModel");
-const brandSchema = require("../models/brandModel");
-const labelsSchema = require("../models/labelsModel");
-const TaxSchema = require("../models/taxModel");
-const UnitSchema = require("../models/UnitsModel");
-const variantSchema = require("../models/variantsModel");
-const currencySchema = require("../models/currencyModel");
 const { createProductMovement } = require("../utils/productMovement");
 
 // @desc    Create a new stock reconciliation
@@ -87,7 +80,7 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
 
     return res.status(201).json({ success: true, data: newStockReconcil });
   } catch (error) {
-    console.error("Error creating stock reconciliation:", error);
+    console.error("Error creating stock reconciliation:", error.message);
     return res.status(500).json({ success: false, error: "Could not create stock reconciliation" });
   }
 });

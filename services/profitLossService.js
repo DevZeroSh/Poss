@@ -56,7 +56,8 @@ exports.updateProfitLossReportByYearMonth = asyncHandler(async (req, res, next) 
   const ProfitLoss = db.model("ProfitLossReports", ProfitLossReportsSchema);
 
   const { year, month } = req.params;
-  const { totalSellingPrice, totalExpenses, totalSellingCost, totalReturns } = req.body;
+  const { totalSellingPrice, totalExpenses, totalSellingCost, totalReturns, totalStockLoss } =
+    req.body;
 
   try {
     const updateFields = {};
@@ -64,6 +65,7 @@ exports.updateProfitLossReportByYearMonth = asyncHandler(async (req, res, next) 
     if (totalExpenses !== undefined) updateFields.totalExpenses = totalExpenses;
     if (totalSellingCost !== undefined) updateFields.totalSellingCost = totalSellingCost;
     if (totalReturns !== undefined) updateFields.totalReturns = totalReturns;
+    if (totalStockLoss !== undefined) updateFields.totalStockLoss = totalStockLoss;
 
     const updatedReport = await ProfitLoss.findOneAndUpdate(
       { year, month },

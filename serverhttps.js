@@ -43,6 +43,7 @@ const profitLossRoute = require("./routes/profitLossRoute");
 const productMovementsRoute = require("./routes/productMovementRoute");
 const invoiceHistoryRoute = require("./routes/invoiceHistoryRoute");
 const paymentRout = require("./routes/paymentRoute");
+const financialLossRoute = require("./routes/financialLossRoute");
 
 dotenv.config({ path: "config.env" });
 
@@ -55,8 +56,8 @@ app.use(cors());
 
 app.use(express.static(path.join(__dirname, "uploads")));
 if (process.env.NODE_ENV === "development") {
-    app.use(morgan("dev"));
-    console.log(`mode: ${process.env.NODE_ENV}`);
+  app.use(morgan("dev"));
+  console.log(`mode: ${process.env.NODE_ENV}`);
 }
 
 //Routes' links
@@ -92,6 +93,7 @@ app.use("/api/profitloss", profitLossRoute);
 app.use("/api/productmovements", productMovementsRoute);
 app.use("/api/invoicehistory", invoiceHistoryRoute);
 app.use("/api/payment", paymentRout);
+app.use("/api/financialloss", financialLossRoute);
 
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
@@ -103,5 +105,5 @@ const credentials = { key: privateKey, cert: certificate };
 const httpsServer = https.createServer(credentials, app);
 
 httpsServer.listen(PORT, () => {
-    console.log(`App running on port ${PORT} using HTTPS`);
+  console.log(`App running on port ${PORT} using HTTPS`);
 });
