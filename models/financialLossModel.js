@@ -24,6 +24,10 @@ const FinancialLossSchema = new mongoose.Schema(
       },
     ],
     reportTotalValue: Number,
+    reportRef: {
+      type: mongoose.Schema.ObjectId,
+      ref: "Reconciliation",
+    },
   },
   { timestamps: true }
 );

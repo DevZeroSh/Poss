@@ -39,7 +39,12 @@ exports.getOneFinancialLoss = asyncHandler(async (req, res, next) => {
 
     const db = mongoose.connection.useDb(dbName);
     const FinancialLoss = db.model("FinancialLoss", FinancialLossSchema);
-    const report = await FinancialLoss.findById(id);
+    let report;
+    report = await FinancialLoss.findById(id);
+    if (report === null) {
+      report = await FinancialLoss.findOne({ reportRef: id });
+    }
+
     res.status(200).json(report);
   } catch (error) {
     return next(new ApiError("Error getting financial loss: " + error.message));
