@@ -101,6 +101,16 @@ const orderSchema = new mongoose.Schema(
       default: "unpaid",
       enum: ["paid", "unpaid"],
     },
+    totalRemainderMainCurrency: { type: Number, default: 0 },
+    totalRemainder: { type: Number, default: 0 },
+    payments: [
+      {
+        payment: Number,
+        paymentMainCurrency: Number,
+        financialFunds: String,
+        date: String,
+      },
+    ],
   },
 
   { timestamps: true }

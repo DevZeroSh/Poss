@@ -47,6 +47,9 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     invoiceCurrency: String,
     invoiceFinancialFund: String,
     finalPriceMainCurrency: Number,
+    totalRemainderMainCurrency: { type: Number, default: 0 },
+    totalRemainder: { type: Number, default: 0 },
+    payments: [{ payment: Number,paymentMainCurrency: Number, financialFunds: String, date: String }],
     paid: {
       type: String,
       default: "unpaid",

@@ -38,7 +38,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       type: String,
       enum: [
         "expense",
-        "order",
+        "sales",
         "purchase",
         "transfer-form",
         "transfer_to",

@@ -26,8 +26,193 @@ const customarSchema = require("../models/customarModel");
 
 // @desc    create cash order
 // @route   POST /api/orders/cartId
-// @access  privet/User
+// @access  privet/Pos Sales
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const productModel = db.model("Product", productSchema);
+  db.model("Currency", currencySchema);
+
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  const cartItems = req.body.cartItems;
+  // app settings
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
+
+  // Retrieve cart data from localStorage
+  // const cartItems = JSON.parse(localStorage.getItem('cart'));
+  if (!cartItems || cartItems.length === 0) {
+    return next(new ApiError("The cart is empty", 400));
+  }
+
+  const totalOrderPrice = req.body.totalOrderPrice;
+
+  // use totalOrderPrice as an array
+  const financialFundsId = req.body.financialFunds;
+
+  // 1) Find the financial funds document based on the provided ID
+  const financialFunds = await FinancialFundsModel.findById(financialFundsId);
+
+  if (!financialFunds) {
+    return next(
+      new ApiError(
+        `There is no such financial funds with id ${financialFundsId}`,
+        404
+      )
+    );
+  }
+
+  const exchangeRate = req.body.exchangeRate;
+
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+
+  if (req.body.couponCount > 0) {
+    financialFunds.fundBalance +=
+      req.body.totalPriceAfterDiscount / exchangeRate;
+  } else {
+    financialFunds.fundBalance += req.body.priceExchangeRate;
+  }
+
+  // 3) Create order with default paymentMethodType cash
+  const order = await orderModel.create({
+    employee: req.user._id,
+    priceExchangeRate: req.body.priceExchangeRate,
+    cartItems,
+    returnCartItem: cartItems,
+    currencyCode: req.body.currency,
+    totalOrderPrice,
+    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+    taxs: req.body.taxs,
+    price: req.body.price,
+    taxRate: req.body.taxRate,
+    customarName: req.body.customarName,
+    customarEmail: req.body.customarEmail,
+    customarPhone: req.body.customarPhone,
+    customarAddress: req.body.customarAddress,
+    coupon: req.body.coupon,
+    couponCount: req.body.couponCount,
+    couponType: req.body.couponType,
+    type: req.body.type,
+    onefinancialFunds: financialFundsId,
+    paidAt: formattedDate,
+    counter: nextCounter,
+    exchangeRate: exchangeRate,
+    customarId: req.body.customarId,
+    paid: "paid",
+  });
+  const data = new Date();
+  const timeIsoString = data.toISOString();
+  await ReportsFinancialFundsModel.create({
+    date: timeIsoString,
+    amount:
+      req.body.totalPriceAfterDiscount > 0
+        ? req.body.totalPriceAfterDiscount
+        : totalOrderPrice,
+    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount / exchangeRate,
+    order: order._id,
+    type: "sales",
+    financialFundId: financialFundsId,
+    financialFundRest: financialFunds.fundBalance,
+    exchangeRate: exchangeRate,
+  });
+  await financialFunds.save();
+
+  // 4) After creating order, decrement product quantity, increment product sold
+  const bulkOption = cartItems
+    .map((item) => {
+      if (item.type !== "Service") {
+        return {
+          updateOne: {
+            filter: { _id: item._id || item.product },
+            update: {
+              $inc: {
+                quantity: -item.quantity,
+                sold: +item.quantity,
+                activeCount: -item.quantity,
+              },
+            },
+          },
+        };
+      } else {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  await productModel.bulkWrite(bulkOption, {});
+
+  // 5) Create sales report
+  await ReportsSalesModel.create({
+    customer: req.body.customarName,
+    orderId: order._id,
+    date: timeIsoString,
+    fund: financialFundsId,
+    amount: totalOrderPrice,
+    cartItems: cartItems,
+    counter: nextCounter,
+    paymentType: "Single Fund",
+    employee: req.user._id,
+  });
+
+  cartItems.map(async (item) => {
+    const { quantity } = await productModel.findOne({ qr: item.qr });
+    createProductMovement(
+      item.product,
+      quantity,
+      item.quantity,
+      "out",
+      "sales",
+      dbName
+    );
+  });
+
+  const history = createInvoiceHistory(
+    dbName,
+    order._id,
+    "create",
+    req.user._id
+  );
+
+  res.status(201).json({ status: "success", data: order, history });
+});
+
+// @desc    create cash order
+// @route   POST /api/salesDashbord
+// @access  privet
+exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
@@ -86,77 +271,66 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // const cartPrice = cartItems.reduce((total, item) => {
   //     return total + item.taxPrice * item.quantity;
   // }, 0);
-
-  const paymentMethodType = req.body.paymentMethodType;
+  const paid = req.body.paid;
   const totalOrderPrice = req.body.totalOrderPrice;
 
   // use totalOrderPrice as an array
   const financialFundsId = req.body.financialFunds;
 
-  // 1) Find the financial funds document based on the provided ID
-  const financialFunds = await FinancialFundsModel.findById(financialFundsId);
-
-  if (!financialFunds) {
-    return next(
-      new ApiError(
-        `There is no such financial funds with id ${financialFundsId}`,
-        404
-      )
-    );
-  }
-
   const exchangeRate = req.body.exchangeRate;
-  const paid = req.body.paid;
+
   const nextCounter = (await orderModel.countDocuments()) + 1;
-  if (paid === "paid" || req.body.type === "pos") {
-    if (req.body.type !== "pos") {
-      financialFunds.fundBalance += req.body.priceExchangeRate;
-    } else {
-      if (req.body.totalPriceAfterDiscount !== 0) {
-        financialFunds.fundBalance += req.body.totalPriceAfterDiscount;
-      } else {
-        financialFunds.fundBalance += req.body.priceExchangeRate;
-      }
-    }
-  }
+
   // 3) Create order with default paymentMethodType cash
-  const order = await orderModel.create({
-    employee: req.user._id,
-    priceExchangeRate: req.body.priceExchangeRate,
-    cartItems,
-    returnCartItem: cartItems,
-    currencyCode: req.body.currency,
-    shippingAddress: req.body.shippingAddress,
-    totalOrderPrice,
-    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
-    paymentMethodType,
-    taxs: req.body.taxs,
-    price: req.body.price,
-    taxRate: req.body.taxRate,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customarAddress: req.body.customarAddress,
-    coupon: req.body.coupon,
-    couponCount: req.body.couponCount,
-    couponType: req.body.couponType,
-    type: req.body.type,
-    onefinancialFunds: financialFundsId,
-    paidAt: formattedDate,
-    counter: nextCounter,
-    exchangeRate: exchangeRate,
-    customarId: req.body.customarId,
-    paid: paid,
-  });
+  let order;
   const data = new Date();
   const timeIsoString = data.toISOString();
-  if (paid === "paid" || req.body.type === "pos") {
+  if (paid === "paid") {
+    const financialFunds = await FinancialFundsModel.findById(financialFundsId);
+
+    if (!financialFunds) {
+      return next(
+        new ApiError(
+          `There is no such financial funds with id ${financialFundsId}`,
+          404
+        )
+      );
+    }
+    financialFunds.fundBalance += req.body.totalPriceExchangeRate;
+
+    order = await orderModel.create({
+      employee: req.user._id,
+      priceExchangeRate: req.body.priceExchangeRate,
+      cartItems,
+      returnCartItem: cartItems,
+      currencyCode: req.body.currency,
+      totalOrderPrice,
+      totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+      taxs: req.body.taxs,
+      price: req.body.price,
+      taxRate: req.body.taxRate,
+      customarName: req.body.customarName,
+      customarEmail: req.body.customarEmail,
+      customarPhone: req.body.customarPhone,
+      customarAddress: req.body.customarAddress,
+      coupon: req.body.coupon,
+      couponCount: req.body.couponCount,
+      couponType: req.body.couponType,
+      type: req.body.type,
+      onefinancialFunds: financialFundsId,
+      paidAt: formattedDate,
+      counter: nextCounter,
+      exchangeRate: exchangeRate,
+      customarId: req.body.customarId,
+      paid: paid,
+    });
+
     await ReportsFinancialFundsModel.create({
       date: timeIsoString,
       amount: totalOrderPrice,
       totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
       order: order._id,
-      type: "order",
+      type: "sales",
       financialFundId: financialFundsId,
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: exchangeRate,
@@ -167,6 +341,34 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customars.total += totalOrderPrice;
     customars.TotalUnpaid += totalOrderPrice;
     await customars.save();
+    order = await orderModel.create({
+      employee: req.user._id,
+      priceExchangeRate: req.body.priceExchangeRate,
+      cartItems,
+      returnCartItem: cartItems,
+      currencyCode: req.body.currency,
+      totalOrderPrice,
+      totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+      taxs: req.body.taxs,
+      price: req.body.price,
+      taxRate: req.body.taxRate,
+      customarName: req.body.customarName,
+      customarEmail: req.body.customarEmail,
+      customarPhone: req.body.customarPhone,
+      customarAddress: req.body.customarAddress,
+      coupon: req.body.coupon,
+      couponCount: req.body.couponCount,
+      couponType: req.body.couponType,
+      type: req.body.type,
+      onefinancialFunds: financialFundsId,
+      paidAt: formattedDate,
+      counter: nextCounter,
+      exchangeRate: exchangeRate,
+      customarId: req.body.customarId,
+      paid: paid,
+      totalRemainder: req.body.priceExchangeRate,
+      totalRemainderMainCurrency: totalOrderPrice,
+    });
   }
   // 4) After creating order, decrement product quantity, increment product sold
   const bulkOption = cartItems
@@ -343,7 +545,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       date: timeIsoString,
       amount: amount,
       order: order._id,
-      type: "order",
+      type: "sales",
       financialFundId: fundId,
       financialFundRest: financialFund.fundBalance,
       exchangeRate,

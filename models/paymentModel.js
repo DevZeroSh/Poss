@@ -5,13 +5,16 @@ const PaymentSchema = new mongoose.Schema(
     supplierName: {
       type: String,
     },
-    supplerId: {
+    supplierId: {
       type: String,
     },
     customerName: {
       type: String,
     },
     customerId: {
+      type: String,
+    },
+    purchaseId: {
       type: String,
     },
     total: {
@@ -22,11 +25,18 @@ const PaymentSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    exchangeRate:{
+    exchangeRate: {
       type: Number,
       default: 1,
     },
-    currencyCode:String,
+    currencyCode: String,
+    data: String,
+
+    counter: {
+      type: String,
+      default: 0,
+      unique: true,
+    },
   },
   { timestamps: true }
 );
