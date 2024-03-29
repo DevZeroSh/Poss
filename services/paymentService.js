@@ -48,7 +48,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
   let paymentText = "";
-
+  const nextCounter = (await paymentModel.countDocuments()) + 1;
+  req.body.counter = nextCounter;
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const totalMainCurrency = req.body.totalMainCurrency;
@@ -122,10 +123,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       const updateObj = {
         $set: {
           totalRemainderMainCurrency:
-          sale.totalRemainderMainCurrency - paymentAmount,
+            sale.totalRemainderMainCurrency - paymentAmount,
           totalRemainder:
-          sale.totalRemainder -
-            paymentAmount / sale.exchangeRate,
+            sale.totalRemainder - paymentAmount / sale.exchangeRate,
         },
         $push: {
           payments: {

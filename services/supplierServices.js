@@ -61,9 +61,10 @@ exports.getSupplier = asyncHandler(async (req, res, next) => {
 
   if (!supplier) {
     return next(new ApiError(`There is no supplier with this id ${id}`, 404));
-  } else {
-    res.status(200).json({ status: "true", data: supplier });
-  }
+  } 
+    
+  res.status(200).json({ status: "true", data: supplier });
+  
 });
 
 //Update one Supplier
