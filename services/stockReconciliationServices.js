@@ -5,6 +5,8 @@ const productSchema = require("../models/productModel");
 const reconcilSchema = require("../models/stockReconciliationModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const { createProductMovement } = require("../utils/productMovement");
+const ActiveProductsValueModel = require("../models/activeProductsValueModel");
+const { createActiveProductsValue } = require("../utils/activeProductsValue");
 
 // @desc    Create a new stock reconciliation
 // @route   POST /api/stockReconciliation
@@ -65,8 +67,35 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
     // Save the new stock reconciliation record to the database
     await productModel.bulkWrite(bulkOption2, {});
     await newStockReconcil.save();
-    req.body.items.map((item) => {
+    req.body.items.map(async (item) => {
       if (item.reconciled) {
+        try {
+          const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+          const existingRecord = await ActiveProductsValue.findOne();
+          let totalCountDiff = 0;
+          let totalValueDiff = 0;
+          req.body.items.forEach((existingItem) => {
+            if (existingItem.productId == item.productId) {
+              const quantityDiff = item.realCount - item.recordCount;
+              const valueDiff = item.buyingPrice * item.exchangeRate * quantityDiff;
+
+              totalCountDiff += quantityDiff;
+              totalValueDiff += valueDiff;
+            }
+          });
+
+          if (existingRecord) {
+            existingRecord.activeProductsCount += totalCountDiff;
+            existingRecord.activeProductsValue += totalValueDiff;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(totalCountDiff, totalValueDiff, dbName);
+          }
+        } catch (err) {
+          console.log("stockReconciliationServices 100");
+          console.log(err.message);
+        }
+
         createProductMovement(
           item.productId,
           item.realCount,
@@ -131,16 +160,26 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const reconciliationModel = db.model("Reconciliation", reconcilSchema);
-  db.model("Employee", emoloyeeShcema);
   const productModel = db.model("Product", productSchema);
+  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+
+  const existingReconcileReport = await reconciliationModel.findById(req.params.id);
+  let realCountOld = [];
+  existingReconcileReport.items.map((item) => {
+    realCountOld.push(item.realCount - item.recordCount);
+  });
+
   const reconcileReport = await reconciliationModel.findByIdAndUpdate(
-    { $in: req.params.id },
+    req.params.id,
     { $set: req.body },
-    {
-      new: true,
-    }
+    { new: true }
   );
 
+  if (!reconcileReport) {
+    return next(new ApiError(`No reconcileReport found for id ${req.params.id}`, 404));
+  }
+
+  // Update the quantity and activeCount of reconciled products
   const bulkOption2 = reconcileReport.items
     .filter((item) => item.reconciled)
     .map((item) => ({
@@ -155,15 +194,31 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
       },
     }));
 
-  // Save the new stock reconciliation record to the database
   await productModel.bulkWrite(bulkOption2, {});
 
-  if (!reconcileReport) {
-    return next(new ApiError(`No reconcileReport found for id ${req.params.id}`, 404));
-  }
-
-  req.body.items.map((item) => {
+  req.body.items.forEach(async (item, i) => {
     if (item.reconciled) {
+      try {
+        const existingItem = existingReconcileReport.items.find((existing) =>
+          existing.productId.equals(item.productId)
+        );
+
+        if (existingItem) {
+          const valueDiff = item.buyingPrice * item.exchangeRate * realCountOld[i];
+
+          let existingRecord = await ActiveProductsValue.findOne();
+          if (!existingRecord) {
+            existingRecord = await createActiveProductsValue(0, 0, dbName);
+          }
+
+          existingRecord.activeProductsCount += realCountOld[i];
+          existingRecord.activeProductsValue += valueDiff;
+          await existingRecord.save();
+        }
+      } catch (err) {
+        console.log("stockReconciliationServices:", err.message);
+      }
+
       createProductMovement(
         item.productId,
         item.realCount,
