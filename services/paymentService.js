@@ -110,8 +110,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await createPaymentHistory(
       "paid",
       formattedDate,
-      totalMainCurrency,
       req.body.totalMainCurrency,
+      suppler.TotalUnpaid,
       "supplier",
       req.body.supplierId,
       dbName
@@ -186,7 +186,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
-    const totalBefor = purchase.totalRemainderMainCurrency;
+  
 
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -=
