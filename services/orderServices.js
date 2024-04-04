@@ -36,10 +36,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
   db.model("Currency", currencySchema);
@@ -65,17 +62,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   let seconds = padZero(date_ob.getSeconds());
 
   const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
+    year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 
   // Retrieve cart data from localStorage
   // const cartItems = JSON.parse(localStorage.getItem('cart'));
@@ -92,12 +79,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
   if (!financialFunds) {
-    return next(
-      new ApiError(
-        `There is no such financial funds with id ${financialFundsId}`,
-        404
-      )
-    );
+    return next(new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404));
   }
 
   const exchangeRate = req.body.exchangeRate;
@@ -105,8 +87,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const nextCounter = (await orderModel.countDocuments()) + 1;
 
   if (req.body.couponCount > 0) {
-    financialFunds.fundBalance +=
-      req.body.totalPriceAfterDiscount / exchangeRate;
+    financialFunds.fundBalance += req.body.totalPriceAfterDiscount / exchangeRate;
   } else {
     financialFunds.fundBalance += req.body.priceExchangeRate;
   }
@@ -143,9 +124,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
     amount:
-      req.body.totalPriceAfterDiscount > 0
-        ? req.body.totalPriceAfterDiscount
-        : totalOrderPrice,
+      req.body.totalPriceAfterDiscount > 0 ? req.body.totalPriceAfterDiscount : totalOrderPrice,
     totalPriceAfterDiscount: req.body.totalPriceAfterDiscount / exchangeRate,
     order: order._id,
     type: "sales",
@@ -194,21 +173,11 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
+    createProductMovement(item.product, quantity, item.quantity, "out", "sales", dbName);
   });
 
   try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
+    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
     const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
@@ -229,12 +198,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     console.log(err.message);
   }
 
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -248,10 +212,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
   const customarsModel = db.model("Customar", customarSchema);
@@ -279,17 +240,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   let seconds = padZero(date_ob.getSeconds());
 
   const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
+    year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
 
   // Retrieve cart data from localStorage
   // const cartItems = JSON.parse(localStorage.getItem('cart'));
@@ -322,10 +273,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
     if (!financialFunds) {
       return next(
-        new ApiError(
-          `There is no such financial funds with id ${financialFundsId}`,
-          404
-        )
+        new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404)
       );
     }
     financialFunds.fundBalance += req.body.totalPriceExchangeRate;
@@ -369,7 +317,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     });
     await financialFunds.save();
   } else {
-   
     customars.total += totalOrderPrice;
     customars.TotalUnpaid += totalOrderPrice;
     await customars.save();
@@ -441,21 +388,11 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
+    createProductMovement(item.product, quantity, item.quantity, "out", "sales", dbName);
   });
 
   try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
+    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
     const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
@@ -476,17 +413,12 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     console.log(err.message);
   }
 
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
   await createPaymentHistory(
     "invoice",
     formattedDate,
     totalOrderPrice,
-    customars.TotalUnpaid ,
+    customars.TotalUnpaid,
     "customer",
     req.body.customarId,
     dbName
@@ -509,10 +441,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   db.model("Employee", emoloyeeShcema);
   const productModel = db.model("Product", productSchema);
@@ -529,18 +458,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   let hours = padZero(date_ob.getHours());
   let minutes = padZero(date_ob.getMinutes());
   let seconds = padZero(date_ob.getSeconds());
-  const dates =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
+  const dates = year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
   const data = new Date();
   const timeIsoString = data.toISOString();
   const cartItems = req.body.cartItems;
@@ -635,8 +553,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   if (totalAllocatedAmount === 0) {
     return res.status(400).json({
       status: "error",
-      message:
-        "Total allocated amount is zero. Please review your allocations.",
+      message: "Total allocated amount is zero. Please review your allocations.",
     });
   }
 
@@ -686,28 +603,17 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 
   cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
+    createProductMovement(item.product, quantity, item.quantity, "out", "sales", dbName);
   });
 
   try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
+    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
     const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
 
     cartItems.map((item) => {
-      totalValue +=
-        item.buyingPrice * item.currency.exchangeRate * item.quantity;
+      totalValue += item.buyingPrice * item.currency.exchangeRate * item.quantity;
       totalCount += item.quantity;
     });
 
@@ -723,12 +629,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     console.log(err.message);
   }
 
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -835,10 +736,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   const orderModel = db.model("Orders", orderSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const customarsModel = db.model("Customar", customarSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
@@ -897,9 +795,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     await productModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption2, {});
 
-    const financialFunds = await FinancialFundsModel.findById(
-      order.onefinancialFunds._id
-    );
+    const financialFunds = await FinancialFundsModel.findById(order.onefinancialFunds._id);
     const customars = await customarsModel.findById(req.body.customerId);
     if (req.body.paid === "paid") {
       originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
@@ -941,33 +837,20 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
 
   originalOrder.cartItems.map(async (item) => {
     const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "in",
-      "Edit Sales",
-      dbName
-    );
+    createProductMovement(item.product, quantity, item.quantity, "in", "Edit Sales", dbName);
   });
 
   try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
+    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
     const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
 
     originalOrder.returnCartItem.forEach((returnItem) => {
-      const cartItem = originalOrder.cartItems.find(
-        (cartItem) => cartItem.qr === returnItem.qr
-      );
+      const cartItem = originalOrder.cartItems.find((cartItem) => cartItem.qr === returnItem.qr);
 
       if (cartItem) {
-        const itemValue =
-          returnItem.buyingPrice * returnItem.exchangeRate * cartItem.quantity;
+        const itemValue = returnItem.buyingPrice * returnItem.exchangeRate * cartItem.quantity;
         totalValue += itemValue;
         totalCount += cartItem.quantity;
       }
@@ -1013,15 +896,13 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("returnOrder", returnOrderSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const orderModelO = db.model("Orders", orderSchema);
 
   let movementCreated = false;
   const financialFundsId = req.body.onefinancialFunds;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
+  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
 
   const orderId = req.body.orderId;
   const orders = await orderModelO.findById(orderId);
@@ -1044,7 +925,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     const order = await orderModel.create(req.body);
     let bulkOption;
 
-    bulkOption = req.body.cartItems.map((item) => {
+    bulkOption = req.body.cartItems.map(async (item) => {
       const updateOperation = {
         updateOne: {
           filter: { _id: item._id },
@@ -1068,6 +949,34 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     await productModel.bulkWrite(bulkOption, {});
     await orderModel.bulkWrite(bulkOption, {});
 
+    req.body.cartItems.map(async (item) => {
+      console.log(item.refundLocattion);
+      if (item.refundLocattion !== "Damaged") {
+        try {
+          const existingRecord = await ActiveProductsValue.findOne();
+          let totalCount = 0;
+          let totalValue = 0;
+          orders.cartItems.forEach((returnItem, i) => {
+            const itemValue =
+              returnItem.buyingPrice * orders.exchangeRate * order.cartItems[i].quantity;
+            totalValue += itemValue;
+            totalCount += order.cartItems[i].quantity;
+          });
+
+          if (existingRecord) {
+            existingRecord.activeProductsCount += totalCount;
+            existingRecord.activeProductsValue += totalValue;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(totalCount, totalValue, dbName);
+          }
+        } catch (err) {
+          console.log("OrderServices 1001");
+          console.log(err.message);
+        }
+      }
+    });
+
     financialFunds.fundBalance -= req.body.priceExchangeRate;
     await financialFunds.save();
 
@@ -1086,9 +995,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     for (let i = 0; i < req.body.cartItems.length; i++) {
       const incomingItem = req.body.cartItems[i];
       //find qr for all arrays
-      const matchingIndex = orders.returnCartItem.findIndex(
-        (item) => item.qr === incomingItem.qr
-      );
+      const matchingIndex = orders.returnCartItem.findIndex((item) => item.qr === incomingItem.qr);
 
       if (matchingIndex !== -1) {
         const test1 = orders.returnCartItem[matchingIndex].quantity;
@@ -1107,41 +1014,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       }
     }
     await orderModelO.bulkWrite(test);
-    const history = createInvoiceHistory(
-      dbName,
-      orderId,
-      "return",
-      req.user._id
-    );
-
-    try {
-      const ActiveProductsValue = db.model(
-        "ActiveProductsValue",
-        ActiveProductsValueModel
-      );
-      const existingRecord = await ActiveProductsValue.findOne();
-      let totalCount = 0;
-      let totalValue = 0;
-      orders.cartItems.forEach((returnItem, i) => {
-        const itemValue =
-          returnItem.buyingPrice *
-          orders.exchangeRate *
-          order.cartItems[i].quantity;
-        totalValue += itemValue;
-        totalCount += order.cartItems[i].quantity;
-      });
-
-      if (existingRecord) {
-        existingRecord.activeProductsCount += totalCount;
-        existingRecord.activeProductsValue += totalValue;
-        await existingRecord.save();
-      } else {
-        await createActiveProductsValue(totalCount, totalValue, dbName);
-      }
-    } catch (err) {
-      console.log("OrderServices 1001");
-      console.log(err.message);
-    }
+    const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
 
     if (!movementCreated) {
       for (let i = 0; i < req.body.cartItems.length; i++) {
@@ -1191,8 +1064,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         };
 
         if (item.refundLocattion === "Damaged") {
-          updateOperation.updateOne.update.$inc.deactivateCount =
-            +item.quantity;
+          updateOperation.updateOne.update.$inc.deactivateCount = +item.quantity;
         } else {
           updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
         }
@@ -1202,6 +1074,35 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
       await productModel.bulkWrite(bulkOption, {});
       await orderModel.bulkWrite(bulkOption, {});
+
+      req.body.cartItems.map(async (item) => {
+        console.log(item.refundLocattion);
+        if (item.refundLocattion !== "Damaged") {
+          try {
+            const existingRecord = await ActiveProductsValue.findOne();
+            let totalCount = 0;
+            let totalValue = 0;
+            orders.cartItems.forEach((returnItem, i) => {
+              const itemValue =
+                returnItem.buyingPrice * orders.exchangeRate * order.cartItems[i].quantity;
+              totalValue += itemValue;
+              totalCount += order.cartItems[i].quantity;
+            });
+
+            if (existingRecord) {
+              existingRecord.activeProductsCount += totalCount;
+              existingRecord.activeProductsValue += totalValue;
+              await existingRecord.save();
+            } else {
+              await createActiveProductsValue(totalCount, totalValue, dbName);
+            }
+          } catch (err) {
+            console.log("OrderServices 1143");
+            console.log(err.message);
+          }
+        }
+      });
+
       financialFunds.fundBalance -= req.body.priceExchangeRate;
       await financialFunds.save();
 
@@ -1242,12 +1143,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         }
       }
       await orderModelO.bulkWrite(test);
-      const history = createInvoiceHistory(
-        dbName,
-        orderId,
-        "return",
-        req.user._id
-      );
+      const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
 
       if (!movementCreated) {
         for (let i = 0; i < req.body.cartItems.length; i++) {
@@ -1265,35 +1161,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           );
           movementCreated = true;
         }
-      }
-
-      try {
-        const ActiveProductsValue = db.model(
-          "ActiveProductsValue",
-          ActiveProductsValueModel
-        );
-        const existingRecord = await ActiveProductsValue.findOne();
-        let totalCount = 0;
-        let totalValue = 0;
-        orders.cartItems.forEach((returnItem, i) => {
-          const itemValue =
-            returnItem.buyingPrice *
-            orders.exchangeRate *
-            order.cartItems[i].quantity;
-          totalValue += itemValue;
-          totalCount += order.cartItems[i].quantity;
-        });
-
-        if (existingRecord) {
-          existingRecord.activeProductsCount += totalCount;
-          existingRecord.activeProductsValue += totalValue;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(totalCount, totalValue, dbName);
-        }
-      } catch (err) {
-        console.log("OrderServices 1143");
-        console.log(err.message);
       }
 
       res.status(200).json({
