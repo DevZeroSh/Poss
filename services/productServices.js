@@ -38,7 +38,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 
   if (req.file) {
     await sharp(req.file.buffer)
-      .resize(600, 600)
+      .resize(200, 200)
       .toFormat("png")
       .jpeg({ quality: 70 })
       .toFile(`uploads/product/${filename}`);
