@@ -44,6 +44,7 @@ const productMovementsRoute = require("./routes/productMovementRoute");
 const invoiceHistoryRoute = require("./routes/invoiceHistoryRoute");
 const paymentRout = require("./routes/paymentRoute");
 const financialLossRoute = require("./routes/financialLossRoute");
+const paymentHistoryRout = require("./routes/PaymentHistoryRout");
 
 dotenv.config({ path: "config.env" });
 
@@ -94,7 +95,7 @@ app.use("/api/productmovements", productMovementsRoute);
 app.use("/api/invoicehistory", invoiceHistoryRoute);
 app.use("/api/payment", paymentRout);
 app.use("/api/financialloss", financialLossRoute);
-
+app.use("/api/payment-history", paymentHistoryRout);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 

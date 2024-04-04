@@ -11,6 +11,8 @@ const emoloyeeShcema = require("../models/employeeModel");
 const TaxSchema = require("../models/taxModel");
 const currencySchema = require("../models/currencyModel");
 const orderSchema = require("../models/orderModel");
+const PaymentHistorySchema = require("../models/paymentHistoryModel");
+const { createPaymentHistory } = require("./paymentHistoryService");
 
 exports.createPayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -32,6 +34,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   db.model("Tax", TaxSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -50,11 +53,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   let paymentText = "";
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
+
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const totalMainCurrency = req.body.totalMainCurrency;
     suppler.TotalUnpaid -= totalMainCurrency;
     let remainingPayment = totalMainCurrency;
+    console.log("test");
 
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
@@ -102,6 +107,15 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await suppler.save();
     paymentText = "payment-sup";
     financialFunds.fundBalance -= req.body.total;
+    await createPaymentHistory(
+      "paid",
+      formattedDate,
+      totalMainCurrency,
+      req.body.totalMainCurrency,
+      "supplier",
+      req.body.supplierId,
+      dbName
+    );
   } else if (req.body.taker === "customer") {
     const customer = await customerModel.findById(req.body.customerId);
     const totalMainCurrency = req.body.totalMainCurrency;
@@ -159,9 +173,20 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     financialFunds.fundBalance += req.body.total;
     paymentText = "payment-cut";
     await customer.save();
+
+    await createPaymentHistory(
+      "paid",
+      formattedDate,
+      totalMainCurrency,
+      customer.TotalUnpaid,
+      "customer",
+      req.body.customerId,
+      dbName
+    );
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
+    const totalBefor = purchase.totalRemainderMainCurrency;
 
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -=
@@ -184,13 +209,21 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await purchase.save();
     await suppler.save();
     paymentText = "payment-sup";
+    await createPaymentHistory(
+      "paid",
+      formattedDate,
+      req.body.totalMainCurrency,
+      suppler.TotalUnpaid,
+      "supplier",
+      req.body.supplierId,
+      dbName
+    );
   } else if (req.body.taker === "sales") {
     const sales = await salesrModel.findById(req.body.salesId);
     const customer = await customerModel.findById(req.body.customerId);
 
     customer.TotalUnpaid -= req.body.totalMainCurrency;
     await customer.save();
-
     sales.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     sales.totalRemainder -=
       req.body.totalMainCurrency / req.body.invoiceExchangeRate;
@@ -208,6 +241,15 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
     financialFunds.fundBalance += req.body.total;
     await sales.save();
+    await createPaymentHistory(
+      "paid",
+      formattedDate,
+      req.body.totalMainCurrency,
+      customer.TotalUnpaid,
+      "customer",
+      req.body.customerId,
+      dbName
+    );
   }
 
   req.body.data = formattedDate;
