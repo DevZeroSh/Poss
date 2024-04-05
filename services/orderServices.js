@@ -194,7 +194,6 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       await createActiveProductsValue(totalCount, totalValue, dbName);
     }
   } catch (err) {
-    console.log("OrderServices 197");
     console.log(err.message);
   }
 
@@ -906,6 +905,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
   const orderId = req.body.orderId;
   const orders = await orderModelO.findById(orderId);
+  
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -925,7 +925,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     const order = await orderModel.create(req.body);
     let bulkOption;
 
-    bulkOption = req.body.cartItems.map(async (item) => {
+    bulkOption = req.body.cartItems.map((item) => {
       const updateOperation = {
         updateOne: {
           filter: { _id: item._id },
@@ -950,7 +950,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     await orderModel.bulkWrite(bulkOption, {});
 
     req.body.cartItems.map(async (item) => {
-      console.log(item.refundLocattion);
       if (item.refundLocattion !== "Damaged") {
         try {
           const existingRecord = await ActiveProductsValue.findOne();
@@ -1076,7 +1075,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       await orderModel.bulkWrite(bulkOption, {});
 
       req.body.cartItems.map(async (item) => {
-        console.log(item.refundLocattion);
         if (item.refundLocattion !== "Damaged") {
           try {
             const existingRecord = await ActiveProductsValue.findOne();
