@@ -334,20 +334,36 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     supplier.total += req.body.finalPricetest;
     supplier.TotalUnpaid += req.body.finalPricetest;
     // Loop through each item in the invoiceItems array
+
+
+    // Loop through each item in the invoiceItems array
     invoiceItems.forEach((newInvoiceItem) => {
       const existingProductIndex = supplier.products.findIndex(
-        (existingProduct) => existingProduct.product === newInvoiceItem.product
+        (existingProduct) => existingProduct.qr === newInvoiceItem.qr
       );
 
       if (existingProductIndex !== -1) {
-        // If the product already exists, increment its quantity
         supplier.products[existingProductIndex].quantity +=
           newInvoiceItem.quantity;
+        supplier.products[existingProductIndex].buyingprice =
+          newInvoiceItem.buyingpriceOringal;
+        supplier.products[existingProductIndex].exchangeRate =
+          newInvoiceItem.buyingprice;
+        supplier.products[existingProductIndex].taxRate =
+          newInvoiceItem.taxRate;
+        supplier.products[existingProductIndex].exchangeRate =
+          newInvoiceItem.currency;
       } else {
         // If the product doesn't exist, add it to the prodcuts array
         supplier.products.push({
           product: newInvoiceItem.product,
+          qr: newInvoiceItem.qr,
+          name: newInvoiceItem.name,
+          buyingprice: newInvoiceItem.buyingpriceOringal,
+          buyingpriceOriginal: newInvoiceItem.buyingpriceOringal,
           quantity: newInvoiceItem.quantity,
+          exchangeRate: newInvoiceItem.currency,
+          taxRate: newInvoiceItem.taxRate,
         });
       }
     });
@@ -849,18 +865,8 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const {
       quantity,
       qr,
-      serialNumber,
       buyingprice,
-      totalPrice,
       taxRate,
-      price,
-      taxPrice,
-      totalTax,
-      currency,
-      taxId,
-      buyingpriceOringal,
-      profitRatio,
-      product,
       exchangeRate,
     } = item;
 
