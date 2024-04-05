@@ -101,7 +101,9 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   const product = await mongooseQuery;
 
   const notices = [];
-  const nonArchivedProductCount = product.filter((item) => item.archives !== "true").length;
+  const nonArchivedProductCount = product.filter(
+    (item) => item.archives !== "true"
+  ).length;
 
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
@@ -133,7 +135,8 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     req.body.slug = slugify(req.body.name);
     const product = await productModel.create(req.body);
     const currency = await currencyModel.findById(product.currency);
-    const productValue = product.activeCount * product.buyingprice * currency.exchangeRate;
+    const productValue =
+      product.activeCount * product.buyingprice * currency.exchangeRate;
     createActiveProductsValue(product.activeCount, productValue, dbName)
       .then((savedData) => {})
       .catch((error) => {
@@ -221,9 +224,13 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
 
     const quantityChanged = existingProduct.quantity != req.body.quantity;
 
-    const product = await productModel.findByIdAndUpdate({ _id: id }, req.body, {
-      new: true,
-    });
+    const product = await productModel.findByIdAndUpdate(
+      { _id: id },
+      req.body,
+      {
+        new: true,
+      }
+    );
     if (!product) {
       return next(new ApiError(`No Product for this id ${req.params.id}`, 404));
     }
@@ -244,7 +251,10 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
       const quantityChanged = req.body.quantity !== req.body.quantityBefore;
       const priceChanged = req.body.buyingprice !== req.body.buyingpriceBefore;
       if (quantityChanged || priceChanged) {
-        const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+        const ActiveProductsValue = db.model(
+          "ActiveProductsValue",
+          ActiveProductsValueModel
+        );
 
         if (product.currency) {
           const existingRecord = await ActiveProductsValue.findOne();
@@ -254,13 +264,21 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
           if (existingRecord) {
             existingRecord.activeProductsCount += diffQuantity;
             existingRecord.activeProductsValue +=
-              diffQuantity * req.body.buyingprice * product.currency.exchangeRate +
+              diffQuantity *
+                req.body.buyingprice *
+                product.currency.exchangeRate +
               diffPrice * req.body.quantity * product.currency.exchangeRate;
             await existingRecord.save();
           } else {
             const productValue =
-              req.body.quantity * req.body.buyingprice * product.currency.exchangeRate;
-            await createActiveProductsValue(req.body.quantity, productValue, dbName);
+              req.body.quantity *
+              req.body.buyingprice *
+              product.currency.exchangeRate;
+            await createActiveProductsValue(
+              req.body.quantity,
+              productValue,
+              dbName
+            );
           }
         } else {
           console.error("Currency not found");
@@ -294,6 +312,10 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
 
   const productModel = db.model("Product", productSchema);
 
@@ -307,19 +329,17 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
     const existingRecord = await ActiveProductsValue.findOne();
-    const diffValue = product.buyingprice * product.currency.exchangeRate * newQuantity;
-    // Toggle the value of 'archives'
-    product.archives = product.archives === "true" ? "false" : "true";
 
+    const diffValue =
+      product.buyingprice * product.currency.exchangeRate * product.activeCount;
+    product.archives = product.archives === "true" ? "false" : "true";
     // Update only the 'archives' field
     const updatedProduct = await productModel.findByIdAndUpdate(
       id,
       { $set: { archives: product.archives } },
       { new: true }
     );
-
     const savedMovement = await createProductMovement(
       id,
       product.quantity,
@@ -327,15 +347,20 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
       product.archives === "true" ? "archive" : "unarchive",
       dbName
     );
-
     if (existingRecord) {
       existingRecord.activeProductsCount -= product.activeCount;
       existingRecord.activeProductsValue -= diffValue;
       await existingRecord.save();
     } else {
       const productValue =
-        product.activeCount * product.buyingprice * product.currency.exchangeRate;
-      await createActiveProductsValue(product.activeCount, productValue, dbName);
+        product.activeCount *
+        product.buyingprice *
+        product.currency.exchangeRate;
+      await createActiveProductsValue(
+        product.activeCount,
+        productValue,
+        dbName
+      );
     }
 
     res.status(200).json({
@@ -370,12 +395,16 @@ exports.addProduct = asyncHandler(async (req, res) => {
     let csvData;
 
     // Check the file type based on the file extension or content type
-    if (req.file.originalname.endsWith(".csv") || req.file.mimetype === "text/csv") {
+    if (
+      req.file.originalname.endsWith(".csv") ||
+      req.file.mimetype === "text/csv"
+    ) {
       // Use csvtojson to convert CSV buffer to JSON array
       csvData = await csvtojson().fromString(buffer.toString());
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
-      req.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      req.file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });
@@ -391,7 +420,9 @@ exports.addProduct = asyncHandler(async (req, res) => {
         item.taxPrice = finalPrice;
       } catch (error) {
         // Handle errors when finding currency
-        console.error(`Error finding currency for item with QR ${item.qr}: ${error.message}`);
+        console.error(
+          `Error finding currency for item with QR ${item.qr}: ${error.message}`
+        );
       }
     }
     // Process your data and save to MongoDB using your mongoose model
@@ -442,13 +473,19 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
   const product = await productModel.findById(id);
 
   if (!product) {
-    return res.status(404).json({ status: "false", message: "Product not found" });
+    return res
+      .status(404)
+      .json({ status: "false", message: "Product not found" });
   }
 
   try {
-    const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+    const ActiveProductsValue = db.model(
+      "ActiveProductsValue",
+      ActiveProductsValueModel
+    );
     const existingRecord = await ActiveProductsValue.findOne();
-    const diffValue = product.buyingprice * product.currency.exchangeRate * newQuantity;
+    const diffValue =
+      product.buyingprice * product.currency.exchangeRate * newQuantity;
 
     let type = "";
     let source = "";
@@ -468,7 +505,9 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
         await existingRecord.save();
       } else {
         const productValue =
-          product.activeCount * product.buyingprice * product.currency.exchangeRate;
+          product.activeCount *
+          product.buyingprice *
+          product.currency.exchangeRate;
         await createActiveProductsValue(product.quantity, productValue, dbName);
       }
     } else if (req.body.type === "active") {
@@ -493,6 +532,9 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
     await createProductMovement(id, newQuantity, type, source, dbName);
     res.status(200).json({ status: "true", message: "Product Deactivated" });
   } catch (error) {
-    return new ApiError(`Error activating/deactivating product: ${error.message}`, 500);
+    return new ApiError(
+      `Error activating/deactivating product: ${error.message}`,
+      500
+    );
   }
 });
