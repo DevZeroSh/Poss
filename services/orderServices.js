@@ -490,7 +490,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     couponCount: req.body.couponCount,
     couponType: req.body.couponType,
     type: req.body.type,
-
+    paid: "paid",
     counter: (await orderModel.countDocuments()) + 1,
     financialFunds: financialFunds
       .filter((allocation) => allocation.amount !== 0)

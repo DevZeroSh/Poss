@@ -44,7 +44,7 @@ const productMovementsRoute = require("./routes/productMovementRoute");
 const invoiceHistoryRoute = require("./routes/invoiceHistoryRoute");
 const paymentRout = require("./routes/paymentRoute");
 const financialLossRoute = require("./routes/financialLossRoute");
-const paymentHistoryRout = require("./routes/PaymentHistoryRout");
+const paymentHistoryRout = require("./routes/paymentHistoryRout");
 
 dotenv.config({ path: "config.env" });
 
