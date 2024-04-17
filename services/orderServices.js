@@ -104,6 +104,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     taxs: req.body.taxs,
     price: req.body.price,
     taxRate: req.body.taxRate,
+    customarId: req.body.customarId,
     customarName: req.body.customarName,
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
@@ -288,6 +289,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       taxs: req.body.taxs,
       price: req.body.price,
       taxRate: req.body.taxRate,
+      customarId: req.body.customarId,
       customarName: req.body.customarName,
       customarEmail: req.body.customarEmail,
       customarPhone: req.body.customarPhone,
@@ -330,6 +332,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       taxs: req.body.taxs,
       price: req.body.price,
       taxRate: req.body.taxRate,
+      customarId: req.body.customarId,
       customarName: req.body.customarName,
       customarEmail: req.body.customarEmail,
       customarPhone: req.body.customarPhone,
@@ -480,6 +483,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     taxs: req.body.taxs,
     price: req.body.price,
     taxRate: req.body.taxRate,
+    customarId: req.body.customarId,
     customarName: req.body.customarName,
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
@@ -525,7 +529,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     financialFund.fundBalance += amount / exchangeRate;
     await ReportsFinancialFundsModel.create({
       date: timeIsoString,
-      amount: amount,
+      amount: parseFloat(amount),
       order: order._id,
       type: "sales",
       financialFundId: fundId,
@@ -545,7 +549,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   // Update the order with the correct totalAllocatedAmount
   await orderModel.findByIdAndUpdate(order._id, {
     taxPrice: totalAllocatedAmount,
-    totalOrderPrice: totalAllocatedAmount,
+    totalOrderPrice: parseFloat(totalAllocatedAmount),
   });
 
   // Check if total allocated amount is zero
@@ -593,7 +597,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         fundId: allocation.fundId,
         allocatedAmount: allocation.amount,
       })),
-    amount: totalAllocatedAmount,
+    amount: parseFloat(totalAllocatedAmount),
     cartItems: cartItems,
     paymentType: "Multiple Funds",
     employee: req.user._id,
@@ -905,7 +909,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
   const orderId = req.body.orderId;
   const orders = await orderModelO.findById(orderId);
-  
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
