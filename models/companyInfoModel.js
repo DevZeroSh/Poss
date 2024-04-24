@@ -15,7 +15,7 @@ const companyIfnoSchema = new mongoose.Schema({
     default: `defaultLogo.png`,
   },
   pinCode: { type: Number, default: 1234 },
-});
+  color: [String]});
 
 const setImageURL = (doc) => {
   if (doc.companyLogo) {

@@ -24,13 +24,12 @@ const cartSchema = new mongoose.Schema(
     couponCount: String,
     couponType: String,
 
-    employee: {
+    customar: {
       type: mongoose.Schema.ObjectId,
-      ref: "Employee",
+      ref: "Customar",
     },
   },
   { timestamps: true }
 );
 
-const CartModel = mongoose.model("Cart", cartSchema);
-module.exports = CartModel;
+module.exports = cartSchema;

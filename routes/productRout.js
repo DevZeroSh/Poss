@@ -26,12 +26,11 @@ const authService = require("../services/authService");
 
 const productRout = express.Router();
 
-productRout.use(authService.protect);
 productRout.post("/add", uploads.single("file"), addProduct);
 
 productRout
   .route("/")
-  .get(authService.protect, getProduct)
+  .get(getProduct)
   .post(authService.protect, uploadProductImage, resizerImage, createProduct);
 
 productRout

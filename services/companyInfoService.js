@@ -318,7 +318,6 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
 
     const db = mongoose.connection.useDb(dbName);
     const CompanyInfnoModel = db.model("CompanyInfo", companyIfnoSchema);
-
     const companyInfo = await CompanyInfnoModel.findByIdAndUpdate(
       { _id: id },
       {
@@ -327,6 +326,7 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         companyTel: req.body.companyTel,
         companyLogo: req.body.companyLogo,
         pinCode: req.body.pinCode,
+        color:req.body.color
       },
       {
         new: true,

@@ -20,6 +20,8 @@ const { createProductMovement } = require("../utils/productMovement");
 const { createActiveProductsValue } = require("../utils/activeProductsValue");
 const ProductMovementSchema = require("../models/productMovementModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
+const reviewSchema = require("../models/ecommerce/reviewModel");
+const customarSchema = require("../models/customarModel");
 
 const multerFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
@@ -178,19 +180,12 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
+  db.model("Review", reviewSchema);
+  db.model("Customar", customarSchema);
   const { id } = req.params;
-  const product = await productModel
-    .findById(id)
-    .populate({ path: "category", select: "name _id" })
-    .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "variant  _id" })
-    .populate({ path: "unit", select: "name code  _id" })
-    .populate({ path: "tax", select: "tax  _id" })
-    .populate({ path: "label", select: "name  _id" })
-    .populate({
-      path: "currency",
-      select: "currencyCode currencyName exchangeRate is_primary  _id",
-    });
+  let query = productModel.findById(id).populate({ path: "reviews", select:"title rating" });
+
+  const product = await query;
 
   const movements = await movementsModel.find({ productId: id });
   res.status(200).json({ data: product, movements: movements });

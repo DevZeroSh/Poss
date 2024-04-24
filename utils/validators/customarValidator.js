@@ -1,6 +1,6 @@
 const { check, body, param } = require("express-validator");
 const validatorMiddleware = require("../../middlewares/validatorMiddleware");
-const Customar = require("../../models/customarModel");
+
 const mongoose = require("mongoose");
 const customarSchema = require("../../models/customarModel");
 //validator for create one customar

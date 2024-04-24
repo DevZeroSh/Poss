@@ -9,9 +9,17 @@ const { Search } = require("../utils/search");
 exports.createCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customarsModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
 
-  const customar = await customarsModel.create(req.body);
+  const nextCounter = (await customersModel.countDocuments()) + 1;
+  if (
+    req.body.email === null ||
+    req.body.email === undefined ||
+    req.body.email === ""
+  ) {
+    req.body.email = `email@email.email${nextCounter}`;
+  }
+  const customar = await customersModel.create(req.body);
   res
     .status(201)
     .json({ status: "true", message: "Customar Inserted", data: customar });
@@ -22,8 +30,8 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
 exports.getCustomars = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customarsModel = db.model("Customar", customarSchema);
-  const { totalPages, mongooseQuery } = await Search(customarsModel, req);
+  const customersModel = db.model("Customar", customarSchema);
+  const { totalPages, mongooseQuery } = await Search(customersModel, req);
   const customars = await mongooseQuery;
   res.status(200).json({
     status: "true",
@@ -39,8 +47,8 @@ exports.getCustomar = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customarsModel = db.model("Customar", customarSchema);
-  const customar = await customarsModel.findById(id);
+  const customersModel = db.model("Customar", customarSchema);
+  const customar = await customersModel.findById(id);
 
   if (!customar) {
     return next(new ApiError(`There is no customar with this id ${id}`, 404));
@@ -55,9 +63,9 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customarsModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
 
-  const customar = await customarsModel.findByIdAndUpdate(id, req.body, {
+  const customar = await customersModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
 
@@ -77,9 +85,9 @@ exports.deleteCustomar = asyncHandler(async (req, res, next) => {
 
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customarsModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
 
-  const customar = await customarsModel.findByIdAndUpdate(
+  const customar = await customersModel.findByIdAndUpdate(
     id,
     { archives: "true" },
     { new: true }

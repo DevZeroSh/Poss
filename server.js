@@ -23,7 +23,7 @@ const unitRout = require("./routes/unitRout");
 const taxRout = require("./routes/taxRout");
 const discountRoute = require("./routes/discountRoute");
 const paymentTypes = require("./routes/paymentTypesRoute");
-// const cartRout = require("./routes/cartRout");
+ const cartRout = require("./routes/ecommerce/cartRout");
 const LabelRout = require("./routes/labelsRout");
 const authRoute = require("./routes/authRoute");
 const currencyRoute = require("./routes/currencyRoute");
@@ -44,6 +44,11 @@ const invoiceHistoryRoute = require("./routes/invoiceHistoryRoute");
 const paymentRout = require("./routes/paymentRoute");
 const financialLossRoute = require("./routes/financialLossRoute");
 const paymentHistoryRout = require("./routes/PaymentHistoryRout");
+const wishlistRouter = require("./routes/ecommerce/wishlistRout");
+const addressRout = require("./routes/ecommerce/addressRout");
+const ecommerceOrderRouter = require("./routes/ecommerce/ecommerceOrderRout");
+const reviewRout = require("./routes/ecommerce/reviewRout");
+const fingerPrintRout = require("./routes/Hr/FingerPrintRout");
 
 dbContacion();
 // Middleware
@@ -71,7 +76,7 @@ app.use("/api/discount", discountRoute);
 app.use("/api/unit", unitRout);
 app.use("/api/tax", taxRout);
 app.use("/api/paymenttype", paymentTypes);
-// app.use("/api/cart", cartRout);
+
 app.use("/api/label", LabelRout);
 app.use("/api/auth", authRoute);
 app.use("/api/orders", OrderRout);
@@ -92,6 +97,15 @@ app.use("/api/payment", paymentRout);
 app.use("/api/financialloss", financialLossRoute);
 app.use("/api/payment-history", paymentHistoryRout);
 
+//Ecommerce routes
+app.use("/api/cart", cartRout);
+app.use("/api/wishlist", wishlistRouter);
+app.use('/api/addresses', addressRout);
+app.use("/api/ecommerce-order-router", ecommerceOrderRouter);
+app.use("/api/review", reviewRout);
+
+//Hr 
+app.use("/api/finger-print",fingerPrintRout)
 //Global error handling middleware for express
 app.use(globalError);
 

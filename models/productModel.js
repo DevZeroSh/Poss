@@ -111,9 +111,30 @@ const productSchema = new mongoose.Schema(
       ref: "Currency",
     },
     profitRatio: { type: Number, default: 5 },
+    ratingsAverage: {
+      type: Number,
+      min: [1, 'Rating must be above or equal 1.0'],
+      max: [5, 'Rating must be below or equal 5.0'],
+      
+    },
+    ratingsQuantity: {
+      type: Number,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    //to enable virtual populate
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+productSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "product",
+  localField: "_id",
+});
 
 const setImageURL = (doc) => {
   if (doc.image) {
@@ -141,7 +162,8 @@ productSchema.pre(/^find/, function (next) {
     .populate({
       path: "currency",
       select: "currencyCode currencyName exchangeRate is_primary  _id",
-    });
+    })
+ 
   next();
 });
 

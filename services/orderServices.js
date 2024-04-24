@@ -215,7 +215,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
-  const customarsModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
 
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
@@ -266,7 +266,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   let order;
   const data = new Date();
   const timeIsoString = data.toISOString();
-  const customars = await customarsModel.findById(req.body.customarId);
+  const customars = await customersModel.findById(req.body.customarId);
 
   if (paid === "paid") {
     const financialFunds = await FinancialFundsModel.findById(financialFundsId);
@@ -738,7 +738,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("Orders", orderSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
-  const customarsModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
   const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
@@ -799,7 +799,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     await productModel.bulkWrite(bulkOption2, {});
 
     const financialFunds = await FinancialFundsModel.findById(order.onefinancialFunds._id);
-    const customars = await customarsModel.findById(req.body.customerId);
+    const customars = await customersModel.findById(req.body.customerId);
     if (req.body.paid === "paid") {
       originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
 
@@ -988,7 +988,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       date: timeIsoString1,
       amount: req.body.totalOrderPrice,
       order: order._id,
-      type: "return",
+      type: "refund-sales",
       financialFundId: financialFundsId,
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: req.body.priceExchangeRate,

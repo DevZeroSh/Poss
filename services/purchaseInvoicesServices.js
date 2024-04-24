@@ -948,14 +948,16 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const data = new Date();
   const isaaaa = data.toISOString();
   const savedInvoice = await newPurchaseInvoice.save();
+
   if (paid !== "unpaid") {
+    console.log(priceExchangeRate*req.body.financailFundExchangeRate)
     financialFund.fundBalance += priceExchangeRate;
     await ReportsFinancialFundsModel.create({
       date: isaaaa,
       invoice: savedInvoice._id,
       amount: priceExchangeRate,
-      type: "return",
-      exchangeRate: priceExchangeRate,
+      type: "refund-purchase",
+      exchangeRate: priceExchangeRate*req.body.financailFundExchangeRate,
       finalPriceMainCurrency: finalPriceMainCurrency,
       financialFundId: invoiceFinancialFund,
       financialFundRest: financialFund.fundBalance,

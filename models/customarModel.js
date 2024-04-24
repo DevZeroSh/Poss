@@ -7,17 +7,15 @@ const customarSchema = new mongoose.Schema(
       require: [true, "Customar Name Required"],
       minlength: [3, "Too short customar name"],
       maxlength: [30, "Too long customar name"],
-      unique: [true, " Customar Name must be unique"],
+   
     },
     phoneNumber: {
       type: String,
-      // unique: true,
     },
     email: {
       type: String,
-      // unique: true,
-      // trim:true,
       lowercase: true,
+      unique: [true, " Customar Name must be unique"],
     },
     idNumber: {
       type: Number,
@@ -25,7 +23,7 @@ const customarSchema = new mongoose.Schema(
     },
     sex: {
       type: String,
-      enum: ["male", "female", ""],
+      enum: ["male", "female", "unknow"],
       default: "unknow",
     },
     birthData: Date,
@@ -34,7 +32,7 @@ const customarSchema = new mongoose.Schema(
     address: String,
     customarType: {
       type: String,
-      enum: ["individual", "corporate"],
+      enum: ["individual", "corporate", "ecommerce"],
       default: "individual",
     },
     taxNumber: Number,
@@ -46,6 +44,27 @@ const customarSchema = new mongoose.Schema(
     },
     total: { type: Number, default: 0 },
     TotalUnpaid: { type: Number, default: 0 },
+    password: String,
+    passwordResetCode: String,
+    passwordResetExpires: Date,
+    resetCodeVerified: Boolean,
+    passwordChangedAt: Date,
+    wishlist: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "Product",
+      },
+    ],
+    addresses: [
+      {
+        id: { type: mongoose.Schema.Types.ObjectId },
+        alias: String,
+        details: String,
+        phone: String,
+        city: String,
+        postalCode: String,
+      },
+    ],
   },
   { timestamps: true }
 );
