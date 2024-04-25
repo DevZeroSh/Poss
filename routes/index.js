@@ -1,0 +1,87 @@
+const fingerPrintRout = require("./Hr/FingerPrintRout");
+const paymentHistoryRout = require("./paymentHistoryRout");
+const brandRout = require("./brandRout");
+const categoryRout = require("./categoryRout");
+const companyInfoRoute = require("./companyInfoRoute");
+const currencyRoute = require("./currencyRoute");
+const discountRoute = require("./discountRoute");
+const addressRout = require("./ecommerce/addressRout");
+const cartRout = require("./ecommerce/cartRout");
+const ecommerceOrderRouter = require("./ecommerce/ecommerceOrderRout");
+const reviewRout = require("./ecommerce/reviewRout");
+const wishlistRouter = require("./ecommerce/wishlistRout");
+const employeeRoute = require("./employeeRoute");
+const expenseCategoriesRoute = require("./expensesCategoryRoute");
+const expensesRoute = require("./expensesRoute");
+const financialFundsRoute = require("./financialFundsRoute");
+const financialLossRoute = require("./financialLossRoute");
+const invoiceHistoryRoute = require("./invoiceHistoryRoute");
+const LabelRout = require("./labelsRout");
+const OrderRout = require("./orderRout");
+const paymentRout = require("./paymentRoute");
+const paymentTypes = require("./paymentTypesRoute");
+const pricingMethodRoute = require("./pricingMethodRoute");
+const productMovementsRoute = require("./productMovementRoute");
+const productRout = require("./productRout");
+const profitLossRoute = require("./profitLossRoute");
+const PurchaseInvoices = require("./purchaseInvoices");
+const reportsFinancialFundRoute = require("./reportsFinancialFundsRoute");
+const reportsSalesRoute = require("./reportsSalesRoute");
+const RoleDashboardRoute = require("./roleDashboardRoute");
+const RolePosRoute = require("./rolePosRoute");
+const StockReconciliationRoute = require("./stockReconciliationRoute");
+const taxRout = require("./taxRout");
+const unitRout = require("./unitRout");
+const variantRout = require("./variantRout");
+const authRoute = require("./authRoute");
+const customarRoute = require("./customarRoute");
+const supplierRoute = require("./supplierRoute");
+const roleRoute = require("./roleRoute");
+
+const mountRoutes = (app) => {
+  app.use("/api/product", productRout);
+  app.use("/api/brand", brandRout);
+  app.use("/api/category", categoryRout);
+  app.use("/api/variant", variantRout);
+  app.use("/api/customars", customarRoute);
+  app.use("/api/suppliers", supplierRoute);
+  app.use("/api/roledashboard", RoleDashboardRoute);
+  app.use("/api/rolepos", RolePosRoute);
+  app.use("/api/role", roleRoute);
+  app.use("/api/employee", employeeRoute);
+  app.use("/api/discount", discountRoute);
+  app.use("/api/unit", unitRout);
+  app.use("/api/tax", taxRout);
+  app.use("/api/paymenttype", paymentTypes);
+
+  app.use("/api/label", LabelRout);
+  app.use("/api/auth", authRoute);
+  app.use("/api/orders", OrderRout);
+  app.use("/api/currency", currencyRoute);
+  app.use("/api/financialfunds", financialFundsRoute);
+  app.use("/api/expenses", expensesRoute);
+  app.use("/api/productinvoices", PurchaseInvoices);
+  app.use("/api/expenseCategories", expenseCategoriesRoute);
+  app.use("/api/companyinfo", companyInfoRoute);
+  app.use("/api/pricingmethod", pricingMethodRoute);
+  app.use("/api/financialfundsreports", reportsFinancialFundRoute);
+  app.use("/api/salesreports", reportsSalesRoute);
+  app.use("/api/stockreconciliation", StockReconciliationRoute);
+  app.use("/api/profitloss", profitLossRoute);
+  app.use("/api/productmovements", productMovementsRoute);
+  app.use("/api/invoicehistory", invoiceHistoryRoute);
+  app.use("/api/payment", paymentRout);
+  app.use("/api/financialloss", financialLossRoute);
+  app.use("/api/payment-history", paymentHistoryRout);
+
+  //Ecommerce routes
+  app.use("/api/cart", cartRout);
+  app.use("/api/wishlist", wishlistRouter);
+  app.use("/api/addresses", addressRout);
+  app.use("/api/ecommerce-order-router", ecommerceOrderRouter);
+  app.use("/api/review", reviewRout);
+
+  //Hr
+  app.use("/api/finger-print", fingerPrintRout);
+};
+module.exports = mountRoutes;
