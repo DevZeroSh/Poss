@@ -335,7 +335,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     supplier.TotalUnpaid += req.body.finalPricetest;
     // Loop through each item in the invoiceItems array
 
-
     // Loop through each item in the invoiceItems array
     invoiceItems.forEach((newInvoiceItem) => {
       const existingProductIndex = supplier.products.findIndex(
@@ -862,14 +861,8 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const nextCounter = (await returnModel.countDocuments()) + 1;
 
   for (const item of invoices) {
-    const {
-      quantity,
-      qr,
-      buyingprice,
-      taxRate,
-      exchangeRate,
-    } = item;
-
+    const { quantity, qr, buyingprice, taxRate, exchangeRate } = item;
+    console.log(req.bodys);
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr: item.qr });
     if (!productDoc) {
@@ -950,14 +943,14 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const savedInvoice = await newPurchaseInvoice.save();
 
   if (paid !== "unpaid") {
-    console.log(priceExchangeRate*req.body.financailFundExchangeRate)
+    console.log(priceExchangeRate * req.body.financailFundExchangeRate);
     financialFund.fundBalance += priceExchangeRate;
     await ReportsFinancialFundsModel.create({
       date: isaaaa,
       invoice: savedInvoice._id,
       amount: priceExchangeRate,
       type: "refund-purchase",
-      exchangeRate: priceExchangeRate*req.body.financailFundExchangeRate,
+      exchangeRate: priceExchangeRate * req.body.financailFundExchangeRate,
       finalPriceMainCurrency: finalPriceMainCurrency,
       financialFundId: invoiceFinancialFund,
       financialFundRest: financialFund.fundBalance,

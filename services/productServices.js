@@ -110,7 +110,12 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   product.forEach((element) => {
     if (element.alarm >= element.quantity) {
       if (element.archives !== "true") {
-        notices.push(` ${element.qr} is low on stock.`);
+        notices.push({
+          qr: element.qr,
+          name: element.name,
+          id: element._id,
+          message: `${element.qr} is low on stock.`,
+        });
       }
     }
   });
@@ -183,7 +188,9 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   db.model("Customar", customarSchema);
   const { id } = req.params;
-  let query = productModel.findById(id).populate({ path: "reviews", select:"title rating" });
+  let query = productModel
+    .findById(id)
+    .populate({ path: "reviews", select: "title rating" });
 
   const product = await query;
 

@@ -16,6 +16,7 @@ exports.Search = expressAsyncHandler(async (model, req) => {
             { supplierName: { $regex: req.query.keyword, $options: "i" } },
             { counter: { $regex: req.query.keyword, $options: "i" } },
             { discountName: { $regex: req.query.keyword, $options: "i" } },
+            { phoneNumber: { $regex: req.query.keyword, $options: "i" } },
           ],
         },
         { archives: { $ne: true } },
