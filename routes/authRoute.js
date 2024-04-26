@@ -1,5 +1,7 @@
 const express = require("express");
+const multer = require("multer");
 
+const upload = multer();
 const {
   login,
   signup,
@@ -12,8 +14,8 @@ const { checkUserSubsicreber } = require("../middlewares/checkUserSubsicreber");
 
 const router = express.Router();
 
-router.post("/login", checkUserSubsicreber, login);
-router.post("/ecommerce-login",  EcommerceLogin);
+router.post("/login", upload.none(), checkUserSubsicreber, login);
+router.post("/ecommerce-login", EcommerceLogin);
 router.post("/signup", signup);
 
 router.post("/forgotPasswords", forgotPassword);
