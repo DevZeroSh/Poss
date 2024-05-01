@@ -27,7 +27,6 @@ if (process.env.NODE_ENV === "development") {
 }
 // Mount Routes
 mountRoutes(app);
-
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 

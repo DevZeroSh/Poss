@@ -64,35 +64,14 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "This feature will allow you to add and modify Roles",
       },
       {
-        title: "Dashboard",
-        desc: "Dashboard",
-        info: "This feature gives you access to the dashboard and modify your personal profile",
-      },
-      {
         title: "new Definitions",
         desc: "Definitions",
         info: "This feature will allow you to add and modify definitions",
       },
       {
-        title: "delete Definitions",
-        desc: "Definitions",
-        info: "This feature allows you to delete Definitions",
-      },
-      {
-        title: "edit Definitions",
-        desc: "Definitions",
-        info: "This feature allows you to modify and change the currency",
-      },
-
-      {
         title: "currency",
         desc: "Currency",
         info: "This feature allows you to add and modify the currency",
-      },
-      {
-        title: "delete currency",
-        desc: "Currency",
-        info: "This feature allows you to delete currency",
       },
       {
         title: "customer",
@@ -105,19 +84,29 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "This feature allows you to delete customer",
       },
       {
-        title: "discount",
-        desc: "Discount",
-        info: "This feature allows you to add and modify discount",
+        title: "delete currency",
+        desc: "currency",
+        info: "This feature allows you to delete currency",
       },
       {
-        title: "delete discount",
+        title: "delete Definitions",
+        desc: "Definitions",
+        info: "This feature allows you to delete Definitions",
+      },
+      {
+        title: "delete Definitions",
+        desc: "Definitions",
+        info: "This feature allows you to delete Definitions",
+      },
+      {
+        title: "discount",
         desc: "Discount",
         info: "This feature allows you to delete discount",
       },
       {
         title: "expense category",
         desc: "Expense Category",
-        info: "his feature allows you to add and modify Expense Category",
+        info: "This feature allows you to add and modify Expense Category",
       },
       {
         title: "delete expense category",
@@ -145,23 +134,13 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "This feature allows you to transfer between funds",
       },
       {
-        title: "refund Order",
-        desc: "Order",
-        info: "This feature allows you to create sales return invoices",
-      },
-      {
-        title: "Order",
-        desc: "Order",
-        info: "This feature allows you to create and modify invoices",
-      },
-      {
-        title: "payment",
-        desc: "Payment",
+        title: "payment Type",
+        desc: "Payment Type",
         info: "This feature allows you to create payment methods",
       },
       {
-        title: "delete payment",
-        desc: "Payment",
+        title: "delete payment Type",
+        desc: "Payment Type",
         info: "This feature allows you to delete payment methods",
       },
       {
@@ -184,11 +163,10 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         desc: "Product",
         info: "This feature allows you to delete products",
       },
-
       {
-        title: "Purchase Invoice",
-        desc: "Purchase Invoice",
-        info: "This feature allows you to add and modify purchase invoices",
+        title: "ProfitLoss",
+        desc: "ProfitLoss",
+        info: "This feature allows you to add, modify, and display the profit and loss report",
       },
       {
         title: "Financial Funds Reports",
@@ -196,8 +174,13 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "This feature allows you to view fund reports",
       },
       {
+        title: "supllier",
+        desc: "Supplier",
+        info: "This feature allows you to add and modify suppliers",
+      },
+      {
         title: "delete supllier",
-        desc: "Supllier",
+        desc: "Supplier",
         info: "This feature allows you to delete suppliers",
       },
       {
@@ -223,7 +206,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       {
         title: "Sales Invoices",
         desc: "Invoices",
-        info: "This feature will allow you to add and modify definitions",
+        info: "This feature will allow you to delete the employee",
       },
       {
         title: "Refund sales Invoices",
@@ -249,6 +232,31 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         title: "approve reconciliation",
         desc: "Stok",
         info: "This feature will allow you to confirm inventory",
+      },
+      {
+        title: "Dashboard",
+        desc: "Dashboard",
+        info: "This feature gives you access to the dashboard and modify your personal profile",
+      },
+      {
+        title: "Add Payment",
+        desc: "Payment",
+        info: "This feature will allow you to add and modify payment",
+      },
+      {
+        title: "Show Payment",
+        desc: "Payment",
+        info: "This feature will allow you to Show payment",
+      },
+      {
+        title: "Dashboard Reports",
+        desc: "Dashboard",
+        info: "This will give you full permissions on the Dashboard page only",
+      },
+      {
+        title: "FingerPrintReports",
+        desc: "HR",
+        info: "This will give you full permissions on the FingerPrint Reports page only",
       },
     ];
 
@@ -326,7 +334,7 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         companyTel: req.body.companyTel,
         companyLogo: req.body.companyLogo,
         pinCode: req.body.pinCode,
-        color:req.body.color
+        color: req.body.color,
       },
       {
         new: true,

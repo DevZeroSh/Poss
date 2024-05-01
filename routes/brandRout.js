@@ -16,13 +16,13 @@ const {
 const authService = require("../services/authService");
 
 const brandRout = express.Router();
-brandRout.use(authService.protect);
 
-brandRout.route("/").get(getBrands).post(createBrandValidator, createBrand);
+
+brandRout.route("/").get(getBrands).post(authService.protect,createBrandValidator, createBrand);
 brandRout
   .route("/:id")
   .get(getBrandValidator, getBrand)
-  .put(updataBrandValidator, updataBrand)
-  .delete(deleteBrandValidator, deleteBrand);
+  .put(authService.protect,updataBrandValidator, updataBrand)
+  .delete(authService.protect,deleteBrandValidator, deleteBrand);
 
 module.exports = brandRout;

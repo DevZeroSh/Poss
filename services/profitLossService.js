@@ -82,6 +82,8 @@ exports.updateProfitLossReportByYearMonth = asyncHandler(async (req, res, next) 
 });
 
 exports.createInitialProfitLossReports = async () => {
+  console.log("test")
+
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const ProfitLoss = db.model("ProfitLossReports", ProfitLossReportsSchema);
@@ -90,6 +92,8 @@ exports.createInitialProfitLossReports = async () => {
   const month = currentDate.getMonth() + 1;
   const year = currentDate.getFullYear();
 
+
+ 
   // Check if a report already exists for the current month
   const existingReport = await ProfitLoss.findOne({ month, year });
 

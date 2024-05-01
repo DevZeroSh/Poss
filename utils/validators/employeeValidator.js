@@ -7,14 +7,7 @@ const ApiError = require("../apiError");
 
 //Validator for adding an employee
 exports.createEmployeeValidator = [
-    check("name")
-        .notEmpty()
-        .withMessage("The name can not be empty")
-        .isLength({ min: 3 })
-        .withMessage("The Name is too short")
-        .isLength({ max: 30 })
-        .withMessage("The name is too long"),
-    check("email")
+     check("email")
         .notEmpty()
         .withMessage("The email can not be empty")
         .isEmail()

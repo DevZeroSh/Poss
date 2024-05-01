@@ -9,9 +9,9 @@ const {
 
 const authService = require("../services/authService");
 const taxRout = express.Router();
-taxRout.use(authService.protect);
 
-taxRout.route("/").get(getTax).post(createTax);
-taxRout.route("/:id").get(getOneTax).put(updataTax).delete(deleteTax);
+
+taxRout.route("/").get(getTax).post(authService.protect,createTax);
+taxRout.route("/:id").get(getOneTax).put(authService.protect,updataTax).delete(authService.protect,deleteTax);
 
 module.exports = taxRout;

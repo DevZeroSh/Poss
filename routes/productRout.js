@@ -39,7 +39,7 @@ productRout
 
 productRout
   .route("/:id")
-  .get(authService.protect, getProdictValidator, getOneProduct)
+  .get(getOneProduct)
   .put(
     authService.protect,
     uploadProductImage,

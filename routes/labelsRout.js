@@ -9,15 +9,14 @@ const {
 
 const authService = require("../services/authService");
 const LabelRout = express.Router();
-LabelRout.use(authService.protect);
 // authService.allowedTo("label"),
   LabelRout.route("/")
     .get(getLabels)
-    .post(createLabel);
+    .post(authService.protect,createLabel);
 
 LabelRout.route("/:id")
   .get(getLabel)
-  .put(updataLabel)
-  .delete(deleteLabel);
+  .put(authService.protect,updataLabel)
+  .delete(authService.protect,deleteLabel);
 
 module.exports = LabelRout;

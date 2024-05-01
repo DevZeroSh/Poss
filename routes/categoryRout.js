@@ -15,16 +15,15 @@ const {
 
 const authService = require("../services/authService");
 const categoryRout = express.Router();
-categoryRout.use(authService.protect);
 
 categoryRout
   .route("/")
   .get(getCategories)
-  .post(createCategoryVlaidator, createCategory);
+  .post(authService.protect,createCategoryVlaidator, createCategory);
 
 categoryRout
   .route("/:id")
   .get(getCategoryValidator, getCategory)
-  .put(updateCategoryValidator, updateCategory)
-  .delete(deleteCategoryValidator, deleteCategory);
+  .put(authService.protect,updateCategoryValidator, updateCategory)
+  .delete(authService.protect,deleteCategoryValidator, deleteCategory);
 module.exports = categoryRout;

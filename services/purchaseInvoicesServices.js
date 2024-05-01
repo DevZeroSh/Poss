@@ -405,7 +405,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           await createActiveProductsValue(totalCount, totalValue, dbName);
         }
       } catch (err) {
-        console.log("purchaseInvoicesServices 343");
         console.log(err.message);
       }
 
@@ -862,15 +861,15 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   for (const item of invoices) {
     const { quantity, qr, buyingprice, taxRate, exchangeRate } = item;
-    console.log(req.bodys);
+
     // Find the product based on the  QR code
     const productDoc = await productModel.findOne({ qr: item.qr });
     if (!productDoc) {
       console.log(`Product not found for QR code: ${qr}`);
       continue;
     }
-    if (productDoc.quantity < quantity) {
-      console.log(`Insufficient quantity for product with QR code: ${qr}`);
+    if (productDoc.quantity <= quantity) {
+      console.log(`Insufficient quantity for product with QR test code: ${qr}`);
       return res.status(400).json({
         status: "error",
         message: `Insufficient quantity for product with QR code: ${qr}`,

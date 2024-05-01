@@ -113,9 +113,6 @@ const productSchema = new mongoose.Schema(
     profitRatio: { type: Number, default: 5 },
     ratingsAverage: {
       type: Number,
-      min: [1, 'Rating must be above or equal 1.0'],
-      max: [5, 'Rating must be below or equal 5.0'],
-      
     },
     ratingsQuantity: {
       type: Number,
@@ -162,8 +159,8 @@ productSchema.pre(/^find/, function (next) {
     .populate({
       path: "currency",
       select: "currencyCode currencyName exchangeRate is_primary  _id",
-    })
- 
+    });
+
   next();
 });
 

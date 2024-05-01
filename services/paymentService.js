@@ -254,7 +254,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
   req.body.data = formattedDate;
   await financialFunds.save();
-  paymentText = "payment-cut";
   const payment = await paymentModel.create(req.body);
 
   await ReportsFinancialFundsModel.create({

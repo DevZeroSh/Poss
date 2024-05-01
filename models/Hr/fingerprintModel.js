@@ -7,7 +7,7 @@ const fingerPrintSchema = new mongoose.Schema(
     email: String,
     Time: String,
     date: String,
-    type: { type: String, enum: ["Check-in", "Check-out"] },
+    type: { type: String, enum: ["Check-in", "Check-out"], required: true },
   },
   { timestamps: true }
 );
