@@ -192,20 +192,26 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     paymentType: "Single Fund",
     employee: req.user._id,
   });
-
-  cartItems.map(async (item) => {
-    const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
-  });
-
   try {
+    // Process cartItems
+    await Promise.all(
+      cartItems.map(async (item) => {
+        const { quantity, type } = await productModel.findOne({ qr: item.qr });
+        if (type !== "Service") {
+          // If the product is not a service, create product movement
+          createProductMovement(
+            item.product,
+            quantity,
+            item.quantity,
+            "out",
+            "sales",
+            dbName
+          );
+        }
+      })
+    );
+
+    // Update ActiveProductsValue
     const ActiveProductsValue = db.model(
       "ActiveProductsValue",
       ActiveProductsValueModel
@@ -213,16 +219,25 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
-    cartItems.map((item) => {
-      totalValue += item.buyingPrice * item.quantity;
-      totalCount += item.quantity;
-    });
+
+    await Promise.all(
+      cartItems.map(async (item) => {
+        const { type } = await productModel.findOne({ qr: item.qr });
+        // Calculate total value and count excluding service products
+        if (type !== "Service") {
+          totalValue += item.buyingPrice * item.quantity;
+          totalCount += item.quantity;
+        }
+      })
+    );
 
     if (existingRecord) {
+      // Update existing record
       existingRecord.activeProductsCount -= totalCount;
       existingRecord.activeProductsValue -= totalValue;
       await existingRecord.save();
     } else {
+      // Create new record if none exists
       await createActiveProductsValue(totalCount, totalValue, dbName);
     }
   } catch (err) {
@@ -687,15 +702,17 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   });
 
   cartItems.map(async (item) => {
-    const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
+    const { quantity, type } = await productModel.findOne({ qr: item.qr });
+    if (type != "Service") {
+      createProductMovement(
+        item.product,
+        quantity,
+        item.quantity,
+        "out",
+        "sales",
+        dbName
+      );
+    }
   });
 
   try {
@@ -707,11 +724,18 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     let totalCount = 0;
     let totalValue = 0;
 
-    cartItems.map((item) => {
-      totalValue +=
-        item.buyingPrice * item.currency.exchangeRate * item.quantity;
-      totalCount += item.quantity;
-    });
+    // Use Promise.all with map to execute asynchronous operations for each item
+    await Promise.all(
+      cartItems.map(async (item) => {
+        const { type } = await productModel.findOne({ qr: item.qr });
+        // Check if the product type is not "Service"
+        if (type !== "Service") {
+          totalValue +=
+            item.buyingPrice * item.currency.exchangeRate * item.quantity;
+          totalCount += item.quantity;
+        }
+      })
+    );
 
     if (existingRecord) {
       existingRecord.activeProductsCount -= totalCount;
@@ -941,7 +965,6 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
 
     await customars.save();
     await order.save();
-    console.log("test");
   }
 
   originalOrder.cartItems.map(async (item) => {
@@ -971,10 +994,19 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       );
 
       if (cartItem) {
+        const oldQty = cartItem.quantity;
+        const newQty = returnItem.quantity;
+
+        // Calculate the difference between old and new quantities
+        const qtyDifference = newQty - oldQty;
+
+        // Calculate the item value based on the difference
         const itemValue =
-          returnItem.buyingPrice * returnItem.exchangeRate * cartItem.quantity;
+          returnItem.buyingPrice * returnItem.exchangeRate * qtyDifference;
+
+        // Update total value and total count
         totalValue += itemValue;
-        totalCount += cartItem.quantity;
+        totalCount += qtyDifference;
       }
     });
 
