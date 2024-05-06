@@ -22,10 +22,12 @@ const createProductMovement = async (
             source,
         });
         const savedMovement = await newMovement.save();
+        
         return savedMovement;
     } catch (error) {
         return new ApiError(`Error creating product: ${error.message}`, 500);
     }
+    
 };
 
 module.exports = { createProductMovement };

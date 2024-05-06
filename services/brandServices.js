@@ -3,7 +3,39 @@ const brandSchema = require("../models/brandModel");
 const ApiError = require("../utils/apiError");
 const { default: slugify } = require("slugify");
 const mongoose = require("mongoose");
+const multer = require("multer");
+const multerStorage = multer.memoryStorage();
+const { v4: uuidv4 } = require("uuid");
+const sharp = require("sharp");
 
+const multerFilter = function (req, file, cb) {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new ApiError("Only images Allowed", 400), false);
+  }
+};
+
+const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+
+exports.uploadBrandImage = upload.single("image");
+
+exports.resizerBrandImage = asyncHandler(async (req, res, next) => {
+  const filename = `brand-${uuidv4()}-${Date.now()}.jpeg`;
+
+  if (req.file) {
+    await sharp(req.file.buffer)
+      .resize(200, 200)
+      .toFormat("png")
+      .jpeg({ quality: 70 })
+      .toFile(`uploads/brand/${filename}`);
+
+    //save image into our db
+    req.body.image = filename;
+  }
+
+  next();
+});
 // Get list of Brands
 exports.getBrands = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;

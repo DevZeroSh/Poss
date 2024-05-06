@@ -19,7 +19,10 @@ const orderSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
-    onefinancialFunds: String,
+    onefinancialFunds: {
+      type: mongoose.Schema.ObjectId,
+      ref: "FinancialFunds",
+    },
 
     exchangeRate: Number,
 

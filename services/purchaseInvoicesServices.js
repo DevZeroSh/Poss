@@ -527,7 +527,6 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
       finalPriceExchangeRate,
       finalPriceMainCurrency,
     } = req.body;
-
     // Find the financial fund
     const existingFinancialFund = await FinancialFundsModel.findById(
       financialFund
@@ -546,7 +545,8 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     const supplierId = await supplier.findById(req.body.suppliers);
     // Update the financial fund balance
     existingFinancialFund.fundBalance -= finalPriceExchangeRate;
-    supplierId.TotalUnpaid -= finalPriceMainCurrency;
+    supplierId.TotalUnpaid += req.body.beforTotal;
+    supplierId.total += req.body.beforTotal;
     await supplierId.save();
 
     await existingFinancialFund.save();
@@ -566,8 +566,12 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         filter: { _id: item.product },
         update: {
           $inc: {
-            quantity: item.quantity - item.beforQuantity,
-            activeCount: item.quantity - item.beforQuantity,
+            quantity: item.beforQuantity
+              ? +item.quantity - item.beforQuantity
+              : +item.quantity,
+            activeCount: item.beforQuantity
+              ? +item.quantity - item.beforQuantity
+              : +item.quantity,
           },
           $set: {
             serialNumber: item.serialNumber,
@@ -679,8 +683,11 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     supplierId.TotalUnpaid += req.body.finalPriceAfter;
     supplierId.total -= req.body.finalPriceBefor;
     supplierId.total += req.body.finalPriceAfter;
-
+    existingInvoice.totalRemainderMainCurrency -=
+      req.body.finalPriceMainCurrency;
+    existingInvoice.totalRemainder -= req.body.finalPrice;
     await supplierId.save();
+    await existingInvoice.save();
     // Update the purchase invoice
     const updatedInvoice = await PurchaseInvoicesModel.findByIdAndUpdate(
       id,
@@ -696,8 +703,12 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         filter: { _id: item.product },
         update: {
           $inc: {
-            quantity: +item.quantity - item.beforQuantity,
-            activeCount: +item.quantity - item.beforQuantity,
+            quantity: item.beforQuantity
+              ? +item.quantity - item.beforQuantity
+              : +item.quantity,
+            activeCount: item.beforQuantity
+              ? +item.quantity - item.beforQuantity
+              : +item.quantity,
           },
           $set: {
             serialNumber: item.serialNumber,
@@ -709,7 +720,6 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         },
       },
     }));
-
     try {
       await productModel.bulkWrite(bulkOption, {});
       req.body.invoices.map(async (item) => {
@@ -720,7 +730,8 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
           item.quantity,
           "in",
           "updatepurchase",
-          dbName
+          dbName,
+          next
         );
       });
 
@@ -763,7 +774,6 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         console.log("purchaseInvoicesServices 638");
         console.log(err.message);
       }
-
       const history = createInvoiceHistory(
         dbName,
         updatedInvoice._id,

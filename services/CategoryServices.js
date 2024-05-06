@@ -2,6 +2,40 @@ const asyncHandler = require("express-async-handler");
 const categorySchema = require("../models/CategoryModel");
 const ApiError = require("../utils/apiError");
 const mongoose = require("mongoose");
+const multer = require("multer");
+const multerStorage = multer.memoryStorage();
+const { v4: uuidv4 } = require("uuid");
+const sharp = require("sharp");
+
+
+const multerFilter = function (req, file, cb) {
+  if (file.mimetype.startsWith("image")) {
+    cb(null, true);
+  } else {
+    cb(new ApiError("Only images Allowed", 400), false);
+  }
+};
+
+const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+
+exports.uploadCategoryImage = upload.single("image");
+
+exports.resizerCategoryImage = asyncHandler(async (req, res, next) => {
+  const filename = `category-${uuidv4()}-${Date.now()}.jpeg`;
+
+  if (req.file) {
+    await sharp(req.file.buffer)
+      .resize(200, 200)
+      .toFormat("png")
+      .jpeg({ quality: 70 })
+      .toFile(`uploads/category/${filename}`);
+
+    //save image into our db
+    req.body.image = filename;
+  }
+
+  next();
+});
 
 //@desc Get List category
 //@route Get /api/category/

@@ -768,7 +768,7 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
-  const pageSize = 20;
+  const pageSize = 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   // Search for product or qr
@@ -860,6 +860,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
+
   const order = await orderModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
@@ -868,9 +869,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No Order for this id ${req.params.id}`, 404));
   }
   const originalOrder = await orderModel.findById(id);
-  const originalfinancialFunds = await FinancialFundsModel.findById(
-    originalOrder.onefinancialFunds._id
-  );
+
   if (order) {
     const bulkOption = req.body.cartItems.map((item) => ({
       updateOne: {
@@ -899,11 +898,14 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     await productModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption2, {});
 
-    const financialFunds = await FinancialFundsModel.findById(
-      order.onefinancialFunds._id
-    );
     const customars = await customersModel.findById(req.body.customerId);
     if (req.body.paid === "paid") {
+      const originalfinancialFunds = await FinancialFundsModel.findById(
+        originalOrder.onefinancialFunds._id
+      );
+      const financialFunds = await FinancialFundsModel.findById(
+        order.onefinancialFunds._id
+      );
       originalfinancialFunds.fundBalance -= originalOrder.totalOrderPrice;
 
       financialFunds.fundBalance += order.totalOrderPrice;
@@ -919,8 +921,6 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       });
 
       await financialFunds.save();
-      customars.TotalUnpaid -= originalOrder.totalOrderPrice;
-      await customars.save();
 
       // Create sales report
       await ReportsSalesModel.create({
@@ -932,13 +932,16 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         paymentType: "Edit Order",
         employee: req.user._id,
       });
-    } else {
-      customars.total -= originalOrder.totalOrderPrice;
-      customars.TotalUnpaid -= originalOrder.totalOrderPrice;
-      customars.total += order.totalOrderPrice;
-      customars.TotalUnpaid += order.totalOrderPrice;
-      await customars.save();
     }
+    customars.total -= originalOrder.totalOrderPrice;
+    customars.TotalUnpaid -= originalOrder.totalOrderPrice;
+
+    order.totalRemainderMainCurrency -= originalOrder.totalOrderPrice;
+    order.totalRemainder -= originalOrder.totalOrderPrice;
+
+    await customars.save();
+    await order.save();
+    console.log("test");
   }
 
   originalOrder.cartItems.map(async (item) => {

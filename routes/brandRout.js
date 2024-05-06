@@ -5,6 +5,8 @@ const {
   updataBrand,
   deleteBrand,
   getBrand,
+  resizerBrandImage,
+  uploadBrandImage,
 } = require("../services/brandServices");
 const {
   createBrandValidator,
@@ -17,12 +19,26 @@ const authService = require("../services/authService");
 
 const brandRout = express.Router();
 
-
-brandRout.route("/").get(getBrands).post(authService.protect,createBrandValidator, createBrand);
+brandRout
+  .route("/")
+  .get(getBrands)
+  .post(
+    authService.protect,
+    uploadBrandImage,
+    resizerBrandImage,
+    createBrandValidator,
+    createBrand
+  );
 brandRout
   .route("/:id")
   .get(getBrandValidator, getBrand)
-  .put(authService.protect,updataBrandValidator, updataBrand)
-  .delete(authService.protect,deleteBrandValidator, deleteBrand);
+  .put(
+    authService.protect,
+    uploadBrandImage,
+    resizerBrandImage,
+    updataBrandValidator,
+    updataBrand
+  )
+  .delete(authService.protect, deleteBrandValidator, deleteBrand);
 
 module.exports = brandRout;

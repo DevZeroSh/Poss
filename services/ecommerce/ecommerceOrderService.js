@@ -9,7 +9,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
   const productModel = db.model("Product", productSchema);
-  const orderModel = db.model("EcommerceOrder",ecommerceOrderSchema);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   // app settings
   const taxPrice = 0;
   const shippingPrice = 0;
@@ -30,26 +30,28 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const totalOrderPrice = cartPrice + taxPrice + shippingPrice;
 
   // // 3) Create order with default paymentMethodType cash
-  // const order = await Order.create({
-  //   user: req.user._id,
-  //   cartItems: cart.cartItems,
-  //   shippingAddress: req.body.shippingAddress,
-  //   totalOrderPrice,
-  // });
+  const order = await orderModel.create({
+    customar: req.user._id,
+    cartItems: cart.cartItems,
+    shippingAddress: req.body.shippingAddress,
+    totalOrderPrice,
+  });
 
   // // 4) After creating order, decrement product quantity, increment product sold
-  // if (order) {
-  //   const bulkOption = cart.cartItems.map((item) => ({
-  //     updateOne: {
-  //       filter: { _id: item.product },
-  //       update: { $inc: { quantity: -item.quantity, sold: +item.quantity } },
-  //     },
-  //   }));
-  //   await productModel.bulkWrite(bulkOption, {});
+  if (order) {
+    const bulkOption = cart.cartItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item.product },
+        update: {
+          $inc: { activeCount: -item.quantity, sold: -item.quantity },
+        },
+      },
+    }));
+    await productModel.bulkWrite(bulkOption, {});
 
-  // 5) Clear cart depend on cartId
-  await CartModel.findByIdAndDelete(req.params.cartId);
-  // }
+    // 5) Clear cart depend on cartId
+    await CartModel.findByIdAndDelete(req.params.cartId);
+  }
 
   res.status(201).json({ status: "success", data: order });
 });
@@ -58,7 +60,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
-console.log(req.user.id)
+
   const cart = await CartModel.find({ customar: req.user.id });
   res.status(200).json({ status: "success", data: cart });
 });

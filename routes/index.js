@@ -37,6 +37,8 @@ const authRoute = require("./authRoute");
 const customarRoute = require("./customarRoute");
 const supplierRoute = require("./supplierRoute");
 const roleRoute = require("./roleRoute");
+const sliderRout = require("./ecommerce/sliderRout");
+const pagesRout = require("./ecommerce/pagesRout");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -80,6 +82,8 @@ const mountRoutes = (app) => {
   app.use("/api/addresses", addressRout);
   app.use("/api/ecommerce-order-router", ecommerceOrderRouter);
   app.use("/api/review", reviewRout);
+  app.use("/api/slider", sliderRout);
+  app.use("/api/page", pagesRout);
 
   //Hr
   app.use("/api/finger-print", fingerPrintRout);

@@ -16,6 +16,10 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: "Normal",
     },
+    shortDescription: {
+      type: String,
+      default: "Product short description",
+    },
     description: {
       type: String,
       default: "Product description",
@@ -47,6 +51,8 @@ const productSchema = new mongoose.Schema(
     qr: {
       type: String,
       unique: [true, "Qr must be unique"],
+      minlength: [3, "Too short product title"],
+      maxlength: [30, "too long product title"],
       index: true,
     },
     sku: {
@@ -58,6 +64,7 @@ const productSchema = new mongoose.Schema(
       type: String,
       require: true,
     },
+    imagesArray: [String],
 
     brand: {
       type: mongoose.Schema.ObjectId,
@@ -118,6 +125,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    customAttributes: {
+      type: Map,
+      of: String,
+    },
   },
   {
     timestamps: true,
@@ -137,6 +148,14 @@ const setImageURL = (doc) => {
   if (doc.image) {
     const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
+  }
+  if (doc.imagesArray) {
+    const imageList = [];
+    doc.imagesArray.forEach((image) => {
+      const imageUrl = `${process.env.BASE_URL}/product/${image}`;
+      imageList.push(imageUrl);
+    });
+    doc.imagesArray = imageList;
   }
 };
 

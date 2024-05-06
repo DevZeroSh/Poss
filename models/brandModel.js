@@ -15,6 +15,22 @@ const brandSchema = new mongoose.Schema({
     minlength: [9, "too short brand description"],
     maxlength: [100, "too long brand description"],
   },
+  image: String,
+});
+const setImageURL = (doc) => {
+  if (doc.image) {
+    const imageUrl = `${process.env.BASE_URL}/brand/${doc.image}`;
+    doc.image = imageUrl;
+  }
+};
+
+brandSchema.post("init", (doc) => {
+  setImageURL(doc);
+});
+
+//Create
+brandSchema.post("save", (doc) => {
+  setImageURL(doc);
 });
 
 module.exports = brandSchema;

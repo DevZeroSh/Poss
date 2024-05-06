@@ -221,7 +221,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   } else if (req.body.taker === "sales") {
     const sales = await salesrModel.findById(req.body.salesId);
     const customer = await customerModel.findById(req.body.customerId);
-
+    paymentText = "payment-cut";
     customer.TotalUnpaid -= req.body.totalMainCurrency;
     await customer.save();
     sales.totalRemainderMainCurrency -= req.body.totalMainCurrency;

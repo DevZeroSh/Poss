@@ -44,7 +44,6 @@ productRout
     authService.protect,
     uploadProductImage,
     resizerImage,
-    updateProductValidator,
     updateProduct
   )
   .delete(authService.protect, deleteProductValdiator, archiveProduct);

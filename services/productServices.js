@@ -23,32 +23,60 @@ const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
 
-const multerFilter = function (req, file, cb) {
-  if (file.mimetype.startsWith("image")) {
-    cb(null, true);
-  } else {
-    cb(new ApiError("Only images Allowed", 400), false);
-  }
+const multerOptions = () => {
+  const multerStorage = multer.memoryStorage();
+
+  const multerFilter = function (req, file, cb) {
+    if (file.mimetype.startsWith("image")) {
+      cb(null, true);
+    } else {
+      cb(new ApiError("Only images Allowed", 400), false);
+    }
+  };
+
+  const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+
+  return upload;
 };
 
-const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+const uploadMixOfImages = (arrayOfFilelds) =>
+  multerOptions().fields(arrayOfFilelds);
 
-exports.uploadProductImage = upload.single("image");
+exports.uploadProductImage = uploadMixOfImages([
+  { name: "image", maxCount: 1 },
+  { name: "imagesArray", maxCount: 5 },
+]);
 
 exports.resizerImage = asyncHandler(async (req, res, next) => {
-  const filename = `product-${uuidv4()}-${Date.now()}.jpeg`;
-
-  if (req.file) {
-    await sharp(req.file.buffer)
-      .resize(200, 200)
-      .toFormat("png")
+  if (req.files.image) {
+    const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.jpeg`;
+    await sharp(req.files.image[0].buffer)
+      .toFormat("jpeg")
       .jpeg({ quality: 70 })
-      .toFile(`uploads/product/${filename}`);
+      .toFile(`uploads/product/${imageCoverFilename}`);
 
     //save image into our db
-    req.body.image = filename;
+    req.body.image = imageCoverFilename;
   }
+  //-2 Images
+  if (req.files.imagesArray) {
+    req.body.imagesArray = [];
+    await Promise.all(
+      req.files.imagesArray.map(async (img, index) => {
+        const imagesName = `product-${uuidv4()}-${Date.now()}-${
+          index + 1
+        }.jpeg`;
+        await sharp(img.buffer)
+          .resize(900, 400)
+          .toFormat("jpeg")
+          .jpeg({ quality: 70 })
+          .toFile(`uploads/product/${imagesName}`);
 
+        //save image into our db
+        req.body.imagesArray.push(imagesName);
+      })
+    );
+  }
   next();
 });
 
@@ -218,6 +246,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
+  console.log(req.body)
   try {
     const existingProduct = await productModel.findById({ _id: id });
     if (!existingProduct) {

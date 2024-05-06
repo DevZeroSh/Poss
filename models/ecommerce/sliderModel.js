@@ -1,0 +1,29 @@
+const { default: mongoose } = require("mongoose");
+
+const silderSchema = new mongoose.Schema(
+  {
+    images: [String],
+  },
+  { timestamps: true }
+);
+
+const setImageURL = (doc) => {
+  if (doc.images) {
+    const imageList = [];
+    doc.images.forEach((image) => {
+      const imageUrl = `${process.env.BASE_URL}/sldier/${image}`;
+      imageList.push(imageUrl);
+    });
+    doc.images = imageList;
+  }
+};
+silderSchema.post("init", (doc) => {
+  setImageURL(doc);
+});
+
+//Create
+silderSchema.post("save", (doc) => {
+  setImageURL(doc);
+});
+
+module.exports = silderSchema;
