@@ -59,7 +59,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const totalMainCurrency = req.body.totalMainCurrency;
     suppler.TotalUnpaid -= totalMainCurrency;
     let remainingPayment = totalMainCurrency;
-    console.log("test");
+  
 
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
@@ -114,6 +114,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       suppler.TotalUnpaid,
       "supplier",
       req.body.supplierId,
+      purchases.counter,
       dbName
     );
   } else if (req.body.taker === "customer") {
@@ -181,12 +182,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       customer.TotalUnpaid,
       "customer",
       req.body.customerId,
+      salesrModel.counter,
       dbName
     );
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
-  
 
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -=
@@ -216,6 +217,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       suppler.TotalUnpaid,
       "supplier",
       req.body.supplierId,
+      purchase.counter,
       dbName
     );
   } else if (req.body.taker === "sales") {
@@ -248,6 +250,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       customer.TotalUnpaid,
       "customer",
       req.body.customerId,
+      salesrModel.counter,
       dbName
     );
   }

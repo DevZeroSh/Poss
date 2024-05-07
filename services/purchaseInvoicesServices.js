@@ -421,6 +421,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         supplier.TotalUnpaid,
         "supplier",
         suppliersId,
+        nextCounter,
         dbName
       );
       res.status(201).json({

@@ -505,6 +505,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     customars.TotalUnpaid,
     "customer",
     req.body.customarId,
+    nextCounter,
     dbName
   );
   res.status(201).json({ status: "success", data: order, history });

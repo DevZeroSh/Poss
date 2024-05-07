@@ -13,11 +13,12 @@ const companyInfoRoute = express.Router();
 
 companyInfoRoute
   .route("/")
-  .post(uploadCompanyLogo, resizerLogo, createCompanyInfo)
-  .get(authService.protect, getCompanyInfo);
+  .post(authService.protect, uploadCompanyLogo, resizerLogo, createCompanyInfo)
+  .get(getCompanyInfo);
 companyInfoRoute
   .route("/:id")
   .put(
+    authService.protect,
     authService.protect,
     uploadCompanyLogo,
     resizerLogo,

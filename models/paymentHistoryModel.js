@@ -24,6 +24,7 @@ const PaymentHistorySchema = new mongoose.Schema(
     supplierId: {
       type: String,
     },
+    invoiceNumber: Number,
   },
   { timestamps: true }
 );

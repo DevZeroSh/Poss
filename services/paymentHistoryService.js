@@ -10,6 +10,7 @@ const createPaymentHistory = async (
   amount,
   taker,
   id,
+  invoiceNumber,
   dbName
 ) => {
   const db = mongoose.connection.useDb(dbName);
@@ -22,6 +23,7 @@ const createPaymentHistory = async (
       date,
       rest,
       amount,
+      invoiceNumber
     };
     // Dynamically assign supplierId or customerId based on the taker value
     if (taker === "supplier") {
