@@ -96,7 +96,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
 
-  const pageSize = 25;
+  const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
@@ -246,7 +246,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
-  console.log(req.body)
+  console.log(req.body);
   try {
     const existingProduct = await productModel.findById({ _id: id });
     if (!existingProduct) {
