@@ -47,6 +47,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   )}:${padZero(currentDate.getMinutes())}:${padZero(currentDate.getSeconds())}`;
   const timeIsoString = currentDate.toISOString();
 
+ 
   const financialFundsId = req.body.financialFundsId;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
@@ -171,7 +172,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
     await salesrModel.bulkWrite(bulkUpdateOperations);
 
-    financialFunds.fundBalance += req.body.total;
+    financialFunds.fundBalance +=parseFloat( req.body.total);
     paymentText = "payment-cut";
     await customer.save();
 
