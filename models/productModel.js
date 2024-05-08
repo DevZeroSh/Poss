@@ -54,6 +54,7 @@ const productSchema = new mongoose.Schema(
       minlength: [3, "Too short product title"],
       maxlength: [30, "too long product title"],
       index: true,
+      require: true,
     },
     sku: {
       type: String,

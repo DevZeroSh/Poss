@@ -7,7 +7,6 @@ const customarSchema = new mongoose.Schema(
       require: [true, "Customar Name Required"],
       minlength: [3, "Too short customar name"],
       maxlength: [30, "Too long customar name"],
-   
     },
     phoneNumber: {
       type: String,
@@ -21,6 +20,13 @@ const customarSchema = new mongoose.Schema(
       type: Number,
       trim: true,
     },
+    faks: Number,
+    iban: [
+      {
+        name: String,
+        number: String,
+      },
+    ],
     sex: {
       type: String,
       enum: ["male", "female", "unknow"],

@@ -1,3 +1,4 @@
+const { Double } = require("mongodb");
 const mongoose = require("mongoose");
 
 const PurchaseInvoicesSchema = new mongoose.Schema(

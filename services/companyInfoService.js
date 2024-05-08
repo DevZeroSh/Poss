@@ -24,12 +24,12 @@ const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 exports.uploadCompanyLogo = upload.single("companyLogo");
 
 exports.resizerLogo = asyncHandler(async (req, res, next) => {
-  const filename = `company-${uuidv4()}-${Date.now()}.jpeg`;
+  const filename = `company-${uuidv4()}-${Date.now()}.png`;
 
   if (req.file) {
     await sharp(req.file.buffer)
-      .toFormat("jpeg")
-      .jpeg({ quality: 90 })
+      .toFormat("png")
+      .png({ quality: 90 })
       .toFile(`uploads/companyinfo/${filename}`);
     req.body.companyLogo = filename;
   }

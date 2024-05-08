@@ -49,10 +49,10 @@ exports.uploadProductImage = uploadMixOfImages([
 
 exports.resizerImage = asyncHandler(async (req, res, next) => {
   if (req.files.image) {
-    const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.jpeg`;
+    const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
     await sharp(req.files.image[0].buffer)
-      .toFormat("jpeg")
-      .jpeg({ quality: 70 })
+      .toFormat("png")
+      .png({ quality: 70 })
       .toFile(`uploads/product/${imageCoverFilename}`);
 
     //save image into our db
@@ -65,11 +65,11 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
       req.files.imagesArray.map(async (img, index) => {
         const imagesName = `product-${uuidv4()}-${Date.now()}-${
           index + 1
-        }.jpeg`;
+        }.png`;
         await sharp(img.buffer)
           .resize(900, 400)
-          .toFormat("jpeg")
-          .jpeg({ quality: 70 })
+          .toFormat("png")
+          .png({ quality: 70 })
           .toFile(`uploads/product/${imagesName}`);
 
         //save image into our db
@@ -117,7 +117,13 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     };
     mongooseQuery = mongooseQuery.find(query);
   }
-  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+  let sortQuery = {};
+  if (req.query.sold) {
+    sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
+  } else {
+    sortQuery = { createdAt: -1 };
+  }
+  mongooseQuery = mongooseQuery.sort(sortQuery);
 
   // Count total items without pagination
   const totalItems = await productModel.countDocuments();

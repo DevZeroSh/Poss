@@ -21,13 +21,13 @@ const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 exports.uploadBrandImage = upload.single("image");
 
 exports.resizerBrandImage = asyncHandler(async (req, res, next) => {
-  const filename = `brand-${uuidv4()}-${Date.now()}.jpeg`;
+  const filename = `brand-${uuidv4()}-${Date.now()}.png`;
 
   if (req.file) {
     await sharp(req.file.buffer)
       .resize(200, 200)
       .toFormat("png")
-      .jpeg({ quality: 70 })
+      .png({ quality: 70 })
       .toFile(`uploads/brand/${filename}`);
 
     //save image into our db
