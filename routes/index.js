@@ -39,6 +39,7 @@ const supplierRoute = require("./supplierRoute");
 const roleRoute = require("./roleRoute");
 const sliderRout = require("./ecommerce/sliderRout");
 const pagesRout = require("./ecommerce/pagesRout");
+const stokRout = require("./stokRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -75,6 +76,7 @@ const mountRoutes = (app) => {
   app.use("/api/payment", paymentRout);
   app.use("/api/financialloss", financialLossRoute);
   app.use("/api/payment-history", paymentHistoryRout);
+  app.use("/api/stok", stokRout);
 
   //Ecommerce routes
   app.use("/api/cart", cartRout);
