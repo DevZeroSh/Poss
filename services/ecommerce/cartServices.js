@@ -65,7 +65,6 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
   }
   // 1) Get Cart for the logged-in user
   let cart = await CartModel.findOne({ customar: req.user._id });
-
   if (!cart) {
     // If no cart exists, create a new one
     cart = await CartModel.create({
@@ -80,6 +79,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
           taxRate: taxRate,
           taxs: taxs,
           price: price,
+          image: product.image,
         },
       ],
     });
@@ -106,6 +106,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         taxRate: taxRate,
         taxs: taxs,
         price: price,
+        image: product.image,
       });
     }
   }
@@ -159,7 +160,6 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
   db.model("customar", customarSchema);
-  console.log(req.params.itemId)
   const cart = await CartModel.findOneAndUpdate(
     { customar: req.user._id },
     { $pull: { cartItems: { _id: req.params.itemId } } },

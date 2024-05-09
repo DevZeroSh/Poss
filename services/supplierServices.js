@@ -38,13 +38,11 @@ exports.getSuppliers = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
-  const { totalPages, mongooseQuery } = await Search(supplierModel, req);
 
-  const supplier = await mongooseQuery;
+  const supplier = await supplierModel.find();
 
   res.status(200).json({
     status: "true",
-    totalPages: totalPages,
     results: supplier.length,
     data: supplier,
   });

@@ -89,9 +89,9 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "This feature allows you to delete currency",
       },
       {
-        title: "delete Definitions",
+        title: "edit Definitions",
         desc: "Definitions",
-        info: "This feature allows you to delete Definitions",
+        info: "This feature allows you to edit Definitions",
       },
       {
         title: "delete Definitions",
