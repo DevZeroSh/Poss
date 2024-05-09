@@ -1,6 +1,6 @@
 const { default: mongoose } = require("mongoose");
 
-const stokSchema = new mongoose.Schema(
+const stockSchema = new mongoose.Schema(
   {
     name: String,
     slug: {
@@ -13,4 +13,4 @@ const stokSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = stokSchema;
+module.exports = stockSchema;

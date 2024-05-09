@@ -2,20 +2,20 @@ const express = require("express");
 
 const authService = require("../services/authService");
 const {
-  getStoks,
-  createStok,
-  getOneStok,
-  updateStok,
-  deleteStok,
-} = require("../services/stokService");
+  getStocks,
+  createStock,
+  getOneStock,
+  updateStock,
+  deleteStock,
+} = require("../services/stockService");
 
-const stokRout = express.Router();
+const stockRout = express.Router();
 
-stokRout.route("/").get(getStoks).post(authService.protect, createStok);
-stokRout
+stockRout.route("/").get(getStocks).post(authService.protect, createStock);
+stockRout
   .route("/:id")
-  .get(getOneStok)
-  .put(authService.protect, updateStok)
-  .delete(authService.protect, deleteStok);
+  .get(getOneStock)
+  .put(authService.protect, updateStock)
+  .delete(authService.protect, deleteStock);
 
-module.exports = stokRout;
+module.exports = stockRout;
