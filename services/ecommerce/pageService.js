@@ -1,87 +1,68 @@
 const asyncHandler = require("express-async-handler");
-const { kvkkSchema, privacyPolicySchema, termsOfUseSchema } = require("../../models/ecommerce/pageModel");
 const { default: mongoose } = require("mongoose");
+const pageSchema = require("../../models/ecommerce/pageModel");
+const ApiError = require("../../utils/apiError");
 
-exports.createkvkk = asyncHandler(async (req, res, next) => {
+exports.createPage = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const kvkkModel = db.model("kvkk", kvkkSchema);
-  const kvkk = await kvkkModel.create(req.body);
+  const pageModel = db.model("page", pageSchema);
+  const page = await pageModel.create(req.body);
 
   res.status(200).json({
     status: "true",
-    message: "kvkk Inserted",
-    data: kvkk,
+    message: "page Inserted",
+    data: page,
   });
 });
 
-exports.getKvkk = asyncHandler(async (req, res, next) => {
+exports.getPage = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const kvkkModel = db.model("kvkk", kvkkSchema);
-  const kvkk = await kvkkModel.find();
+  const pageModel = db.model("page", pageSchema);
+  const page = await pageModel.find();
 
   res.status(200).json({
     status: "true",
 
-    data: kvkk,
+    data: page,
   });
 });
 
-exports.createPrivacyPolicy = asyncHandler(async (req, res, next) => {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-  
-    const privacyPolicyModel = db.model("privacyPolicy", privacyPolicySchema);
-    const privacyPolicy = await privacyPolicyModel.create(req.body);
-  
-    res.status(200).json({
-      status: "true",
-      message: "privacyPolicy Inserted",
-      data: privacyPolicy,
-    });
+exports.getOnePage = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const pageModel = db.model("page", pageSchema);
+  const { id } = req.params;
+  const page = await pageModel.findById(id);
+
+  if (!page) {
+    return next(new ApiError(`There is no page with this id ${id}`, 404));
+  }
+
+  res.status(200).json({
+    status: "true",
+    data: page,
   });
-  
-  exports.getPrivacyPolicy = asyncHandler(async (req, res, next) => {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-  
-    const privacyPolicyModel = db.model("privacyPolicy", privacyPolicySchema);
-    const privacyPolicy = await privacyPolicyModel.find();
-  
-    res.status(200).json({
-      status: "true",
-  
-      data: privacyPolicy,
-    });
+});
+
+exports.updatePage = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const pageModel = db.model("page", pageSchema);
+  const { id } = req.params;
+
+  const page = await pageModel.findByIdAndUpdate(id, req.body, {
+    new: true,
   });
 
-  exports.createTermsOfUse= asyncHandler(async (req, res, next) => {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-  
-    const termsOfUseModel = db.model("termsOfUse", termsOfUseSchema);
-    const termsOfUse = await termsOfUseModel.create(req.body);
-  
-    res.status(200).json({
-      status: "true",
-      message: "termsOfUse Inserted",
-      data: termsOfUse,
-    });
+  res.status(200).json({
+    status: "true",
+
+    data: page,
   });
-  
-  exports.getTermsOfUse = asyncHandler(async (req, res, next) => {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-  
-    const termsOfUseModel = db.model("termsOfUse", termsOfUseSchema);
-    const termsOfUse = await termsOfUseModel.find();
-  
-    res.status(200).json({
-      status: "true",
-  
-      data: termsOfUse,
-    });
-  });
+});

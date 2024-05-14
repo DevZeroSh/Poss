@@ -25,17 +25,11 @@ employeeRoute
   .get(getEmployees)
   .post(authService.protect, createEmployeeValidator, createEmployeeInPos);
 
-employeeRoute
-  .route("/create-employee")
-  .post(createEmployeeValidator, createEmployee);
+employeeRoute.route("/create-employee").post(createEmployee);
 
 employeeRoute
   .route("/:id")
-  .delete(
-    authService.protect,
-    deleteEmployeeVlaidator,
-    deleteEmployee
-  )
+  .delete(authService.protect, deleteEmployeeVlaidator, deleteEmployee)
   .get(authService.protect, getEmployeeVlaidator, getEmployee);
 // .put(authService.protect, authService.allowedTo("edit employee"), updateEmployee);
 

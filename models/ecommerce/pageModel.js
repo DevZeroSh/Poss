@@ -1,42 +1,19 @@
 const mongoose = require("mongoose");
 
-const kvkkSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+const pageSchema = new mongoose.Schema(
+  {
+    name: String,
+    title: {
+      type: String,
+      required: true,
+      unique: true,
+    },
 
-  description: {
-    type: String,
+    description: {
+      type: String,
+    },
   },
-});
+  { timestamps: true }
+);
 
-const privacyPolicySchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-
-  description: {
-    type: String,
-  },
-});
-const termsOfUseSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-
-  description: {
-    type: String,
-  },
-});
-
-module.exports = {
-  kvkkSchema,
-  privacyPolicySchema,
-  termsOfUseSchema,
-};
+module.exports = pageSchema;

@@ -91,7 +91,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
 
     if (productIndex > -1) {
       const cartItem = cart.cartItems[productIndex];
-      cartItem.quantity = quantity;
+      cartItem.quantity++;
       cartItem.taxPrice = taxPrice;
 
       cart.cartItems[productIndex] = cartItem;

@@ -3,6 +3,8 @@ const cartSchema = require("../../models/ecommerce/cartModel");
 const productSchema = require("../../models/productModel");
 const asyncHandler = require("express-async-handler");
 const ecommerceOrderSchema = require("../../models/ecommerce/ecommerceOrderModel");
+const customarSchema = require("../../models/customarModel");
+const ApiError = require("../../utils/apiError");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -56,11 +58,52 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   res.status(201).json({ status: "success", data: order });
 });
 
+exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
+  req.filterObj = {
+    customar: req.user._id,
+  };
+  next();
+});
 exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const CartModel = db.model("Cart", cartSchema);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("customar", customarSchema);
+  console.log(req.filterObj);
+  const order = await orderModel.find(req.filterObj);
+  res
+    .status(200)
+    .json({ status: "success", results: order.length, data: order });
+});
 
-  const cart = await CartModel.find({ customar: req.user.id });
-  res.status(200).json({ status: "success", data: cart });
+exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("customar", customarSchema);
+
+  const { id } = req.params;
+
+  const order = await orderModel.findById(id);
+  if (!order) {
+    return next(ApiError(`No order found for ${id}`));
+  }
+  res.status(200).json({ status: "success", data: order });
+});
+
+exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("customar", customarSchema);
+
+  const { id } = req.params;
+
+  const order = await orderModel.findByIdAndUpdate(id, {
+    orderStatus: req.body.orderStatus,
+  });
+  if (!order) {
+    return next(ApiError(`No order found for ${id}`));
+  }
+  res.status(200).json({ status: "success", data: order });
 });

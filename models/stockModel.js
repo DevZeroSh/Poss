@@ -8,7 +8,7 @@ const stockSchema = new mongoose.Schema(
       lowercase: true,
     },
     number: String,
-    productCount: Number,
+    productCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

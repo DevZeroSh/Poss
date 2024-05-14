@@ -14,14 +14,17 @@ const {
   getCustomarVlaidator,
   deleteCustomarVlaidator,
 } = require("../utils/validators/customarValidator");
-
-router.use(authService.protect);
-
-router.route("/").post(createCustomar).get(getCustomars);
+router
+.route("/e-edit/:id").put(authService.ecommerceProtect, updataCustomar)
+router
+  .route("/")
+  .post(authService.protect, createCustomar)
+  .get(authService.protect, getCustomars);
 router
   .route("/:id")
-  .get(getCustomarVlaidator, getCustomar)
-  .put(updataCustomar)
-  .delete(deleteCustomar);
+  .get(authService.protect, getCustomarVlaidator, getCustomar)
+  .put(authService.protect, updataCustomar)
+  .delete(authService.protect, deleteCustomar);
+
 
 module.exports = router;

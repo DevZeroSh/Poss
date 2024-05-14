@@ -4,7 +4,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
   {
     customar: {
       type: mongoose.Schema.ObjectId,
-      ref: "Customar",
+      ref: "customar",
       required: [true, "Order must be belong to user"],
     },
     cartItems: [
@@ -23,6 +23,14 @@ const ecommerceOrderSchema = new mongoose.Schema(
     ],
 
     shippingAddress: {
+      alias: String,
+      details: String,
+      phone: String,
+      city: String,
+      postalCode: String,
+    },
+    billingAddress: {
+      alias: String,
       details: String,
       phone: String,
       city: String,
@@ -42,12 +50,23 @@ const ecommerceOrderSchema = new mongoose.Schema(
     },
     isPaid: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     paidAt: Date,
-    isDelivered: {
-      type: Boolean,
-      default: false,
+    orderStatus: {
+      type: String,
+      enum: [
+        "requested",
+        "approved",
+        "cancelled",
+        "processed",
+        "shipped",
+        "delivered",
+        "not delivered",
+        "returned",
+      ],
+      default: "requested",
+      
     },
     deliveredAt: Date,
   },

@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 
 const silderSchema = new mongoose.Schema(
   {
+    name:String,
     images: [String],
   },
   { timestamps: true }
