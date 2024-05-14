@@ -230,7 +230,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       },
       {
         title: "approve reconciliation",
-        desc: "Stok",
+        desc: "Stock",
         info: "This feature will allow you to confirm inventory",
       },
       {

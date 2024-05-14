@@ -115,6 +115,16 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     };
     mongooseQuery = mongooseQuery.find(query);
   }
+  if (req.query.category) {
+    mongooseQuery = mongooseQuery.find({ category: req.query.category });
+  }
+
+  if (req.query.brand) {
+    mongooseQuery = mongooseQuery.find({ brand: req.query.brand });
+  }
+  if (req.query.label) {
+    mongooseQuery = mongooseQuery.find({ label: req.query.label });
+  }
   let sortQuery = {};
   if (req.query.sold) {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
