@@ -1,21 +1,15 @@
 const express = require("express");
-const authService = require("../../services/authService");
 const {
-  createkvkk,
-  getKvkk,
-  createPrivacyPolicy,
-  getPrivacyPolicy,
-  createTermsOfUse,
-  getTermsOfUse,
+  getPage,
+  createPage,
+  updatePage,
+  getOnePage,
 } = require("../../services/ecommerce/pageService");
 
 const pagesRout = express.Router();
+const authService = require("../../services/authService");
 
-pagesRout.route("/kvkk").post(createkvkk).get(getKvkk);
-pagesRout
-  .route("/privacyPolicy")
-  .post(createPrivacyPolicy)
-  .get(getPrivacyPolicy);
-pagesRout.route("/termsofuse").post(createTermsOfUse).get(getTermsOfUse);
+pagesRout.route("/").post(authService.protect, createPage).get(getPage);
+pagesRout.route("/:id").get(getOnePage).put(authService.protect, updatePage);
 
 module.exports = pagesRout;

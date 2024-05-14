@@ -69,6 +69,8 @@ const customarSchema = new mongoose.Schema(
         phone: String,
         city: String,
         postalCode: String,
+        firstName: String,
+        lastName: String,
       },
     ],
   },

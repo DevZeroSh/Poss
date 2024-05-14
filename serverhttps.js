@@ -11,14 +11,13 @@ const mountRoutes = require("./routes");
 
 dotenv.config({ path: "config.env" });
 
-dotenv.config({ path: "config.env" });
 
 dbConnection();
 
 const app = express();
 
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 app.use(express.static(path.join(__dirname, "uploads")));
 if (process.env.NODE_ENV === "development") {

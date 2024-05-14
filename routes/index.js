@@ -76,7 +76,7 @@ const mountRoutes = (app) => {
   app.use("/api/payment", paymentRout);
   app.use("/api/financialloss", financialLossRoute);
   app.use("/api/payment-history", paymentHistoryRout);
-  app.use("/api/stok", stockRout);
+  app.use("/api/stock", stockRout);
 
   //Ecommerce routes
   app.use("/api/cart", cartRout);
