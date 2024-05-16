@@ -7,6 +7,7 @@ const {
   getCustomar,
   updataCustomar,
   deleteCustomar,
+  updateCustomerPassword,
 } = require("../services/customarServices");
 const {
   createCustomarVlaidator,
@@ -14,8 +15,10 @@ const {
   getCustomarVlaidator,
   deleteCustomarVlaidator,
 } = require("../utils/validators/customarValidator");
+router.route("/e-edit/:id").put(authService.ecommerceProtect, updataCustomar);
 router
-.route("/e-edit/:id").put(authService.ecommerceProtect, updataCustomar)
+  .route("/updatePassword")
+  .put(authService.ecommerceProtect, updateCustomerPassword);
 router
   .route("/")
   .post(authService.protect, createCustomar)

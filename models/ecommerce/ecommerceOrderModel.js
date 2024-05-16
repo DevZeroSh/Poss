@@ -19,9 +19,23 @@ const ecommerceOrderSchema = new mongoose.Schema(
           type: Number,
           default: 0,
         },
+        orderStatus: {
+          type: String,
+          enum: [
+            "requested",
+            "approved",
+            "cancelled",
+            "processed",
+            "shipped",
+            "delivered",
+            "not delivered",
+            "returned",
+          ],
+          default: "requested",
+        },
       },
     ],
-
+    date: String,
     shippingAddress: {
       alias: String,
       details: String,
@@ -53,22 +67,9 @@ const ecommerceOrderSchema = new mongoose.Schema(
       default: true,
     },
     paidAt: Date,
-    orderStatus: {
-      type: String,
-      enum: [
-        "requested",
-        "approved",
-        "cancelled",
-        "processed",
-        "shipped",
-        "delivered",
-        "not delivered",
-        "returned",
-      ],
-      default: "requested",
-      
-    },
+
     deliveredAt: Date,
+    orderNumber:String,
   },
   { timestamps: true }
 );

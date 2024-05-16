@@ -93,83 +93,74 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
-
+  db.model("Review", reviewSchema);
+  db.model("Customar", customarSchema);
   const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
-  // Search for product or qr
-  let mongooseQuery = productModel.find();
+  let query = {
+    archives: { $ne: true }
+  };
 
   if (req.query.keyword) {
-    const query = {
-      $and: [
-        { archives: { $ne: true } },
-        {
-          $or: [
-            { name: { $regex: req.query.keyword, $options: "i" } },
-            { qr: { $regex: req.query.keyword, $options: "i" } },
-          ],
-        },
-      ],
-    };
-    mongooseQuery = mongooseQuery.find(query);
-  }
-  if (req.query.category) {
-    mongooseQuery = mongooseQuery.find({ category: req.query.category });
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } }
+    ];
   }
 
-  if (req.query.brand) {
-    mongooseQuery = mongooseQuery.find({ brand: req.query.brand });
+  if (req.query.type==="category" || req.query.type==="brand") {
+    query.$and = [];
+    if (req.query.type==="category") {
+      query.$and.push({ category: req.query.id });
+    }
+    if (req.query.type==="brand") {
+      query.$and.push({ brand: req.query.id  });
+    }
   }
+
   if (req.query.label) {
-    mongooseQuery = mongooseQuery.find({ label: req.query.label });
+    query.label = req.query.label;
   }
+
   let sortQuery = {};
   if (req.query.sold) {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
   } else {
     sortQuery = { createdAt: -1 };
   }
-  mongooseQuery = mongooseQuery.sort(sortQuery);
 
-  // Count total items without pagination
-  const totalItems = await productModel.countDocuments();
+  const totalItems = await productModel.countDocuments(query);
 
-  // Calculate total pages
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  // Apply pagination
-  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+  const product = await productModel
+    .find(query)
+    .sort(sortQuery)
+    .skip(skip)
+    .limit(pageSize);
 
-  const product = await mongooseQuery;
-
-  const notices = [];
-  const nonArchivedProductCount = product.filter(
-    (item) => item.archives !== "true"
-  ).length;
-
-  product.forEach((element) => {
-    if (element.alarm >= element.quantity) {
-      if (element.archives !== "true") {
-        notices.push({
-          qr: element.qr,
-          name: element.name,
-          id: element._id,
-          message: `${element.qr} is low on stock.`,
-        });
-      }
-    }
-  });
+  const notices = product
+    .filter(item => item.alarm >= item.quantity && item.archives !== "true")
+    .map(item => ({
+      qr: item.qr,
+      name: item.name,
+      id: item._id,
+      message: `${item.qr} is low on stock.`
+    }));
 
   res.status(200).json({
     status: "true",
-    results: nonArchivedProductCount,
+    results: product.length,
     Pages: totalPages,
     data: product,
-    notices,
+    notices
   });
 });
+
+
+
 
 
 // @desc Create  product

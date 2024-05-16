@@ -3,7 +3,8 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const customarSchema = require("../models/customarModel");
 const { Search } = require("../utils/search");
-
+const bcrypt = require("bcrypt");
+const createToken = require("../utils/createToken");
 //Create New Customar
 //@rol: Who has rol can create
 exports.createCustomar = asyncHandler(async (req, res, next) => {
@@ -76,6 +77,33 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
       .status(200)
       .json({ status: "true", message: "Customar updated", data: customar });
   }
+});
+
+exports.updateCustomerPassword = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const customersModel = db.model("Customar", customarSchema);
+
+  // Update user password based on user payload (req.user._id)
+  const user = await customersModel.findByIdAndUpdate(
+    req.user._id,
+    {
+      password: await bcrypt.hash(req.body.newPassword, 12),
+      passwordChangedAt: Date.now(),
+    },
+    {
+      new: true,
+    }
+  );
+
+  if (!user) {
+    return new ApiError("User not found", 404);
+  }
+
+  // Generate Token
+  const token = createToken(user._id);
+
+  res.status(200).json({ data: user, token });
 });
 
 //Delete One Customar(Put it in archives)

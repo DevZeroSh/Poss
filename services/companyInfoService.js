@@ -329,6 +329,7 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
     const companyInfo = await CompanyInfnoModel.findByIdAndUpdate(
       { _id: id },
       {
+        companyName: req.body.companyName,
         companyAddress: req.body.companyAddress,
         companyTax: req.body.companyTax,
         companyTel: req.body.companyTel,

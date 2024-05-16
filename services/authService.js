@@ -156,7 +156,7 @@ exports.EcommerceLogin = asyncHandler(async (req, res, next) => {
   }
   // 3) generate token
   const token = createToken(user._id);
-
+  // console.log(token)
   // Delete password from response
   delete user._doc.password;
   // 4) send response to client side
