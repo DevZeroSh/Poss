@@ -40,6 +40,7 @@ const roleRoute = require("./roleRoute");
 const sliderRout = require("./ecommerce/sliderRout");
 const pagesRout = require("./ecommerce/pagesRout");
 const stockRout = require("./stokRoute");
+const footerRout = require("./ecommerce/footerRout");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -86,6 +87,7 @@ const mountRoutes = (app) => {
   app.use("/api/review", reviewRout);
   app.use("/api/slider", sliderRout);
   app.use("/api/page", pagesRout);
+  app.use("/api/footer", footerRout);
 
   //Hr
   app.use("/api/finger-print", fingerPrintRout);
