@@ -4,6 +4,7 @@ const categorySchema = new mongoose.Schema({
   name: { type: String },
   parentCategory: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
   image: String,
+  children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
 });
 
 const setImageURL = (doc) => {
@@ -12,7 +13,10 @@ const setImageURL = (doc) => {
     doc.image = imageUrl;
   }
 };
-
+categorySchema.pre(/^find/, function (next) {
+  this.populate({ path: "children" }).lean();
+  next();
+});
 categorySchema.post("init", (doc) => {
   setImageURL(doc);
 });

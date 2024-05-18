@@ -7,7 +7,6 @@ const multerStorage = multer.memoryStorage();
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
 
-
 const multerFilter = function (req, file, cb) {
   if (file.mimetype.startsWith("image")) {
     cb(null, true);
@@ -37,6 +36,8 @@ exports.resizerCategoryImage = asyncHandler(async (req, res, next) => {
   next();
 });
 
+
+
 //@desc Get List category
 //@route Get /api/category/
 //@access Private
@@ -44,11 +45,11 @@ exports.getCategories = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const categoryModel = db.model("categories", categorySchema);
-  const category = await categoryModel.find();
-  res
-    .status(200)
-    .json({ status: "true", results: category.length, data: category });
+  const categoryModel = db.model("Category", categorySchema);
+
+  const categoryTree = await categoryModel.find().lean();
+
+  res.status(200).json({ status: "true", data: categoryTree });
 });
 
 //@desc Create  category
@@ -61,6 +62,14 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
   const categoryModel = db.model("Category", categorySchema);
 
   const category = await categoryModel.create(req.body);
+
+  console.log(category._id)
+  if (req.body.parentCategory) {
+    await categoryModel.findByIdAndUpdate(req.body.parentCategory, {
+      $push: { children: category._id },
+    });
+  }
+
   res
     .status(201)
     .json({ status: "true", message: "Category Inserted", data: category });
