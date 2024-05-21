@@ -170,7 +170,7 @@ productSchema.post("save", (doc) => {
 });
 
 productSchema.pre(/^find/, function (next) {
-  this.populate({ path: "category", select: "name -_id" })
+  this.populate({ path: "category"}).lean()
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })
