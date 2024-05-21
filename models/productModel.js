@@ -147,7 +147,7 @@ productSchema.virtual("reviews", {
 
 const setImageURL = (doc) => {
   if (doc.image) {
-    const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+    const imageUrl = `${process.env.BASE_URL2}/product/${doc.image}`;
     doc.image = imageUrl;
   }
   if (doc.imagesArray) {
@@ -170,7 +170,8 @@ productSchema.post("save", (doc) => {
 });
 
 productSchema.pre(/^find/, function (next) {
-  this.populate({ path: "category"}).lean()
+  this.populate({ path: "category" })
+    .lean()
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })

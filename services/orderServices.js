@@ -216,30 +216,41 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
+    let currency;
 
     await Promise.all(
       cartItems.map(async (item) => {
-        const { type } = await productModel.findOne({ qr: item.qr });
+        const { type, currency: itemCurrency } = await productModel.findOne({
+          qr: item.qr,
+        });
+        // Set item currency
+        currency = itemCurrency._id;
         // Calculate total value and count excluding service products
         if (type !== "Service") {
-          totalValue += item.buyingPrice * item.quantity;
-          totalCount += item.quantity;
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency,
+          });
+
+          if (existingRecord) {
+            // Update existing record
+            existingRecord.activeProductsValue -=
+              item.buyingPrice * item.quantity;
+            existingRecord.activeProductsCount -= item.quantity;
+            await existingRecord.save();
+          } else {
+            // Create new record if none exists
+            await createActiveProductsValue(
+              totalCount,
+              totalValue,
+              currency,
+              dbName
+            );
+          }
         }
       })
     );
-
-    if (existingRecord) {
-      // Update existing record
-      existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
-      await existingRecord.save();
-    } else {
-      // Create new record if none exists
-      await createActiveProductsValue(totalCount, totalValue, dbName);
-    }
   } catch (err) {
     console.log(err.message);
   }
@@ -472,23 +483,40 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
+
     let totalCount = 0;
     let totalValue = 0;
-    cartItems.map((item) => {
-      totalValue += item.buyingPrice * item.exchangeRate * item.quantity;
-      totalCount += item.quantity;
-    });
 
-    if (existingRecord) {
-      existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
-      await existingRecord.save();
-    } else {
-      await createActiveProductsValue(totalCount, totalValue, dbName);
+    for (const item of cartItems) {
+      const { type, currency: itemCurrency } = await productModel.findOne({
+        qr: item.qr,
+      });
+
+      if (type !== "Service") {
+        totalValue += item.buyingPrice * item.quantity;
+        totalCount += item.quantity;
+
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: itemCurrency,
+        });
+
+        if (existingRecord) {
+          existingRecord.activeProductsCount -= item.quantity;
+          existingRecord.activeProductsValue -=
+            item.buyingPrice * item.quantity;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(
+            item.quantity,
+            item.buyingPrice * item.quantity,
+            itemCurrency,
+            dbName
+          );
+        }
+      }
     }
   } catch (err) {
-    console.log("OrderServices 411");
+    console.log("OrderServices 519");
     console.log(err.message);
   }
 
@@ -721,29 +749,37 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
+
     let totalCount = 0;
     let totalValue = 0;
 
-    // Use Promise.all with map to execute asynchronous operations for each item
-    await Promise.all(
-      cartItems.map(async (item) => {
-        const { type } = await productModel.findOne({ qr: item.qr });
-        // Check if the product type is not "Service"
-        if (type !== "Service") {
-          totalValue +=
-            item.buyingPrice * item.currency.exchangeRate * item.quantity;
-          totalCount += item.quantity;
-        }
-      })
-    );
+    for (const item of cartItems) {
+      const { type, currency: itemCurrency } = await productModel.findOne({
+        qr: item.qr,
+      });
 
-    if (existingRecord) {
-      existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
-      await existingRecord.save();
-    } else {
-      await createActiveProductsValue(totalCount, totalValue, dbName);
+      if (type !== "Service") {
+        totalValue += item.buyingPrice * item.quantity;
+        totalCount += item.quantity;
+
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: itemCurrency,
+        });
+
+        if (existingRecord) {
+          existingRecord.activeProductsCount -= item.quantity;
+          existingRecord.activeProductsValue -=
+            item.buyingPrice * item.quantity;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(
+            item.quantity,
+            item.buyingPrice * item.quantity,
+            itemCurrency,
+            dbName
+          );
+        }
+      }
     }
   } catch (err) {
     console.log("OrderServices 619");
@@ -985,38 +1021,47 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
     let totalCount = 0;
     let totalValue = 0;
 
-    originalOrder.returnCartItem.forEach((returnItem) => {
-      const cartItem = originalOrder.cartItems.find(
-        (cartItem) => cartItem.qr === returnItem.qr
-      );
+    for (const returnItem of originalOrder.returnCartItem) {
+      const { type, currency: itemCurrency } = await productModel.findOne({
+        qr: returnItem.qr,
+      });
 
-      if (cartItem) {
-        const oldQty = cartItem.quantity;
-        const newQty = returnItem.quantity;
+      if (type != "Service") {
+        const cartItem = originalOrder.cartItems.find(
+          (cartItem) => cartItem.qr === returnItem.qr
+        );
 
-        // Calculate the difference between old and new quantities
-        const qtyDifference = newQty - oldQty;
+        if (cartItem) {
+          const oldQty = cartItem.quantity;
+          const newQty = returnItem.quantity;
 
-        // Calculate the item value based on the difference
-        const itemValue =
-          returnItem.buyingPrice * returnItem.exchangeRate * qtyDifference;
+          const qtyDifference = newQty - oldQty;
+          const itemValue = returnItem.buyingPrice * qtyDifference;
 
-        // Update total value and total count
-        totalValue += itemValue;
-        totalCount += qtyDifference;
+          totalValue += itemValue;
+          totalCount += qtyDifference;
+
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: itemCurrency,
+          });
+
+          if (existingRecord) {
+            existingRecord.activeProductsCount -= qtyDifference;
+            existingRecord.activeProductsValue -= itemValue;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(
+              qtyDifference,
+              itemValue,
+              itemCurrency,
+              dbName
+            );
+          }
+        }
       }
-    });
-
-    if (existingRecord) {
-      existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
-      await existingRecord.save();
-    } else {
-      await createActiveProductsValue(totalCount, totalValue, dbName);
     }
   } catch (err) {
     console.log("OrderServices 858");
@@ -1110,31 +1155,36 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
     await productModel.bulkWrite(bulkOption, {});
     await orderModel.bulkWrite(bulkOption, {});
-
     req.body.cartItems.map(async (item) => {
-      if (item.refundLocattion !== "Damaged") {
+      if (item.refundLocation !== "Damaged") {
         try {
-          const existingRecord = await ActiveProductsValue.findOne();
+          const { currency: itemCurrency } = await productModel.findOne({
+            qr: item.qr,
+          });
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: itemCurrency,
+          });
           let totalCount = 0;
           let totalValue = 0;
-          orders.cartItems.forEach((returnItem, i) => {
-            const itemValue =
-              returnItem.buyingPrice *
-              orders.exchangeRate *
-              order.cartItems[i].quantity;
-            totalValue += itemValue;
-            totalCount += order.cartItems[i].quantity;
-          });
+
+          const itemValue = item.buyingPrice * item.quantity;
+          totalValue += itemValue;
+          totalCount += item.quantity;
 
           if (existingRecord) {
             existingRecord.activeProductsCount += totalCount;
             existingRecord.activeProductsValue += totalValue;
             await existingRecord.save();
           } else {
-            await createActiveProductsValue(totalCount, totalValue, dbName);
+            await createActiveProductsValue(
+              totalCount,
+              totalValue,
+              itemCurrency,
+              dbName
+            );
           }
         } catch (err) {
-          console.log("OrderServices 1001");
+          console.log("OrderServices 1190");
           console.log(err.message);
         }
       }
@@ -1247,29 +1297,34 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       await orderModel.bulkWrite(bulkOption, {});
 
       req.body.cartItems.map(async (item) => {
-        if (item.refundLocattion !== "Damaged") {
+        if (item.refundLocation !== "Damaged") {
           try {
-            const existingRecord = await ActiveProductsValue.findOne();
+            const { currency: itemCurrency } = await productModel.findOne({
+              qr: item.qr,
+            });
+            const existingRecord = await ActiveProductsValue.findOne({
+              currency: itemCurrency,
+            });
             let totalCount = 0;
             let totalValue = 0;
-            orders.cartItems.forEach((returnItem, i) => {
-              const itemValue =
-                returnItem.buyingPrice *
-                orders.exchangeRate *
-                order.cartItems[i].quantity;
-              totalValue += itemValue;
-              totalCount += order.cartItems[i].quantity;
-            });
 
+            const itemValue = item.buyingPrice * item.quantity;
+            totalValue += itemValue;
+            totalCount += item.quantity;
             if (existingRecord) {
               existingRecord.activeProductsCount += totalCount;
               existingRecord.activeProductsValue += totalValue;
               await existingRecord.save();
             } else {
-              await createActiveProductsValue(totalCount, totalValue, dbName);
+              await createActiveProductsValue(
+                totalCount,
+                totalValue,
+                itemCurrency,
+                dbName
+              );
             }
           } catch (err) {
-            console.log("OrderServices 1143");
+            console.log("OrderServices 1001");
             console.log(err.message);
           }
         }

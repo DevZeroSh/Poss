@@ -150,8 +150,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       invoiceFinancialFund
     );
 
-    // Get the next counter value
-
     // Create a new purchase invoice with all the invoice items
     const newPurchaseInvoice = new PurchaseInvoicesModel({
       invoices: invoiceItems,
@@ -263,24 +261,53 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         "ActiveProductsValue",
         ActiveProductsValueModel
       );
-      const existingRecord = await ActiveProductsValue.findOne();
-      let totalCount = 0;
-      let totalValue = 0;
-      newPurchaseInvoice.invoices.map((item) => {
-        totalValue += Number(item.totalPrice) * item.currency;
-        totalCount += item.quantity;
-      });
 
-      if (existingRecord) {
-        existingRecord.activeProductsCount += totalCount;
-        existingRecord.activeProductsValue += totalValue;
-        await existingRecord.save();
-      } else {
-        await createActiveProductsValue(totalCount, totalValue, dbName);
+      const currencyTotals = {};
+
+      for (const item of newPurchaseInvoice.invoices) {
+        try {
+          const product = await productModel.findOne({ qr: item.qr });
+          if (product) {
+            const currencyId = product.currency._id;
+            if (!currencyTotals[currencyId]) {
+              currencyTotals[currencyId] = { totalCount: 0, totalValue: 0 };
+            }
+            currencyTotals[currencyId].totalValue +=
+              item.buyingpriceOringal * item.quantity;
+            currencyTotals[currencyId].totalCount += item.quantity;
+          } else {
+            console.warn(`Product with QR ${item.qr} not found.`);
+          }
+        } catch (err) {
+          console.error(
+            `Error finding product with QR ${item.qr}:`,
+            err.message
+          );
+        }
+      }
+
+      for (const currencyId in currencyTotals) {
+        if (currencyTotals.hasOwnProperty(currencyId)) {
+          const { totalCount, totalValue } = currencyTotals[currencyId];
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: currencyId,
+          });
+          if (existingRecord) {
+            existingRecord.activeProductsCount += totalCount;
+            existingRecord.activeProductsValue += totalValue;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(
+              totalCount,
+              totalValue,
+              currencyId,
+              dbName
+            );
+          }
+        }
       }
     } catch (err) {
-      console.log("purchaseInvoicesServices 248");
-      console.log(err.message);
+      console.log("Error in processing purchase invoices:", err.message);
     }
 
     const history = createInvoiceHistory(
@@ -384,28 +411,25 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           dbName
         );
       });
-      try {
-        const ActiveProductsValue = db.model(
-          "ActiveProductsValue",
-          ActiveProductsValueModel
-        );
-        const existingRecord = await ActiveProductsValue.findOne();
-        let totalCount = 0;
-        let totalValue = 0;
-        newPurchaseInvoice.invoices.map((item) => {
-          totalValue += Number(item.totalPrice) * item.currency;
-          totalCount += item.quantity;
-        });
 
-        if (existingRecord) {
-          existingRecord.activeProductsCount += totalCount;
-          existingRecord.activeProductsValue += totalValue;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(totalCount, totalValue, dbName);
-        }
-      } catch (err) {
-        console.log(err.message);
+      const ActiveProductsValue = db.model(
+        "ActiveProductsValue",
+        ActiveProductsValueModel
+      );
+      const existingRecord = await ActiveProductsValue.findOne();
+      let totalCount = 0;
+      let totalValue = 0;
+      newPurchaseInvoice.invoices.map((item) => {
+        totalValue += Number(item.totalPrice) * item.currency;
+        totalCount += item.quantity;
+      });
+
+      if (existingRecord) {
+        existingRecord.activeProductsCount += totalCount;
+        existingRecord.activeProductsValue += totalValue;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(totalCount, totalValue, dbName);
       }
 
       const history = createInvoiceHistory(
@@ -606,11 +630,10 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
           "ActiveProductsValue",
           ActiveProductsValueModel
         );
-        const existingRecord = await ActiveProductsValue.findOne();
-        let totalCountDiff = 0;
-        let totalValueDiff = 0;
 
-        updatedInvoice.invoices.forEach((updatedItem) => {
+        const currencyDiffs = {};
+
+        for (const updatedItem of updatedInvoice.invoices) {
           const existingItem = oldInvoice.invoices.find((item) =>
             item._id.equals(updatedItem._id)
           );
@@ -620,21 +643,48 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
             const valueDiff =
               Number(updatedItem.totalPrice) - Number(existingItem.totalPrice);
 
-            totalCountDiff += quantityDiff;
-            totalValueDiff += valueDiff;
-          }
-        });
+            // Fetch the product to get the currency ID
+            const product = await productModel.findOne({ qr: updatedItem.qr });
 
-        if (existingRecord) {
-          existingRecord.activeProductsCount += totalCountDiff;
-          existingRecord.activeProductsValue += totalValueDiff;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(
-            totalCountDiff,
-            totalValueDiff,
-            dbName
-          );
+            if (product) {
+              const currencyId = product.currency._id;
+
+              if (!currencyDiffs[currencyId]) {
+                currencyDiffs[currencyId] = {
+                  totalCountDiff: 0,
+                  totalValueDiff: 0,
+                };
+              }
+
+              currencyDiffs[currencyId].totalCountDiff += quantityDiff;
+              currencyDiffs[currencyId].totalValueDiff += valueDiff;
+            } else {
+              console.warn(`Product with QR ${updatedItem.qr} not found.`);
+            }
+          }
+        }
+
+        for (const currencyId in currencyDiffs) {
+          if (currencyDiffs.hasOwnProperty(currencyId)) {
+            const { totalCountDiff, totalValueDiff } =
+              currencyDiffs[currencyId];
+            const existingRecord = await ActiveProductsValue.findOne({
+              currency: currencyId,
+            });
+
+            if (existingRecord) {
+              existingRecord.activeProductsCount += totalCountDiff;
+              existingRecord.activeProductsValue += totalValueDiff;
+              await existingRecord.save();
+            } else {
+              await createActiveProductsValue(
+                totalCountDiff,
+                totalValueDiff,
+                currencyId,
+                dbName
+              );
+            }
+          }
         }
       } catch (err) {
         console.log("purchaseInvoicesServices 530");
@@ -953,7 +1003,6 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const savedInvoice = await newPurchaseInvoice.save();
 
   if (paid !== "unpaid") {
-    console.log(priceExchangeRate * req.body.financailFundExchangeRate);
     financialFund.fundBalance += priceExchangeRate;
     await ReportsFinancialFundsModel.create({
       date: isaaaa,
@@ -986,20 +1035,47 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
-    let totalCount = 0;
-    let totalValue = 0;
-    invoiceItems.map((item) => {
-      totalValue += item.buyingprice * item.exchangeRate * item.quantity;
-      totalCount += item.quantity;
-    });
+    const currencyTotals = {};
+    for (const item of invoiceItems) {
+      try {
+        const product = await productModel.findOne({ qr: item.qr });
+        if (product) {
+          const currencyId = product.currency._id;
+          if (!currencyTotals[currencyId]) {
+            currencyTotals[currencyId] = { totalCount: 0, totalValue: 0 };
+          }
+          // Calculate the total value considering the exchange rate and quantity
+          currencyTotals[currencyId].totalValue +=
+            (item.buyingprice / item.exchangeRate) * item.quantity;
+          currencyTotals[currencyId].totalCount += item.quantity;
+        } else {
+          console.warn(`Product with QR ${item.qr} not found.`);
+        }
+      } catch (err) {
+        console.error(`Error finding product with QR ${item.qr}:`, err.message);
+      }
+    }
 
-    if (existingRecord) {
-      existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
-      await existingRecord.save();
-    } else {
-      await createActiveProductsValue(totalCount, totalValue, dbName);
+    for (const currencyId in currencyTotals) {
+      if (currencyTotals.hasOwnProperty(currencyId)) {
+        const { totalCount, totalValue } = currencyTotals[currencyId];
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: currencyId,
+        });
+
+        if (existingRecord) {
+          existingRecord.activeProductsCount -= totalCount;
+          existingRecord.activeProductsValue -= totalValue;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(
+            totalCount,
+            totalValue,
+            currencyId,
+            dbName
+          );
+        }
+      }
     }
   } catch (err) {
     console.log("purchaseInvoicesServices 844");

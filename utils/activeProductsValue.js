@@ -2,15 +2,19 @@ const mongoose = require("mongoose");
 const activeProductsValue = require("../models/activeProductsValueModel");
 const ApiError = require("./apiError");
 
-const createActiveProductsValue = async (quantity, value, dbName) => {
+const createActiveProductsValue = async (quantity, value, currency, dbName) => {
   const db = mongoose.connection.useDb(dbName);
-  const ActiveProductsValue = db.model("ActiveProductsValue", activeProductsValue);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    activeProductsValue
+  );
 
   try {
-    let existingRecord = await ActiveProductsValue.findOne();
+    let existingRecord = await ActiveProductsValue.findOne({ currency });
 
     if (!existingRecord) {
       const newData = new ActiveProductsValue({
+        currency,
         activeProductsCount: quantity,
         activeProductsValue: value,
       });

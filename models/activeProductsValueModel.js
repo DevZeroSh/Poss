@@ -2,6 +2,10 @@ const mongoose = require("mongoose");
 
 const ActiveProductsValueModel = new mongoose.Schema(
   {
+    currency: {
+      type: mongoose.Schema.ObjectId,
+      required: true,
+    },
     activeProductsCount: {
       type: Number,
       default: 0,

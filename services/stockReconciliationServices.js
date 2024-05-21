@@ -1,12 +1,18 @@
 const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
-
 const productSchema = require("../models/productModel");
 const reconcilSchema = require("../models/stockReconciliationModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const { createProductMovement } = require("../utils/productMovement");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const { createActiveProductsValue } = require("../utils/activeProductsValue");
+const currencySchema = require("../models/currencyModel");
+const categorySchema = require("../models/CategoryModel");
+const brandSchema = require("../models/brandModel");
+const labelsSchema = require("../models/labelsModel");
+const TaxSchema = require("../models/taxModel");
+const UnitSchema = require("../models/UnitsModel");
+const variantSchema = require("../models/variantsModel");
 
 // @desc    Create a new stock reconciliation
 // @route   POST /api/stockReconciliation
@@ -17,6 +23,15 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
     const db = mongoose.connection.useDb(dbName);
     const reconciliationModel = db.model("Reconciliation", reconcilSchema);
     const productModel = db.model("Product", productSchema);
+    db.model("Currency", currencySchema);
+    db.model("Employee", emoloyeeShcema);
+    db.model("Category", categorySchema);
+    db.model("brand", brandSchema);
+    db.model("Labels", labelsSchema);
+    db.model("Tax", TaxSchema);
+    db.model("Unit", UnitSchema);
+    db.model("Variant", variantSchema);
+    db.model("Currency", currencySchema);
 
     // Dealing with date and time START
     // To add 0 if the numeber is smaller than 10
@@ -36,7 +51,17 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
 
     // Formatting the date and time
     const formattedDate =
-      year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds;
+      year +
+      "-" +
+      month +
+      "-" +
+      date +
+      " " +
+      hours +
+      ":" +
+      minutes +
+      ":" +
+      seconds;
     // Dealing with date and time END
 
     // Extract data from the request body
@@ -70,26 +95,60 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
     req.body.items.map(async (item) => {
       if (item.reconciled) {
         try {
-          const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
-          const existingRecord = await ActiveProductsValue.findOne();
-          let totalCountDiff = 0;
-          let totalValueDiff = 0;
-          req.body.items.forEach((existingItem) => {
-            if (existingItem.productId == item.productId) {
-              const quantityDiff = item.realCount - item.recordCount;
-              const valueDiff = item.buyingPrice * item.exchangeRate * quantityDiff;
+          const ActiveProductsValue = db.model(
+            "ActiveProductsValue",
+            ActiveProductsValueModel
+          );
+          const currencyDiffs = {};
 
-              totalCountDiff += quantityDiff;
-              totalValueDiff += valueDiff;
+          for (const existingItem of req.body.items) {
+            if (existingItem.productId === item.productId) {
+              const product = await productModel.findOne({
+                _id: item.productId,
+              });
+
+              if (product) {
+                const currencyId = product.currency._id;
+
+                if (!currencyDiffs[currencyId]) {
+                  currencyDiffs[currencyId] = {
+                    totalCountDiff: 0,
+                    totalValueDiff: 0,
+                  };
+                }
+
+                const quantityDiff = item.realCount - item.recordCount;
+                const valueDiff = item.buyingPrice * quantityDiff;
+
+                currencyDiffs[currencyId].totalCountDiff += quantityDiff;
+                currencyDiffs[currencyId].totalValueDiff += valueDiff;
+              } else {
+                console.warn(`Product with ID ${item.productId} not found.`);
+              }
             }
-          });
+          }
 
-          if (existingRecord) {
-            existingRecord.activeProductsCount += totalCountDiff;
-            existingRecord.activeProductsValue += totalValueDiff;
-            await existingRecord.save();
-          } else {
-            await createActiveProductsValue(totalCountDiff, totalValueDiff, dbName);
+          for (const currencyId in currencyDiffs) {
+            if (currencyDiffs.hasOwnProperty(currencyId)) {
+              const { totalCountDiff, totalValueDiff } =
+                currencyDiffs[currencyId];
+              const existingRecord = await ActiveProductsValue.findOne({
+                currency: currencyId,
+              });
+
+              if (existingRecord) {
+                existingRecord.activeProductsCount += totalCountDiff;
+                existingRecord.activeProductsValue += totalValueDiff;
+                await existingRecord.save();
+              } else {
+                await createActiveProductsValue(
+                  totalCountDiff,
+                  totalValueDiff,
+                  currencyId,
+                  dbName
+                );
+              }
+            }
           }
         } catch (err) {
           console.log("stockReconciliationServices 100");
@@ -110,7 +169,9 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
     return res.status(201).json({ success: true, data: newStockReconcil });
   } catch (error) {
     console.error("Error creating stock reconciliation:", error.message);
-    return res.status(500).json({ success: false, error: "Could not create stock reconciliation" });
+    return res
+      .status(500)
+      .json({ success: false, error: "Could not create stock reconciliation" });
   }
 });
 
@@ -130,7 +191,11 @@ exports.findAllReconciliations = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`Couldn't get the reports`, 404));
   }
 
-  res.status(200).json({ status: "true", results: reconciliation.length, data: reconciliation });
+  res.status(200).json({
+    status: "true",
+    results: reconciliation.length,
+    data: reconciliation,
+  });
 });
 
 // @desc    Get one reconciliation report by ID
@@ -144,10 +209,14 @@ exports.findReconciliationReport = asyncHandler(async (req, res, next) => {
   db.model("Employee", emoloyeeShcema);
 
   const { id } = req.params;
-  const reconciliation = await reconciliationModel.findById(id).sort({ createdAt: -1 });
+  const reconciliation = await reconciliationModel
+    .findById(id)
+    .sort({ createdAt: -1 });
 
   if (!reconciliation) {
-    return next(new ApiError(`No reconciliation record for this id ${id}`, 404));
+    return next(
+      new ApiError(`No reconciliation record for this id ${id}`, 404)
+    );
   }
   res.status(200).json({ status: "true", data: reconciliation });
 });
@@ -161,9 +230,23 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
 
   const reconciliationModel = db.model("Reconciliation", reconcilSchema);
   const productModel = db.model("Product", productSchema);
-  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+  db.model("Currency", currencySchema);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
 
-  const existingReconcileReport = await reconciliationModel.findById(req.params.id);
+  const existingReconcileReport = await reconciliationModel.findById(
+    req.params.id
+  );
   let realCountOld = [];
   existingReconcileReport.items.map((item) => {
     realCountOld.push(item.realCount - item.recordCount);
@@ -176,7 +259,9 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
   );
 
   if (!reconcileReport) {
-    return next(new ApiError(`No reconcileReport found for id ${req.params.id}`, 404));
+    return next(
+      new ApiError(`No reconcileReport found for id ${req.params.id}`, 404)
+    );
   }
 
   // Update the quantity and activeCount of reconciled products
@@ -204,16 +289,33 @@ exports.updataOneReconciliationReport = asyncHandler(async (req, res, next) => {
         );
 
         if (existingItem) {
-          const valueDiff = item.buyingPrice * item.exchangeRate * realCountOld[i];
+          const valueDiff =
+            item.buyingPrice * item.exchangeRate * realCountOld[i];
 
-          let existingRecord = await ActiveProductsValue.findOne();
-          if (!existingRecord) {
-            existingRecord = await createActiveProductsValue(0, 0, dbName);
+          const product = await productModel.findOne({ _id: item.productId });
+
+          if (product) {
+            const currencyId = product.currency._id;
+
+            let existingRecord = await ActiveProductsValue.findOne({
+              currency: currencyId,
+            });
+            if (!existingRecord) {
+              existingRecord = await createActiveProductsValue(
+                0,
+                0,
+                currencyId,
+                dbName
+              );
+            }
+
+            // Update the counts and values for the currency
+            existingRecord.activeProductsCount += realCountOld[i];
+            existingRecord.activeProductsValue += valueDiff;
+            await existingRecord.save();
+          } else {
+            console.warn(`Product with ID ${item.productId} not found.`);
           }
-
-          existingRecord.activeProductsCount += realCountOld[i];
-          existingRecord.activeProductsValue += valueDiff;
-          await existingRecord.save();
         }
       } catch (err) {
         console.log("stockReconciliationServices:", err.message);
