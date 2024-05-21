@@ -23,6 +23,11 @@ const financialFundsSchema = new mongoose.Schema(
             ref: "PaymentType",
         },
         fundDescription: String,
+        activeinpos: {
+            type: Boolean,
+            enum: [true, false],
+            default: false
+        },
     },
     { timestamps: true }
 );

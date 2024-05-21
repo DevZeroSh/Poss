@@ -99,9 +99,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
-  let query = {
-    archives: { $ne: true },
-  };
+  let query;
 
   if (req.query.keyword) {
     query.$or = [

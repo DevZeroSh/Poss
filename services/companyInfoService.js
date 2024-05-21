@@ -336,6 +336,7 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         companyLogo: req.body.companyLogo,
         pinCode: req.body.pinCode,
         color: req.body.color,
+        havePin:req.body.havePin,
       },
       {
         new: true,

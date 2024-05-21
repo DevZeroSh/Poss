@@ -15,7 +15,7 @@ exports.getPricingMethods = asyncHandler(async (req, res) => {
 
   const pricingMethod = await PricingMethodModel.find().populate({
     path: "selectedCategory",
-  });
+  }).lean();
   res.status(200).json({ status: "true", data: pricingMethod });
 });
 
@@ -23,12 +23,12 @@ exports.getPricingMethods = asyncHandler(async (req, res) => {
 //@route POST /api/pricingmethod
 //accsess private
 exports.createPricingMethod = asyncHandler(async (req, res, next) => {
-  try {
+
     const catId = new mongoose.Types.ObjectId(req.body.selectedCategory);
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
     const PricingMethodModel = db.model("PricingMethod", pricingMethodSchema);
-    const categoryModel = db.model("categories", categorySchema);
+    const categoryModel = db.model("Category", categorySchema);
 
     const category = await categoryModel.findById(catId);
 
@@ -116,11 +116,8 @@ exports.createPricingMethod = asyncHandler(async (req, res, next) => {
       }
       
     }
-  } catch (error) {
-    return next(
-      new ApiError(`Error in createPricingMethod: ${error.message}`, 500)
-    );
-  }
+  
+
 });
 
 //@desc get specific category pricing method for category
