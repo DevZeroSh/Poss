@@ -625,7 +625,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       .filter((allocation) => allocation.amount !== 0)
       .map((allocation) => ({
         fundId: allocation.fundId,
-        allocatedAmount: allocation.amount,
+        allocatedAmount: parseFloat(allocation.amount),
       })),
   });
 
@@ -668,12 +668,12 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       },
     });
 
-    totalAllocatedAmount += amount;
+    totalAllocatedAmount += parseFloat(amount* exchangeRate);
   }
 
   // Update the order with the correct totalAllocatedAmount
   await orderModel.findByIdAndUpdate(order._id, {
-    taxPrice: totalAllocatedAmount,
+    taxPrice: parseFloat(totalAllocatedAmount),
     totalOrderPrice: parseFloat(totalAllocatedAmount),
   });
 

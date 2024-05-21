@@ -99,22 +99,24 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
-  let query;
+  let query = {};
 
+  // Exclude archives during search
   if (req.query.keyword) {
+    query.archives = { $ne: true };
     query.$or = [
       { name: { $regex: req.query.keyword, $options: "i" } },
-      { qr: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } }
     ];
   }
 
-  if (req.query.type === "category" || req.query.type === "brand") {
+  if (req.query.type==="category" || req.query.type==="brand") {
     query.$and = [];
-    if (req.query.type === "category") {
+    if (req.query.type==="category") {
       query.$and.push({ category: req.query.id });
     }
-    if (req.query.type === "brand") {
-      query.$and.push({ brand: req.query.id });
+    if (req.query.type==="brand") {
+      query.$and.push({ brand: req.query.id  });
     }
   }
 
@@ -140,12 +142,12 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .limit(pageSize);
 
   const notices = product
-    .filter((item) => item.alarm >= item.quantity && item.archives !== "true")
-    .map((item) => ({
+    .filter(item => item.alarm >= item.quantity && item.archives !== "true")
+    .map(item => ({
       qr: item.qr,
       name: item.name,
       id: item._id,
-      message: `${item.qr} is low on stock.`,
+      message: `${item.qr} is low on stock.`
     }));
 
   res.status(200).json({
@@ -153,9 +155,13 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     results: product.length,
     Pages: totalPages,
     data: product,
-    notices,
+    notices
   });
 });
+
+
+
+
 
 // @desc Create  product
 // @route Post /api/product
@@ -170,13 +176,9 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     req.body.slug = slugify(req.body.name);
     const product = await productModel.create(req.body);
     const currency = await currencyModel.findById(product.currency);
-    const productValue = product.activeCount * product.buyingprice;
-    createActiveProductsValue(
-      product.activeCount,
-      productValue,
-      currency._id,
-      dbName
-    )
+    const productValue =
+      product.activeCount * product.buyingprice * currency.exchangeRate;
+    createActiveProductsValue(product.activeCount, productValue, dbName)
       .then((savedData) => {})
       .catch((error) => {
         console.log(error);
@@ -250,6 +252,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
+  console.log(req.body);
   try {
     const existingProduct = await productModel.findById({ _id: id });
     if (!existingProduct) {
@@ -291,35 +294,31 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
         );
 
         if (product.currency) {
-          const existingRecord = await ActiveProductsValue.findOne({
-            currency: req.body.currency,
-          });
-
-          // Calculate the total value for the new and old quantities and prices
-          const newProductValue = req.body.quantity * req.body.buyingprice;
-          const oldProductValue =
-            req.body.quantityBefore * req.body.buyingpriceBefore;
-
-          // The difference in product value
-          const productValueDiff = newProductValue - oldProductValue;
-
-          // Calculate the difference in quantity
+          const existingRecord = await ActiveProductsValue.findOne();
           const diffQuantity = req.body.quantity - req.body.quantityBefore;
+          const diffPrice = req.body.buyingprice - req.body.buyingpriceBefore;
 
           if (existingRecord) {
             existingRecord.activeProductsCount += diffQuantity;
-            existingRecord.activeProductsValue += productValueDiff;
+            existingRecord.activeProductsValue +=
+              diffQuantity *
+                req.body.buyingprice *
+                product.currency.exchangeRate +
+              diffPrice * req.body.quantity * product.currency.exchangeRate;
             await existingRecord.save();
           } else {
+            const productValue =
+              req.body.quantity *
+              req.body.buyingprice *
+              product.currency.exchangeRate;
             await createActiveProductsValue(
               req.body.quantity,
-              newProductValue,
-              req.body.currency,
+              productValue,
               dbName
             );
           }
         } else {
-          console.error("Currency not found 319");
+          console.error("Currency not found");
         }
       }
     } catch (e) {
@@ -365,43 +364,38 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   if (!product) {
     return next(new ApiError(`No Product for this id ${id}`, 404));
   }
-  console.log(product);
+
   try {
-    const existingRecord = await ActiveProductsValue.findOne({
-      currency: product.currency._id,
-    });
+    const existingRecord = await ActiveProductsValue.findOne();
 
-    const diffValue = product.buyingprice * product.activeCount;
+    const diffValue =
+      product.buyingprice * product.currency.exchangeRate * product.activeCount;
     product.archives = product.archives === "true" ? "false" : "true";
-
     // Update only the 'archives' field
     const updatedProduct = await productModel.findByIdAndUpdate(
       id,
       { $set: { archives: product.archives } },
       { new: true }
     );
-
-    const movementType = product.archives === "true" ? "out" : "in";
-    const movementDescription =
-      product.archives === "true" ? "archive" : "unarchive";
     const savedMovement = await createProductMovement(
       id,
       product.quantity,
-      movementType,
-      movementDescription,
+      product.archives === "true" ? "out" : "in",
+      product.archives === "true" ? "archive" : "unarchive",
       dbName
     );
-
     if (existingRecord) {
       existingRecord.activeProductsCount -= product.activeCount;
       existingRecord.activeProductsValue -= diffValue;
       await existingRecord.save();
     } else {
-      const productValue = product.activeCount * product.buyingprice;
+      const productValue =
+        product.activeCount *
+        product.buyingprice *
+        product.currency.exchangeRate;
       await createActiveProductsValue(
         product.activeCount,
         productValue,
-        product.currency,
         dbName
       );
     }
@@ -490,9 +484,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     res.json({ success: "Success", duplicateQRs });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -528,43 +520,38 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne({
-      currency: product.currency,
-    });
-    const diffValue = product.buyingprice * newQuantity;
+    const existingRecord = await ActiveProductsValue.findOne();
+    const diffValue =
+      product.buyingprice * product.currency.exchangeRate * newQuantity;
 
     let type = "";
     let source = "";
-
     if (req.body.type === "deActive") {
       // Update the product
       await productModel.findByIdAndUpdate(id, {
         $inc: {
-          deactivateCount: newQuantity,
+          deactivateCount: +newQuantity,
           activeCount: -newQuantity,
         },
       });
       type = "out";
       source = "deactivate";
-
       if (existingRecord) {
         existingRecord.activeProductsCount -= newQuantity;
         existingRecord.activeProductsValue -= diffValue;
         await existingRecord.save();
       } else {
-        const productValue = product.activeCount * product.buyingprice;
-        await createActiveProductsValue(
-          product.activeCount,
-          productValue,
-          product.currency,
-          dbName
-        );
+        const productValue =
+          product.activeCount *
+          product.buyingprice *
+          product.currency.exchangeRate;
+        await createActiveProductsValue(product.quantity, productValue, dbName);
       }
     } else if (req.body.type === "active") {
       await productModel.findByIdAndUpdate(id, {
         $inc: {
           deactivateCount: -newQuantity,
-          activeCount: newQuantity,
+          activeCount: +newQuantity,
         },
       });
       type = "in";
@@ -575,15 +562,10 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
         existingRecord.activeProductsValue += diffValue;
         await existingRecord.save();
       } else {
-        await createActiveProductsValue(
-          newQuantity,
-          diffValue,
-          product.currency,
-          dbName
-        );
+        const productValue = diffValue;
+        await createActiveProductsValue(newQuantity, productValue, dbName);
       }
     }
-
     await createProductMovement(id, newQuantity, type, source, dbName);
     res.status(200).json({ status: "true", message: "Product Deactivated" });
   } catch (error) {
