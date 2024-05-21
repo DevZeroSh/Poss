@@ -9,7 +9,10 @@ exports.getReportsFinancialFunds = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
 
   const financialFundReports = await ReportsFinancialFundsModel.find({
     archives: { $ne: true },
@@ -17,7 +20,7 @@ exports.getReportsFinancialFunds = asyncHandler(async (req, res, next) => {
     .sort({ createdAt: -1 })
     .populate({
       path: "financialFundId",
-      select: "fundName",
+      select: "fundName activeinpos",
     });
   res.status(200).json({ status: "true", data: financialFundReports });
 });
@@ -28,7 +31,10 @@ exports.getSpecificReports = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
 
   const financialReports = await ReportsFinancialFundsModel.find({
     financialFundId: id,
