@@ -18,8 +18,8 @@ const setImageURL = (doc) => {
     doc.images = imageList;
   }
 };
-silderSchema.post("init", (doc) => {
-  setImageURL(doc);
+silderSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
 });
 
 //Create

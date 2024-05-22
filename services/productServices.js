@@ -224,7 +224,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   let query = productModel
     .findById(id)
-    .populate({ path: "reviews", select: "title rating" });
+    .populate({ path: "reviews"});
 
   const product = await query;
 
@@ -252,7 +252,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
-  console.log(req.body);
+
   try {
     const existingProduct = await productModel.findById({ _id: id });
     if (!existingProduct) {

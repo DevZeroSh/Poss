@@ -2,6 +2,14 @@ const { default: mongoose } = require("mongoose");
 const reviewSchema = require("../../models/ecommerce/reviewModel");
 const asyncHandler = require("express-async-handler");
 const customarSchema = require("../../models/customarModel");
+const productSchema = require("../../models/productModel");
+const categorySchema = require("../../models/CategoryModel");
+const brandSchema = require("../../models/brandModel");
+const labelsSchema = require("../../models/labelsModel");
+const TaxSchema = require("../../models/taxModel");
+const UnitSchema = require("../../models/UnitsModel");
+const variantSchema = require("../../models/variantsModel");
+const currencySchema = require("../../models/currencyModel");
 
 //@desc Get list of reviews
 //@route GEt /api/review
@@ -42,18 +50,49 @@ exports.getOneReview = asyncHandler(async (req, res, next) => {
 //@desc Post list of review
 //@route Post /api/review/:id
 //@accsess public
+
 exports.createReview = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  
   const reviewModel = db.model("Review", reviewSchema);
+  const Product = db.model("Product", productSchema);
+  db.model("Customar", customarSchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
+  try {
+    const review = await reviewModel.create(req.body);
 
-  const review = await reviewModel.create(req.body);
-  reviewModel.calcAverageRatingsAndQuantity(req.body.product, dbName);
+    const [result] = await reviewModel.aggregate([
+      { $match: { product: new mongoose.Types.ObjectId(req.body.product) } },
+      {
+        $group: {
+          _id: "$product",
+          avgRatings: { $avg: "$rating" },
+          ratingsQuantity: { $sum: 1 },
+        },
+      },
+    ]);
 
-  res
-    .status(200)
-    .json({ status: "success", results: review.length, data: review });
+    const updateData = result
+      ? { ratingsAverage: result.avgRatings, ratingsQuantity: result.ratingsQuantity }
+      : { ratingsAverage: 0, ratingsQuantity: 0 };
+
+    await Product.findByIdAndUpdate(req.body.product, updateData);
+
+    res.status(200).json({ status: "success", data: review });
+  } catch (error) {
+    next(error);
+  }
 });
+
+
+
 
 //@desc Put list of review
 //@route Put /api/review/:id

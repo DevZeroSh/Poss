@@ -626,9 +626,9 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       .map((allocation) => ({
         fundId: allocation.fundId,
         allocatedAmount: parseFloat(allocation.amount),
+        exchangeRateIcon: allocation.exchangeRateIcon
       })),
   });
-
   // Validate financial funds and calculate total allocated amount
   if (!financialFunds || financialFunds.length === 0) {
     return res.status(400).json({
@@ -668,7 +668,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       },
     });
 
-    totalAllocatedAmount += parseFloat(amount* exchangeRate);
+    totalAllocatedAmount += parseFloat(amount * exchangeRate);
   }
 
   // Update the order with the correct totalAllocatedAmount

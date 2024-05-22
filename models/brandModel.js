@@ -24,8 +24,8 @@ const setImageURL = (doc) => {
   }
 };
 
-brandSchema.post("init", (doc) => {
-  setImageURL(doc);
+brandSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
 });
 
 //Create

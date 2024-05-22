@@ -17,6 +17,7 @@ const orderSchema = new mongoose.Schema(
           type: Number,
         },
         exchangeRate: Number,
+        exchangeRateIcon:String,
       },
     ],
     onefinancialFunds: {

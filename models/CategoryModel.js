@@ -20,9 +20,12 @@ categorySchema.pre(/^find/, function (next) {
 categorySchema.post("init", (doc) => {
   setImageURL(doc);
 });
-
+categorySchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
+});
 //Create
 categorySchema.post("save", (doc) => {
+  
   setImageURL(doc);
 });
 

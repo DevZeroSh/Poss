@@ -30,8 +30,8 @@ const setImageURL = (doc) => {
   }
 };
 
-companyIfnoSchema.post("init", (doc) => {
-  setImageURL(doc);
+companyIfnoSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
 });
 
 //Create

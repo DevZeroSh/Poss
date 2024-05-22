@@ -138,16 +138,9 @@ const productSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
-
-productSchema.virtual("reviews", {
-  ref: "Review",
-  foreignField: "product",
-  localField: "_id",
-});
-
 const setImageURL = (doc) => {
   if (doc.image) {
-    const imageUrl = `${process.env.BASE_URL2}/product/${doc.image}`;
+    const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
   }
   if (doc.imagesArray) {
@@ -160,18 +153,24 @@ const setImageURL = (doc) => {
   }
 };
 
-productSchema.post("init", (doc) => {
-  setImageURL(doc);
+productSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
 });
 
 //Create
 productSchema.post("save", (doc) => {
   setImageURL(doc);
 });
+productSchema.virtual("reviews", {
+  ref: "Review",
+  foreignField: "product",
+  localField: "_id",
+});
+
+
 
 productSchema.pre(/^find/, function (next) {
-  this.populate({ path: "category" })
-    .lean()
+  this.populate({ path: "category" }).lean()
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })

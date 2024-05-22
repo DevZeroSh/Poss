@@ -150,10 +150,8 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   const { id } = req.params;
 
-  const order = await orderModel.findById(id).populate({path:"cartItems.product",select:"name qr image"});
-  if (!order) {
-    return next(ApiError(`No order found for ${id}`));
-  }
+  const order = await orderModel.findById(id).populate({ path: "cartItems.product" }).lean();
+
   res.status(200).json({ status: "success", data: order });
 });
 
@@ -166,7 +164,7 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
 
   const order = await orderModel.findById(id);
   if (!order) {
-    return next(ApiError(`No order found for ${id}`));
+    return next(new ApiError(`No order found for ${id}`));
   }
 
   // Update orderStatus for each item in cartItems
