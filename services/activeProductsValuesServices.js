@@ -18,15 +18,24 @@ exports.getAllActiveProductsValues = asyncHandler(async (req, res, next) => {
 
     await Promise.all(
       productsValues.map(async (product) => {
-        const { exchangeRate } = await currencyModel.findOne({
+        const currency = await currencyModel.findOne({
           _id: product.currency,
         });
 
+        if (!currency) {
+          throw new Error(`Currency not found for ID ${product.currency}`);
+        }
+
+        const { exchangeRate, currencyName, currencyCode } = currency;
         const exchangedValue = product.activeProductsValue * exchangeRate;
 
         // Aggregate the totals
         totalActiveProductsCount += product.activeProductsCount;
         totalExchangedValue += exchangedValue;
+
+        // Append currency details to the product object
+        product._doc.currencyName = currencyName;
+        product._doc.currencyCode = currencyCode;
       })
     );
 
@@ -37,7 +46,9 @@ exports.getAllActiveProductsValues = asyncHandler(async (req, res, next) => {
     };
 
     // Send the result in the response
-    res.status(200).json({ status: "true", data: result });
+    res
+      .status(200)
+      .json({ status: "true", data: result, details: productsValues });
   } catch (error) {
     res.status(500).json({
       error: `Error getting active products values: ${error.message}`,
