@@ -80,7 +80,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 
 // @desc Get list product
 // @route Get /api/product
-// @access public
+// @access Public
 exports.getProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -101,12 +101,10 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
   let query = {};
 
-  // Exclude archives during search
   if (req.query.keyword) {
-    query.archives = { $ne: true };
     query.$or = [
       { name: { $regex: req.query.keyword, $options: "i" } },
-      { qr: { $regex: req.query.keyword, $options: "i" } }
+      { qr: { $regex: req.query.keyword, $options: "i" } },
     ];
   }
 
@@ -142,12 +140,12 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .limit(pageSize);
 
   const notices = product
-    .filter(item => item.alarm >= item.quantity && item.archives !== "true")
-    .map(item => ({
+    .filter((item) => item.alarm >= item.quantity && item.archives !== "true")
+    .map((item) => ({
       qr: item.qr,
       name: item.name,
       id: item._id,
-      message: `${item.qr} is low on stock.`
+      message: `${item.qr} is low on stock.`,
     }));
 
   res.status(200).json({
@@ -155,11 +153,9 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     results: product.length,
     Pages: totalPages,
     data: product,
-    notices
+    notices,
   });
 });
-
-
 
 // @desc Create  product
 // @route Post /api/product
@@ -174,10 +170,14 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     req.body.slug = slugify(req.body.name);
     const product = await productModel.create(req.body);
     const currency = await currencyModel.findById(product.currency);
-    const productValue =
-      product.activeCount * product.buyingprice * currency.exchangeRate;
-    createActiveProductsValue(product.activeCount, productValue, dbName)
-      .then((savedData) => { })
+    const productValue = product.activeCount * product.buyingprice;
+    createActiveProductsValue(
+      product.activeCount,
+      productValue,
+      currency._id,
+      dbName
+    )
+      .then((savedData) => {})
       .catch((error) => {
         console.log(error);
       });
@@ -220,9 +220,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   db.model("Customar", customarSchema);
   const { id } = req.params;
-  let query = productModel
-    .findById(id)
-    .populate({ path: "reviews" });
+  let query = productModel.findById(id).populate({ path: "reviews" });
 
   const product = await query;
 
@@ -250,7 +248,6 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
-
   try {
     const existingProduct = await productModel.findById({ _id: id });
     if (!existingProduct) {
@@ -258,6 +255,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     }
 
     const quantityChanged = existingProduct.quantity != req.body.quantity;
+
     const product = await productModel.findByIdAndUpdate(
       { _id: id },
       req.body,
@@ -291,31 +289,35 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
         );
 
         if (product.currency) {
-          const existingRecord = await ActiveProductsValue.findOne();
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: req.body.currency,
+          });
+
+          // Calculate the total value for the new and old quantities and prices
+          const newProductValue = req.body.quantity * req.body.buyingprice;
+          const oldProductValue =
+            req.body.quantityBefore * req.body.buyingpriceBefore;
+
+          // The difference in product value
+          const productValueDiff = newProductValue - oldProductValue;
+
+          // Calculate the difference in quantity
           const diffQuantity = req.body.quantity - req.body.quantityBefore;
-          const diffPrice = req.body.buyingprice - req.body.buyingpriceBefore;
 
           if (existingRecord) {
             existingRecord.activeProductsCount += diffQuantity;
-            existingRecord.activeProductsValue +=
-              diffQuantity *
-              req.body.buyingprice *
-              product.currency.exchangeRate +
-              diffPrice * req.body.quantity * product.currency.exchangeRate;
+            existingRecord.activeProductsValue += productValueDiff;
             await existingRecord.save();
           } else {
-            const productValue =
-              req.body.quantity *
-              req.body.buyingprice *
-              product.currency.exchangeRate;
             await createActiveProductsValue(
               req.body.quantity,
-              productValue,
+              newProductValue,
+              req.body.currency,
               dbName
             );
           }
         } else {
-          console.error("Currency not found");
+          console.error("Currency not found 319");
         }
       }
     } catch (e) {
@@ -361,38 +363,42 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   if (!product) {
     return next(new ApiError(`No Product for this id ${id}`, 404));
   }
-
   try {
-    const existingRecord = await ActiveProductsValue.findOne();
+    const existingRecord = await ActiveProductsValue.findOne({
+      currency: product.currency._id,
+    });
 
-    const diffValue =
-      product.buyingprice * product.currency.exchangeRate * product.activeCount;
+    const diffValue = product.buyingprice * product.activeCount;
     product.archives = product.archives === "true" ? "false" : "true";
+
     // Update only the 'archives' field
     const updatedProduct = await productModel.findByIdAndUpdate(
       id,
       { $set: { archives: product.archives } },
       { new: true }
     );
+
+    const movementType = product.archives === "true" ? "out" : "in";
+    const movementDescription =
+      product.archives === "true" ? "archive" : "unarchive";
     const savedMovement = await createProductMovement(
       id,
       product.quantity,
-      product.archives === "true" ? "out" : "in",
-      product.archives === "true" ? "archive" : "unarchive",
+      movementType,
+      movementDescription,
       dbName
     );
+
     if (existingRecord) {
       existingRecord.activeProductsCount -= product.activeCount;
       existingRecord.activeProductsValue -= diffValue;
       await existingRecord.save();
     } else {
-      const productValue =
-        product.activeCount *
-        product.buyingprice *
-        product.currency.exchangeRate;
+      const productValue = product.activeCount * product.buyingprice;
       await createActiveProductsValue(
         product.activeCount,
         productValue,
+        product.currency,
         dbName
       );
     }
@@ -438,7 +444,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });
@@ -481,7 +487,9 @@ exports.addProduct = asyncHandler(async (req, res) => {
     res.json({ success: "Success", duplicateQRs });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
   }
 });
 
@@ -517,38 +525,43 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
       "ActiveProductsValue",
       ActiveProductsValueModel
     );
-    const existingRecord = await ActiveProductsValue.findOne();
-    const diffValue =
-      product.buyingprice * product.currency.exchangeRate * newQuantity;
+    const existingRecord = await ActiveProductsValue.findOne({
+      currency: product.currency,
+    });
+    const diffValue = product.buyingprice * newQuantity;
 
     let type = "";
     let source = "";
+
     if (req.body.type === "deActive") {
       // Update the product
       await productModel.findByIdAndUpdate(id, {
         $inc: {
-          deactivateCount: +newQuantity,
+          deactivateCount: newQuantity,
           activeCount: -newQuantity,
         },
       });
       type = "out";
       source = "deactivate";
+
       if (existingRecord) {
         existingRecord.activeProductsCount -= newQuantity;
         existingRecord.activeProductsValue -= diffValue;
         await existingRecord.save();
       } else {
-        const productValue =
-          product.activeCount *
-          product.buyingprice *
-          product.currency.exchangeRate;
-        await createActiveProductsValue(product.quantity, productValue, dbName);
+        const productValue = product.activeCount * product.buyingprice;
+        await createActiveProductsValue(
+          product.activeCount,
+          productValue,
+          product.currency,
+          dbName
+        );
       }
     } else if (req.body.type === "active") {
       await productModel.findByIdAndUpdate(id, {
         $inc: {
           deactivateCount: -newQuantity,
-          activeCount: +newQuantity,
+          activeCount: newQuantity,
         },
       });
       type = "in";
@@ -559,10 +572,15 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
         existingRecord.activeProductsValue += diffValue;
         await existingRecord.save();
       } else {
-        const productValue = diffValue;
-        await createActiveProductsValue(newQuantity, productValue, dbName);
+        await createActiveProductsValue(
+          newQuantity,
+          diffValue,
+          product.currency,
+          dbName
+        );
       }
     }
+
     await createProductMovement(id, newQuantity, type, source, dbName);
     res.status(200).json({ status: "true", message: "Product Deactivated" });
   } catch (error) {
