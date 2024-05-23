@@ -191,6 +191,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     counter: nextCounter,
     paymentType: "Single Fund",
     employee: req.user._id,
+    type: "pos",
   });
   try {
     // Process cartItems
@@ -626,7 +627,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       .map((allocation) => ({
         fundId: allocation.fundId,
         allocatedAmount: parseFloat(allocation.amount),
-        exchangeRateIcon: allocation.exchangeRateIcon
+        exchangeRateIcon: allocation.exchangeRateIcon,
       })),
   });
   // Validate financial funds and calculate total allocated amount
@@ -728,6 +729,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     paymentType: "Multiple Funds",
     employee: req.user._id,
     counter: nextCounter,
+    type: "pos",
   });
 
   cartItems.map(async (item) => {
