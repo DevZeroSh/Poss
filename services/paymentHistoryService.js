@@ -15,7 +15,6 @@ const createPaymentHistory = async (
 ) => {
   const db = mongoose.connection.useDb(dbName);
   const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
-
   try {
     // Create a new payment history object
     const newPaymentHistoryData = {

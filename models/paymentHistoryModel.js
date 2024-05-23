@@ -4,7 +4,7 @@ const PaymentHistorySchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["paid", "invoice"],
+      enum: ["payment", "invoice","Opening balance"],
     },
     not: {
       type: String,

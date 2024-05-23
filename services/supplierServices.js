@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const supplierSchema = require("../models/suppliersModel");
-const { Search } = require("../utils/search");
 const productSchema = require("../models/productModel");
 const categorySchema = require("../models/CategoryModel");
 const brandSchema = require("../models/brandModel");
@@ -11,14 +10,52 @@ const TaxSchema = require("../models/taxModel");
 const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
 const currencySchema = require("../models/currencyModel");
+const { createPaymentHistory } = require("./paymentHistoryService");
 
 //Create New Supplier
 //rol:Who has rol can create
 exports.createSupplier = asyncHandler(async (req, res, next) => {
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
+
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
   const supplier = await supplierModel.create(req.body);
+  await createPaymentHistory(
+    "Opening balance",
+    supplier.date || formattedDate,
+    0,
+    supplier.TotalUnpaid,
+    "supplier",
+    supplier.id,
+    "",
+    dbName
+  );
+
   res
     .status(201)
     .json({ status: "true", message: "Supplier Inserted", data: supplier });
@@ -59,10 +96,10 @@ exports.getSupplier = asyncHandler(async (req, res, next) => {
 
   if (!supplier) {
     return next(new ApiError(`There is no supplier with this id ${id}`, 404));
-  } 
-    
+  }
+
   res.status(200).json({ status: "true", data: supplier });
-  
+
 });
 
 //Update one Supplier

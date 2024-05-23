@@ -26,7 +26,7 @@ exports.getAllProductsMovements = asyncHandler(async (req, res, next) => {
     db.model("Currency", currencySchema);
 
     try {
-        const movements = await productMovement.find().populate("productId");
+        const movements = await productMovement.find().populate("productId").lean();
         res.status(200).json({ status: "true", data: movements });
     } catch (error) {
         res.status(500).json({ error: `Error getting product movements: ${error.message}` });

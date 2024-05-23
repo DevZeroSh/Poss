@@ -6,7 +6,7 @@ const customarSchema = new mongoose.Schema(
       type: String,
       require: [true, "Customar Name Required"],
       minlength: [3, "Too short customar name"],
-      maxlength: [30, "Too long customar name"],
+      maxlength: [300, "Too long customar name"],
     },
     phoneNumber: {
       type: String,
@@ -48,6 +48,7 @@ const customarSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
+    date: String,
     total: { type: Number, default: 0 },
     TotalUnpaid: { type: Number, default: 0 },
     password: String,
@@ -55,6 +56,7 @@ const customarSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     resetCodeVerified: Boolean,
     passwordChangedAt: Date,
+
     wishlist: [
       {
         type: mongoose.Schema.ObjectId,

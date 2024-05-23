@@ -109,7 +109,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     paymentText = "payment-sup";
     financialFunds.fundBalance -= req.body.total;
     await createPaymentHistory(
-      "paid",
+      "payment",
       formattedDate,
       req.body.totalMainCurrency,
       suppler.TotalUnpaid,
@@ -177,7 +177,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await customer.save();
 
     await createPaymentHistory(
-      "paid",
+      "payment",
       formattedDate,
       totalMainCurrency,
       customer.TotalUnpaid,
@@ -212,7 +212,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await suppler.save();
     paymentText = "payment-sup";
     await createPaymentHistory(
-      "paid",
+      "payment",
       formattedDate,
       req.body.totalMainCurrency,
       suppler.TotalUnpaid,
@@ -245,7 +245,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     financialFunds.fundBalance += req.body.total;
     await sales.save();
     await createPaymentHistory(
-      "paid",
+      "payment",
       formattedDate,
       req.body.totalMainCurrency,
       customer.TotalUnpaid,

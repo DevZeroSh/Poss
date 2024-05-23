@@ -80,7 +80,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 
 // @desc Get list product
 // @route Get /api/product
-// @access Private
+// @access public
 exports.getProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -110,13 +110,13 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     ];
   }
 
-  if (req.query.type==="category" || req.query.type==="brand") {
+  if (req.query.type === "category" || req.query.type === "brand") {
     query.$and = [];
-    if (req.query.type==="category") {
+    if (req.query.type === "category") {
       query.$and.push({ category: req.query.id });
     }
-    if (req.query.type==="brand") {
-      query.$and.push({ brand: req.query.id  });
+    if (req.query.type === "brand") {
+      query.$and.push({ brand: req.query.id });
     }
   }
 
@@ -161,8 +161,6 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
 
 
 
-
-
 // @desc Create  product
 // @route Post /api/product
 // @access Private
@@ -179,7 +177,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const productValue =
       product.activeCount * product.buyingprice * currency.exchangeRate;
     createActiveProductsValue(product.activeCount, productValue, dbName)
-      .then((savedData) => {})
+      .then((savedData) => { })
       .catch((error) => {
         console.log(error);
       });
@@ -224,7 +222,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   let query = productModel
     .findById(id)
-    .populate({ path: "reviews"});
+    .populate({ path: "reviews" });
 
   const product = await query;
 
@@ -260,7 +258,6 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     }
 
     const quantityChanged = existingProduct.quantity != req.body.quantity;
-
     const product = await productModel.findByIdAndUpdate(
       { _id: id },
       req.body,
@@ -302,8 +299,8 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
             existingRecord.activeProductsCount += diffQuantity;
             existingRecord.activeProductsValue +=
               diffQuantity *
-                req.body.buyingprice *
-                product.currency.exchangeRate +
+              req.body.buyingprice *
+              product.currency.exchangeRate +
               diffPrice * req.body.quantity * product.currency.exchangeRate;
             await existingRecord.save();
           } else {
@@ -441,7 +438,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });

@@ -130,6 +130,7 @@ const productSchema = new mongoose.Schema(
       type: Map,
       of: String,
     },
+    addToCart: { type: Number, default: 0 },
   },
   {
     timestamps: true,

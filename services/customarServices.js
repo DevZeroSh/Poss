@@ -5,13 +5,38 @@ const customarSchema = require("../models/customarModel");
 const { Search } = require("../utils/search");
 const bcrypt = require("bcrypt");
 const createToken = require("../utils/createToken");
+const { createPaymentHistory } = require("./paymentHistoryService");
 //Create New Customar
 //@rol: Who has rol can create
 exports.createCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
 
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
   const nextCounter = (await customersModel.countDocuments()) + 1;
   if (
     req.body.email === null ||
@@ -21,6 +46,16 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
     req.body.email = `email@email.email${nextCounter}`;
   }
   const customar = await customersModel.create(req.body);
+  await createPaymentHistory(
+    "Opening balance",
+    customar.date || formattedDate,
+    0,
+    customar.TotalUnpaid,
+    "customer",
+    customar.id,
+    "",
+    dbName
+  );
   res
     .status(201)
     .json({ status: "true", message: "Customar Inserted", data: customar });
