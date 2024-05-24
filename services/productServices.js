@@ -157,6 +157,36 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   });
 });
 
+
+
+//
+exports.getLezyProduct = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
+  db.model("Review", reviewSchema);
+  db.model("Customar", customarSchema);
+
+  let limit = req.query.limit
+  let skip = req.query.skip
+
+  const product = await productModel.find().skip(parseInt(skip))
+    .limit(parseInt(limit))
+  res.status(200).json({
+    status: "true",
+    results: product.length,
+    data: product,
+
+  });
+});
 // @desc Create  product
 // @route Post /api/product
 // @access Private
@@ -177,7 +207,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
       currency._id,
       dbName
     )
-      .then((savedData) => {})
+      .then((savedData) => { })
       .catch((error) => {
         console.log(error);
       });
@@ -444,7 +474,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });
