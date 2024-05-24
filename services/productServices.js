@@ -177,12 +177,46 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
   let limit = req.query.limit
   let skip = req.query.skip
+  let query = {};
 
-  const product = await productModel.find().skip(parseInt(skip))
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+  if (req.query.type === "category" || req.query.type === "brand") {
+    query.$and = [];
+    if (req.query.type === "category") {
+      query.$and.push({ category: req.query.id });
+    }
+    if (req.query.type === "brand") {
+      query.$and.push({ brand: req.query.id });
+    }
+  }
+
+  if (req.query.label) {
+    query.label = req.query.label;
+  }
+
+  let sortQuery = {};
+  if (req.query.sold) {
+    sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
+  } else {
+    sortQuery = { createdAt: -1 };
+  }
+
+  const totalItems = await productModel.countDocuments(query);
+
+  const totalPages = Math.ceil(totalItems / limit);
+  const product = await productModel.find(query)
+    .sort(sortQuery).skip(parseInt(skip))
     .limit(parseInt(limit))
   res.status(200).json({
     status: "true",
     results: product.length,
+    Pages: totalPages,
     data: product,
 
   });
