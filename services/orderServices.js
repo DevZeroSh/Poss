@@ -26,6 +26,8 @@ const customarSchema = require("../models/customarModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const { createActiveProductsValue } = require("../utils/activeProductsValue");
 const { createPaymentHistory } = require("./paymentHistoryService");
+const paymentTypesSchema = require("../models/paymentTypesModel");
+const expensesSchema = require("../models/expensesModel");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/orders/cartId
@@ -35,13 +37,15 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema)
+
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
+  const expensesModel = db.model("Expenses", expensesSchema);
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
@@ -49,6 +53,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
+  db.model("PaymentType", paymentTypesSchema);
   const cartItems = req.body.cartItems;
   // app settings
   function padZero(value) {
@@ -89,8 +94,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const financialFundsId = req.body.financialFunds;
 
   // 1) Find the financial funds document based on the provided ID
-  const financialFunds = await FinancialFundsModel.findById(financialFundsId);
-
+  const financialFunds = await FinancialFundsModel.findById(financialFundsId).populate({ path: "fundPaymentType" });;
+  console.log(financialFunds)
   if (!financialFunds) {
     return next(
       new ApiError(
@@ -110,7 +115,17 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   } else {
     financialFunds.fundBalance += req.body.priceExchangeRate;
   }
-
+  if (financialFunds.fundPaymentType.haveRatio === "true") {
+    const nextCounter = (await expensesModel.countDocuments()) + 1;
+    const expenseQuantityAfterKdv = req.body.totalPriceAfterDiscount / exchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)|| req.body.priceExchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)
+    req.body.expenseQuantityAfterKdv = expenseQuantityAfterKdv;
+    req.body.expenseQuantityBeforeKdv = expenseQuantityAfterKdv;
+    req.body.expenseCategory = financialFunds.fundPaymentType.expenseCategory;
+    req.body.counter = nextCounter;
+    req.body.expenseDate = formattedDate;
+    req.body.type="paid"
+    await expensesModel.create(req.body);
+  }
   // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({
     employee: req.user._id,
@@ -841,7 +856,7 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
     const query = {
       $and: [
         {
-          $or: [{ counter: { $regex: req.query.keyword, $options: "i" } }],
+          $or: [{ counter: req.query.keyword }],
         },
         { archives: { $ne: true } },
       ],

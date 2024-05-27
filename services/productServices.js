@@ -175,8 +175,8 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   db.model("Customar", customarSchema);
 
-  let limit = req.query.limit
-  let skip = req.query.skip
+  let limit = req.query.limit || 20
+  let skip = req.query.skip || 10
   let query = {};
 
   if (req.query.keyword) {

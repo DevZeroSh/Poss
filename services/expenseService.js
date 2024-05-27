@@ -75,7 +75,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     req.body.expenseTax = taxValue.tax;
 
     if (req.body.paid == "paid") {
-      const fundId = req.body.expenseFinancialFund; // replace with your actual ID
+      const fundId = req.body.expenseFinancialFund;
 
       // Find the financial fund by ID
       const financialFund = await FinancialFundsModel.findById(fundId);
@@ -145,7 +145,7 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
   // Search for product or qr
   const { totalPages, mongooseQuery } = await Search(expensesModel, req);
 
-  const expenses = await mongooseQuery;
+  const expenses = await mongooseQuery.sort({expenseDate: -1 });
   res.status(200).json({
     status: "true",
     Pages: totalPages,

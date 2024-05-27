@@ -121,6 +121,7 @@ const productSchema = new mongoose.Schema(
     profitRatio: { type: Number, default: 5 },
     ratingsAverage: {
       type: Number,
+      default:0,
     },
     ratingsQuantity: {
       type: Number,
