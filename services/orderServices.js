@@ -117,13 +117,13 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   }
   if (financialFunds.fundPaymentType.haveRatio === "true") {
     const nextCounter = (await expensesModel.countDocuments()) + 1;
-    const expenseQuantityAfterKdv = req.body.totalPriceAfterDiscount / exchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)|| req.body.priceExchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)
+    const expenseQuantityAfterKdv = req.body.totalPriceAfterDiscount / exchangeRate * (financialFunds.fundPaymentType.bankRatio / 100) || req.body.priceExchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)
     req.body.expenseQuantityAfterKdv = expenseQuantityAfterKdv;
     req.body.expenseQuantityBeforeKdv = expenseQuantityAfterKdv;
     req.body.expenseCategory = financialFunds.fundPaymentType.expenseCategory;
     req.body.counter = nextCounter;
     req.body.expenseDate = formattedDate;
-    req.body.type="paid"
+    req.body.type = "paid"
     await expensesModel.create(req.body);
   }
   // 3) Create order with default paymentMethodType cash
@@ -643,6 +643,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         fundId: allocation.fundId,
         allocatedAmount: parseFloat(allocation.amount),
         exchangeRateIcon: allocation.exchangeRateIcon,
+        exchangeRate: allocation.exchangeRate,
       })),
   });
   // Validate financial funds and calculate total allocated amount
@@ -738,6 +739,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       .map((allocation) => ({
         fundId: allocation.fundId,
         allocatedAmount: allocation.amount,
+        exchangeRateIcon: allocation.exchangeRateIcon,
+        exchangeRate: allocation.exchangeRate,
       })),
     amount: parseFloat(totalAllocatedAmount),
     cartItems: cartItems,
@@ -1449,6 +1452,9 @@ exports.getReturnOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc    Get one order
+// @route   GET /api/getReturnOrder/:id
+// @access  privet
 exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -1465,6 +1471,124 @@ exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No order for this id ${id}`, 404));
   }
   res.status(200).json({ status: "true", data: order });
+});
+
+// @desc    Post Marge Salse invoice
+// @route   GET /api/margeorder
+// @access  privet
+exports.margeOrderFish = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Employee", emoloyeeShcema);
+  const financialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  db.model("Product", productSchema);
+  db.model("ReportsSales", ReportsSalesSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
+  const specificDate = new Date();
+  const specificDateString = specificDate.toISOString().split('T')[0];
+
+
+  // Find orders where paidAt matches the specified date and type is 'pos'
+  const orders = await orderModel.find({
+    paidAt: {
+      $gte: specificDateString,
+
+    },
+    type: 'pos'
+  });
+
+  const cartItems = [];
+  let totalOrderPrice = 0;
+
+
+  const financialFundsMap = new Map();
+
+  for (const order of orders) {
+    order.cartItems.forEach(item => {
+      cartItems.push(item);
+      totalOrderPrice += item.taxPrice * item.quantity;
+    
+    });
+    order.financialFunds?.forEach(fund => {
+      const fundId = fund.fundId.toString();
+     
+      if (financialFundsMap.has(fundId)) {
+        financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
+      } else {
+        financialFundsMap.set(fundId, {
+          fundId: fund.fundId,
+          allocatedAmount: fund.allocatedAmount || 0,
+          exchangeRateIcon: fund.exchangeRateIcon
+        });
+      }
+    });
+
+    if (order.onefinancialFunds) {
+      const fundId = order.onefinancialFunds.toString();
+      if (financialFundsMap.has(fundId)) {
+        financialFundsMap.get(fundId).allocatedAmount += order.priceExchangeRate;
+      } else {
+        financialFundsMap.set(fundId, {
+          fundId: fundId,
+          allocatedAmount: order.priceExchangeRate || 0,
+         
+        });
+      }
+    }
+  }
+
+  // Convert the map of financial funds to an array
+  const aggregatedFunds = Array.from(financialFundsMap.values());
+  
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+
+
+ 
+  const newOrderData = {
+    cartItems: cartItems,
+    returnCartItem: cartItems,
+    priceExchangeRate: totalOrderPrice,
+    paidAt: formattedDate,
+    type: 'normal',
+    totalOrderPrice: totalOrderPrice,
+    counter: nextCounter,
+    paid: "paid",
+    exchangeRate: 1,
+    financialFunds: aggregatedFunds
+  };
+
+
+  const newOrders = await orderModel.insertMany(newOrderData);
+
+
+
+  res.json(newOrders);
 });
 
 /*

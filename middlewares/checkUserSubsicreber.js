@@ -3,7 +3,6 @@ const checkUserSubsicreber = async (req, res, next) => {
     try {
         //make axois req to get dbName from subscribers server
         //1-check user from main subscribers server
-        console.log(req.body)
         const response = await axios.get("https://nooncar.com:4000/api/allusers/", { params: { email: req.body.email } });
         if (response.data.status === "true") {
             let dbName = response.data.user[0].subscribtion.dbName;

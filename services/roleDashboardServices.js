@@ -6,7 +6,7 @@ const roleDashboardSchema = require("../models/roleDashboardModel");
 //admin
 exports.getRoleDashboard = asyncHandler(async (req, res, next) => {
     const dbName = req.query.databaseName;
-    console.log(dbName);
+   
     const db = mongoose.connection.useDb(dbName);
     const RoleDashboardModel = db.model("RoleDashboard", roleDashboardSchema);
 

@@ -82,7 +82,7 @@ exports.updateProfitLossReportByYearMonth = asyncHandler(async (req, res, next) 
 });
 
 exports.createInitialProfitLossReports = async () => {
-  console.log("test")
+ 
 
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);

@@ -9,15 +9,21 @@ const {
   verifyPasswordResetCode,
   resetPassword,
   EcommerceLogin,
+  forgotPasswordPos,
+  resetPasswordPos,
+  verifyPasswordResetCodePos,
 } = require("../services/authService");
 const { checkUserSubsicreber } = require("../middlewares/checkUserSubsicreber");
 
 const router = express.Router();
 
 router.post("/login", upload.none(), checkUserSubsicreber, login);
+router.post("/forgotpasswordspos",upload.none(),checkUserSubsicreber, forgotPasswordPos)
+router.post("/verifyresetcodepos",verifyPasswordResetCodePos);
+router.put("/resetpasswordpos", upload.none(),checkUserSubsicreber,resetPasswordPos);
+
 router.post("/ecommerce-login", EcommerceLogin);
 router.post("/signup", signup);
-
 router.post("/forgotPasswords", forgotPassword);
 router.post("/verifyResetCode", verifyPasswordResetCode);
 router.put("/resetPassword", resetPassword);

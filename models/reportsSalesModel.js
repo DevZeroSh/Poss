@@ -33,6 +33,8 @@ const ReportsSalesSchema = new mongoose.Schema(
         allocatedAmount: {
           type: Number,
         },
+        exchangeRate: Number,
+        exchangeRateIcon: String,
       },
     ],
     amount: {

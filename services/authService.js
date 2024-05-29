@@ -119,6 +119,133 @@ exports.protect = asyncHandler(async (req, res, next) => {
   }
 });
 
+// @desc      Forgot password
+// @route     POST /api/auth/forgotpasswordpos
+// @access    Public
+exports.forgotPasswordPos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
+
+  // 1) Get user by email
+  const { email } = req.body;
+  const user = await employeeModel.findOne({ email });
+  if (!user) {
+    return next(
+      new ApiError(`There is no user with this email address ${email}`, 404)
+    );
+  }
+
+  // 2) Generate random reset code and save it in db
+  const resetCode = Math.floor(Math.random() * 1000000 + 1).toString();
+  // Encrypt the reset code before saving it in db (Security)
+  const hashedResetCode = await bcrypt.hash(resetCode, 10);
+
+  user.passwordResetCode = hashedResetCode;
+  //10 min
+  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  user.resetCodeVerified = false;
+  await user.save();
+
+  // 3) Send password reset code via email
+  const message = `Forgot your password? Submit this reset password code: ${resetCode}\n If you didn't forget your password, please ignore this email!`;
+
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: "Your Password Reset Code (valid for 10 min)",
+      message,
+    });
+
+    res.status(200).json({
+      status: "Success",
+      message: "Reset code sent to your email",
+    });
+  } catch (err) {
+    // If there's an error sending the email, clear the reset code and expiration time
+    user.passwordResetCode = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+    console.log(err);
+    return next(
+      new ApiError(
+        "There was an error sending the email. Try again later!",
+        500
+      )
+    );
+  }
+});
+
+// @desc      Verify reset password code
+// @route     POST /api/auth/verifyresetcodepos
+// @access    Public
+exports.verifyPasswordResetCodePos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
+
+  const { resetCode } = req.body;
+
+  const user = await employeeModel.find({ passwordResetExpires: { $gt: Date.now() } })
+  if (!user) {
+    return next(new ApiError("Reset code is invalid or has expired", 400));
+  }
+  // 3) Compare the reset code with the hashed code stored in the database
+  const isResetCodeValid = await bcrypt.compare(
+    resetCode,
+    user.passwordResetCode
+  );
+  console.log(resetCode)
+  if (!isResetCodeValid) {
+    return next(new ApiError("Reset code is invalid or has expired", 400));
+  }
+  // 4) Mark reset code as verified
+  user.resetCodeVerified = true;
+  await user.save();
+
+  res.status(200).json({
+    status: "Success",
+  });
+
+})
+
+// @desc      Reset password
+// @route     POST /api/auth/resetpasswordpos
+// @access    Public
+exports.resetPasswordPos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
+  // 1) Get user based on email
+  const user = await employeeModel.findOne({ email: req.body.email });
+  if (!user) {
+    return next(
+      new ApiError(
+        `There is no user with this email address ${req.body.email}`,
+        404
+      )
+    );
+  }
+  // Check if user verify the reset code
+  if (!user.resetCodeVerified) {
+    return next(new ApiError("reset code not verified", 400));
+  }
+  const hashedResetCode = await bcrypt.hash(req.body.newPassword, 10);
+
+  // 2) Update user password & Hide passwordResetCode & passwordResetExpires from the result
+  user.password = hashedResetCode;
+  user.passwordResetCode = undefined;
+  user.passwordResetExpires = undefined;
+  user.resetCodeVerified = undefined;
+  await user.save();
+
+  // 3) If everything ok, send token to client
+  const token = createToken(user._id);
+
+  res.status(200).json({ user: user, token });
+});
+
 // @desc      Signup
 // @route     POST /api/auth/signup
 // @access    Public
