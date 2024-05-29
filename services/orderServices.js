@@ -667,11 +667,11 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     if (!financialFund) {
       return next(new ApiError(`Financial fund ${fundId} not found`, 404));
     }
-
-    financialFund.fundBalance += amount / exchangeRate;
+    financialFund.fundBalance += amount;
+  
     await ReportsFinancialFundsModel.create({
       date: timeIsoString,
-      amount: parseFloat(amount),
+      amount: parseFloat(amount) * exchangeRate,
       order: order._id,
       type: "sales",
       financialFundId: fundId,
@@ -681,7 +681,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     bulkUpdates.push({
       updateOne: {
         filter: { _id: fundId },
-        update: { $inc: { fundBalance: amount / exchangeRate } },
+        update: { $inc: { fundBalance: amount  } },
       },
     });
 
@@ -1533,11 +1533,11 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
     order.cartItems.forEach(item => {
       cartItems.push(item);
       totalOrderPrice += item.taxPrice * item.quantity;
-    
+
     });
     order.financialFunds?.forEach(fund => {
       const fundId = fund.fundId.toString();
-     
+
       if (financialFundsMap.has(fundId)) {
         financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
       } else {
@@ -1557,7 +1557,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
         financialFundsMap.set(fundId, {
           fundId: fundId,
           allocatedAmount: order.priceExchangeRate || 0,
-         
+
         });
       }
     }
@@ -1565,11 +1565,11 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
 
   // Convert the map of financial funds to an array
   const aggregatedFunds = Array.from(financialFundsMap.values());
-  
+
   const nextCounter = (await orderModel.countDocuments()) + 1;
 
 
- 
+
   const newOrderData = {
     cartItems: cartItems,
     returnCartItem: cartItems,
