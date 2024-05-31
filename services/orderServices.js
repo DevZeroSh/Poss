@@ -37,104 +37,64 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const orderModel = db.model("Orders", orderSchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema)
-
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
-  const productModel = db.model("Product", productSchema);
+  const productModel = db.model("Product", productSchema)
   const expensesModel = db.model("Expenses", expensesSchema);
-  db.model("Currency", currencySchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Variant", variantSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
+  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
   db.model("PaymentType", paymentTypesSchema);
+  db.model("Currency", currencySchema);
   const cartItems = req.body.cartItems;
-  // app settings
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
 
-  let ts = Date.now();
-  let date_ob = new Date(ts);
-  let date = padZero(date_ob.getDate());
-  let month = padZero(date_ob.getMonth() + 1);
-  let year = date_ob.getFullYear();
-  let hours = padZero(date_ob.getHours());
-  let minutes = padZero(date_ob.getMinutes());
-  let seconds = padZero(date_ob.getSeconds());
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(date_ob.getMonth() + 1)}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(date_ob.getMinutes())}:${padZero(date_ob.getSeconds())}`;
 
-  const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
-
-  // Retrieve cart data from localStorage
-  // const cartItems = JSON.parse(localStorage.getItem('cart'));
   if (!cartItems || cartItems.length === 0) {
     return next(new ApiError("The cart is empty", 400));
   }
 
-  const totalOrderPrice = req.body.totalOrderPrice;
+  const { totalOrderPrice, financialFunds: financialFundsId, exchangeRate, couponCount, totalPriceAfterDiscount, priceExchangeRate } = req.body;
 
-  // use totalOrderPrice as an array
-  const financialFundsId = req.body.financialFunds;
-
-  // 1) Find the financial funds document based on the provided ID
-  const financialFunds = await FinancialFundsModel.findById(financialFundsId).populate({ path: "fundPaymentType" });;
-  console.log(financialFunds)
+  const financialFunds = await FinancialFundsModel.findById(financialFundsId).populate({ path: "fundPaymentType" });
   if (!financialFunds) {
-    return next(
-      new ApiError(
-        `There is no such financial funds with id ${financialFundsId}`,
-        404
-      )
-    );
+    return next(new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404));
   }
 
-  const exchangeRate = req.body.exchangeRate;
 
   const nextCounter = (await orderModel.countDocuments()) + 1;
 
-  if (req.body.couponCount > 0) {
-    financialFunds.fundBalance +=
-      req.body.totalPriceAfterDiscount / exchangeRate;
-  } else {
-    financialFunds.fundBalance += req.body.priceExchangeRate;
-  }
-  if (financialFunds.fundPaymentType.haveRatio === "true") {
-    const nextCounter = (await expensesModel.countDocuments()) + 1;
-    const expenseQuantityAfterKdv = req.body.totalPriceAfterDiscount / exchangeRate * (financialFunds.fundPaymentType.bankRatio / 100) || req.body.priceExchangeRate * (financialFunds.fundPaymentType.bankRatio / 100)
-    req.body.expenseQuantityAfterKdv = expenseQuantityAfterKdv;
-    req.body.expenseQuantityBeforeKdv = expenseQuantityAfterKdv;
-    req.body.expenseCategory = financialFunds.fundPaymentType.expenseCategory;
-    req.body.counter = nextCounter;
-    req.body.expenseDate = formattedDate;
-    req.body.type = "paid"
-    await expensesModel.create(req.body);
-  }
-  // 3) Create order with default paymentMethodType cash
+  financialFunds.fundBalance += couponCount > 0 ? totalPriceAfterDiscount / exchangeRate : priceExchangeRate;
+
+  const createExpensePromise = financialFunds.fundPaymentType.haveRatio === "true"
+    ? (async () => {
+      const nextExpenseCounter = (await expensesModel.countDocuments()) + 1;
+      const expenseQuantityAfterKdv = totalPriceAfterDiscount / exchangeRate * (financialFunds.fundPaymentType.bankRatio / 100) || priceExchangeRate * (financialFunds.fundPaymentType.bankRatio / 100);
+      expensesModel.create({
+        ...req.body,
+        expenseQuantityAfterKdv,
+        expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
+        expenseCategory: financialFunds.fundPaymentType.expenseCategory,
+        counter: nextExpenseCounter,
+        expenseDate: formattedDate,
+        type: "paid",
+      });
+    })()
+    : Promise.resolve();
+
   const order = await orderModel.create({
     employee: req.user._id,
-    priceExchangeRate: req.body.priceExchangeRate,
+    priceExchangeRate,
     cartItems,
     returnCartItem: cartItems,
     currencyCode: req.body.currency,
     totalOrderPrice,
-    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+    totalPriceAfterDiscount,
     taxs: req.body.taxs,
     price: req.body.price,
     taxRate: req.body.taxRate,
@@ -150,136 +110,85 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     onefinancialFunds: financialFundsId,
     paidAt: formattedDate,
     counter: nextCounter,
-    exchangeRate: exchangeRate,
-    customarId: req.body.customarId,
+    exchangeRate,
     paid: "paid",
   });
-  const data = new Date();
-  const timeIsoString = data.toISOString();
-  await ReportsFinancialFundsModel.create({
+
+
+  const timeIsoString = new Date().toISOString();
+  const createReportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
     date: timeIsoString,
-    amount:
-      req.body.totalPriceAfterDiscount > 0
-        ? req.body.totalPriceAfterDiscount
-        : totalOrderPrice,
-    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount / exchangeRate,
+    amount: totalPriceAfterDiscount > 0 ? totalPriceAfterDiscount : totalOrderPrice,
+    totalPriceAfterDiscount: totalPriceAfterDiscount / exchangeRate,
     order: order._id,
     type: "sales",
     financialFundId: financialFundsId,
     financialFundRest: financialFunds.fundBalance,
-    exchangeRate: exchangeRate,
+    exchangeRate,
   });
-  await financialFunds.save();
 
-  // 4) After creating order, decrement product quantity, increment product sold
+  financialFunds.save();
+
   const bulkOption = cartItems
-    .map((item) => {
-      if (item.type !== "Service") {
-        return {
-          updateOne: {
-            filter: { _id: item._id || item.product },
-            update: {
-              $inc: {
-                quantity: -item.quantity,
-                sold: +item.quantity,
-                activeCount: -item.quantity,
-              },
-            },
-          },
-        };
-      } else {
-        return null;
-      }
-    })
-    .filter(Boolean);
+    .filter(item => item.type !== "Service")
+    .map(item => ({
+      updateOne: {
+        filter: { _id: item._id || item.product },
+        update: { $inc: { quantity: -item.quantity, sold: +item.quantity, activeCount: -item.quantity } },
+      },
+    }));
 
-  await productModel.bulkWrite(bulkOption, {});
+  const bulkWritePromise = productModel.bulkWrite(bulkOption);
 
-  // 5) Create sales report
-  await ReportsSalesModel.create({
+  const createReportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
     orderId: order._id,
     date: timeIsoString,
     fund: financialFundsId,
     amount: totalOrderPrice,
-    cartItems: cartItems,
+    cartItems,
     counter: nextCounter,
     paymentType: "Single Fund",
     employee: req.user._id,
     type: "pos",
   });
-  try {
-    // Process cartItems
-    await Promise.all(
-      cartItems.map(async (item) => {
-        const { quantity, type } = await productModel.findOne({ qr: item.qr });
-        if (type !== "Service") {
-          // If the product is not a service, create product movement
-          createProductMovement(
-            item.product,
-            quantity,
-            item.quantity,
-            "out",
-            "sales",
-            dbName
-          );
-        }
-      })
-    );
 
-    // Update ActiveProductsValue
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
-    let totalCount = 0;
-    let totalValue = 0;
-    let currency;
+  const productMovementPromises = cartItems.map((item) => {
+    const product = productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      createProductMovement(item.product,item.productQuantity- item.quantity , item.quantity, "out", "sales", dbName);
+    }
 
-    await Promise.all(
-      cartItems.map(async (item) => {
-        const { type, currency: itemCurrency } = await productModel.findOne({
-          qr: item.qr,
-        });
-        // Set item currency
-        currency = itemCurrency._id;
-        // Calculate total value and count excluding service products
-        if (type !== "Service") {
-          const existingRecord = await ActiveProductsValue.findOne({
-            currency,
-          });
+  });
+  const activeProductsValueUpdates = cartItems.map(async (item) => {
+    const product =await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      const existingRecord =await ActiveProductsValue.findOne({ currency: product.currency._id });
+      if (existingRecord) {
+        existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
+        existingRecord.activeProductsCount -= item.quantity;
+        existingRecord.save();
+      } else {
+        createActiveProductsValue(0, 0, product.currency._id, dbName);
+      }
+    }
+  });
 
-          if (existingRecord) {
-            // Update existing record
-            existingRecord.activeProductsValue -=
-              item.buyingPrice * item.quantity;
-            existingRecord.activeProductsCount -= item.quantity;
-            await existingRecord.save();
-          } else {
-            // Create new record if none exists
-            await createActiveProductsValue(
-              totalCount,
-              totalValue,
-              currency,
-              dbName
-            );
-          }
-        }
-      })
-    );
-  } catch (err) {
-    console.log(err.message);
-  }
+  await Promise.all([
+    createExpensePromise,
+    createReportsFinancialFundsPromise,
+    bulkWritePromise,
+    createReportsSalesPromise,
+    ...productMovementPromises,
+    ...activeProductsValueUpdates
+  ]);
 
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
 
   res.status(201).json({ status: "success", data: order, history });
 });
+
+
 
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
@@ -290,88 +199,45 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
+  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
   const customersModel = db.model("Customar", customarSchema);
+  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
 
-  db.model("Currency", currencySchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
   const cartItems = req.body.cartItems;
-  // app settings
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
 
-  let ts = Date.now();
-  let date_ob = new Date(ts);
-  let date = padZero(date_ob.getDate());
-  let month = padZero(date_ob.getMonth() + 1);
-  let year = date_ob.getFullYear();
-  let hours = padZero(date_ob.getHours());
-  let minutes = padZero(date_ob.getMinutes());
-  let seconds = padZero(date_ob.getSeconds());
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(date_ob.getMonth() + 1)}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(date_ob.getMinutes())}:${padZero(date_ob.getSeconds())}`;
 
-  const formattedDate =
-    year +
-    "-" +
-    month +
-    "-" +
-    date +
-    " " +
-    hours +
-    ":" +
-    minutes +
-    ":" +
-    seconds;
-
-  // Retrieve cart data from localStorage
-  // const cartItems = JSON.parse(localStorage.getItem('cart'));
   if (!cartItems || cartItems.length === 0) {
     return next(new ApiError("The cart is empty", 400));
   }
 
-  // 2) Get order price depend on cart price "Check if coupon applies"
-  // const cartPrice = cartItems.reduce((total, item) => {
-  //     return total + item.taxPrice * item.quantity;
-  // }, 0);
-  const paid = req.body.paid;
-  const totalOrderPrice = req.body.totalOrderPrice;
+  const { paid, totalOrderPrice, financialFunds: financialFundsId, exchangeRate, customarId } = req.body;
+  const timeIsoString = new Date().toISOString();
 
-  // use totalOrderPrice as an array
-  const financialFundsId = req.body.financialFunds;
+  const customarsPromise = customersModel.findById(customarId);
+  const nextCounterPromise = orderModel.countDocuments().then(count => count + 1);
 
-  const exchangeRate = req.body.exchangeRate;
-
-  const nextCounter = (await orderModel.countDocuments()) + 1;
-
-  // 3) Create order with default paymentMethodType cash
-  let order;
-  const data = new Date();
-  const timeIsoString = data.toISOString();
-  const customars = await customersModel.findById(req.body.customarId);
-
+  let financialFunds;
   if (paid === "paid") {
-    const financialFunds = await FinancialFundsModel.findById(financialFundsId);
-
+    financialFunds = await FinancialFundsModel.findById(financialFundsId);
     if (!financialFunds) {
-      return next(
-        new ApiError(
-          `There is no such financial funds with id ${financialFundsId}`,
-          404
-        )
-      );
+      return next(new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404));
     }
     financialFunds.fundBalance += req.body.totalPriceExchangeRate;
+  }
 
+  const [customars, nextCounter] = await Promise.all([customarsPromise, nextCounterPromise]);
+
+  let order;
+  if (paid === "paid") {
     order = await orderModel.create({
       employee: req.user._id,
       priceExchangeRate: req.body.priceExchangeRate,
@@ -383,7 +249,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       taxs: req.body.taxs,
       price: req.body.price,
       taxRate: req.body.taxRate,
-      customarId: req.body.customarId,
+      customarId: customarId,
       customarName: req.body.customarName,
       customarEmail: req.body.customarEmail,
       customarPhone: req.body.customarPhone,
@@ -396,11 +262,10 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       paidAt: formattedDate,
       counter: nextCounter,
       exchangeRate: exchangeRate,
-      customarId: req.body.customarId,
       paid: paid,
     });
 
-    await ReportsFinancialFundsModel.create({
+    const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
       date: timeIsoString,
       amount: totalOrderPrice,
       totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
@@ -410,11 +275,16 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: exchangeRate,
     });
-    await financialFunds.save();
+
+    const financialFundsSavePromise = financialFunds.save();
+
+    await Promise.all([reportsFinancialFundsPromise, financialFundsSavePromise]);
+
   } else {
     customars.total += totalOrderPrice;
     customars.TotalUnpaid += totalOrderPrice;
     await customars.save();
+
     order = await orderModel.create({
       employee: req.user._id,
       priceExchangeRate: req.body.priceExchangeRate,
@@ -426,7 +296,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       taxs: req.body.taxs,
       price: req.body.price,
       taxRate: req.body.taxRate,
-      customarId: req.body.customarId,
+      customarId: customarId,
       customarName: req.body.customarName,
       customarEmail: req.body.customarEmail,
       customarPhone: req.body.customarPhone,
@@ -439,38 +309,30 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       paidAt: formattedDate,
       counter: nextCounter,
       exchangeRate: exchangeRate,
-      customarId: req.body.customarId,
       paid: paid,
       totalRemainder: req.body.priceExchangeRate,
       totalRemainderMainCurrency: totalOrderPrice,
     });
   }
-  // 4) After creating order, decrement product quantity, increment product sold
+
   const bulkOption = cartItems
-    .map((item) => {
-      if (item.type !== "Service") {
-        return {
-          updateOne: {
-            filter: { _id: item._id || item.product },
-            update: {
-              $inc: {
-                quantity: -item.quantity,
-                sold: +item.quantity,
-                activeCount: -item.quantity,
-              },
-            },
+    .filter(item => item.type !== "Service")
+    .map(item => ({
+      updateOne: {
+        filter: { _id: item._id || item.product },
+        update: {
+          $inc: {
+            quantity: -item.quantity,
+            sold: +item.quantity,
+            activeCount: -item.quantity,
           },
-        };
-      } else {
-        return null;
-      }
-    })
-    .filter(Boolean);
+        },
+      },
+    }));
 
-  await productModel.bulkWrite(bulkOption, {});
+  const bulkWritePromise = productModel.bulkWrite(bulkOption);
 
-  // 5) Create sales report
-  await ReportsSalesModel.create({
+  const reportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
     orderId: order._id,
     date: timeIsoString,
@@ -482,78 +344,41 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
   });
 
-  cartItems.map(async (item) => {
-    const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
-      item.quantity,
-      "out",
-      "sales",
-      dbName
-    );
+  const productMovementPromises = cartItems.map(async (item) => {
+    console.log("test")
+    const product = await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      await createProductMovement(item.product, product.quantity, item.quantity, "out", "sales", dbName);
+    }
   });
 
-  try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
-
-    let totalCount = 0;
-    let totalValue = 0;
-
-    for (const item of cartItems) {
-      const { type, currency: itemCurrency } = await productModel.findOne({
-        qr: item.qr,
-      });
-
-      if (type !== "Service") {
-        totalValue += item.buyingPrice * item.quantity;
-        totalCount += item.quantity;
-
-        const existingRecord = await ActiveProductsValue.findOne({
-          currency: itemCurrency,
-        });
-
-        if (existingRecord) {
-          existingRecord.activeProductsCount -= item.quantity;
-          existingRecord.activeProductsValue -=
-            item.buyingPrice * item.quantity;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(
-            item.quantity,
-            item.buyingPrice * item.quantity,
-            itemCurrency,
-            dbName
-          );
-        }
+  const activeProductsValueUpdates = cartItems.map(async (item) => {
+    const product = await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      const existingRecord = await ActiveProductsValue.findOne({ currency: product.currency._id });
+      if (existingRecord) {
+        existingRecord.activeProductsCount -= item.quantity;
+        existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(0, 0, product.currency._id, dbName);
       }
     }
-  } catch (err) {
-    console.log("OrderServices 519");
-    console.log(err.message);
-  }
+  });
 
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
-  await createPaymentHistory(
-    "invoice",
-    formattedDate,
-    totalOrderPrice,
-    customars.TotalUnpaid,
-    "customer",
-    req.body.customarId,
-    nextCounter,
-    dbName
-  );
+  await Promise.all([
+    bulkWritePromise,
+    reportsSalesPromise,
+    ...productMovementPromises,
+    ...activeProductsValueUpdates
+  ]);
+
+  const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
+  await createPaymentHistory("invoice", formattedDate, totalOrderPrice, customars.TotalUnpaid, "customer", customarId, nextCounter, dbName);
+
   res.status(201).json({ status: "success", data: order, history });
 });
+
 
 // @desc    create cash order for multiple funds
 // @route   POST /api/orders/cartId
@@ -563,10 +388,6 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   const orderModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
@@ -668,7 +489,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       return next(new ApiError(`Financial fund ${fundId} not found`, 404));
     }
     financialFund.fundBalance += amount;
-  
+
     await ReportsFinancialFundsModel.create({
       date: timeIsoString,
       amount: parseFloat(amount) * exchangeRate,
@@ -681,7 +502,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     bulkUpdates.push({
       updateOne: {
         filter: { _id: fundId },
-        update: { $inc: { fundBalance: amount  } },
+        update: { $inc: { fundBalance: amount } },
       },
     });
 
@@ -875,7 +696,7 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   const totalPages = Math.ceil(totalItems / pageSize);
 
   // Apply pagination
-  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize).populate({ path: "employee" })
 
   const order = await mongooseQuery;
 
@@ -897,11 +718,19 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const orderModel = db.model("Orders", orderSchema);
 
   const { id } = req.params;
-  const order = await orderModel.findById(id);
+  const order = await orderModel.findById(id).populate({
+    path: "financialFunds.fundId",
+    select: "fundName",
+  }).populate({
+    path: "onefinancialFunds",
+    select: "fundName",
+  });
   if (!order) {
     return next(new ApiError(`No order for this id ${id}`, 404));
   }
   res.status(200).json({ status: "true", data: order });
+
+
 });
 
 // @desc put order
@@ -923,11 +752,6 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
   db.model("Currency", currencySchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
 
   const data = new Date();
@@ -978,8 +802,9 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
 
     await productModel.bulkWrite(bulkOption, {});
     await productModel.bulkWrite(bulkOption2, {});
-
-    const customars = await customersModel.findById(req.body.customerId);
+    let customars
+    if (req.body.customerId)
+      customars = await customersModel.findById(req.body.customerId);
     if (req.body.paid === "paid") {
       const originalfinancialFunds = await FinancialFundsModel.findById(
         originalOrder.onefinancialFunds._id
@@ -1014,13 +839,15 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         employee: req.user._id,
       });
     }
-    customars.total -= originalOrder.totalOrderPrice;
-    customars.TotalUnpaid -= originalOrder.totalOrderPrice;
+    if (customars) {
+      customars.total -= originalOrder.totalOrderPrice;
+      customars.TotalUnpaid -= originalOrder.totalOrderPrice;
 
-    order.totalRemainderMainCurrency -= originalOrder.totalOrderPrice;
-    order.totalRemainder -= originalOrder.totalOrderPrice;
+      order.totalRemainderMainCurrency -= originalOrder.totalOrderPrice;
+      order.totalRemainder -= originalOrder.totalOrderPrice;
 
-    await customars.save();
+      await customars.save();
+    }
     await order.save();
   }
 

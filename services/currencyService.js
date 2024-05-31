@@ -124,7 +124,7 @@ exports.deleteCurrency = asyncHandler(async (req, res, next) => {
   const productDocument = await productModel.findOne({ currency: id });
 
   if (financialFundsDocument || productDocument) {
-    return next(new ApiError(`You can not delete this currency`, 404));
+    return next(new ApiError(`Currency in use`, 404));
   } else {
     // Add a condition to check if is_primary is not true before deleting
     if (currency.is_primary !== "true") {

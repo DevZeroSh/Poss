@@ -10,10 +10,9 @@ const {
   deActiveProductQuantity,
   archiveProduct,
   getLezyProduct,
+  getProductPos,
 } = require("../services/productServices");
 const {
-  getProdictValidator,
-  updateProductValidator,
   deleteProductValdiator,
 } = require("../utils/validators/productValidator");
 ``;
@@ -35,6 +34,7 @@ productRout
   .post(authService.protect, uploadProductImage, resizerImage, createProduct);
 
 productRout.route("/productLazy").get(getLezyProduct)
+productRout.route("/productpos").get(getProductPos)
 
 productRout
   .route("/deactive/:id")

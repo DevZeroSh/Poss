@@ -23,60 +23,6 @@ const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
 
-const multerOptions = () => {
-  const multerStorage = multer.memoryStorage();
-
-  const multerFilter = function (req, file, cb) {
-    if (file.mimetype.startsWith("image")) {
-      cb(null, true);
-    } else {
-      cb(new ApiError("Only images Allowed", 400), false);
-    }
-  };
-
-  const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
-
-  return upload;
-};
-
-const uploadMixOfImages = (arrayOfFilelds) =>
-  multerOptions().fields(arrayOfFilelds);
-
-exports.uploadProductImage = uploadMixOfImages([
-  { name: "image", maxCount: 1 },
-  { name: "imagesArray", maxCount: 5 },
-]);
-
-exports.resizerImage = asyncHandler(async (req, res, next) => {
-  if (req.files.image) {
-    const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
-    await sharp(req.files.image[0].buffer)
-      .toFormat("png")
-      .png({ quality: 70 })
-      .toFile(`uploads/product/${imageCoverFilename}`);
-
-    //save image into our db
-    req.body.image = imageCoverFilename;
-  }
-  //-2 Images
-  if (req.files.imagesArray) {
-    req.body.imagesArray = [];
-    await Promise.all(
-      req.files.imagesArray.map(async (img, index) => {
-        const imagesName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
-        await sharp(img.buffer)
-          .resize(900, 400)
-          .toFormat("png")
-          .png({ quality: 70 })
-          .toFile(`uploads/product/${imagesName}`);
-
-        //save image into our db
-        req.body.imagesArray.push(imagesName);
-      })
-    );
-  }
-  next();
-});
 
 // @desc Get list product
 // @route Get /api/product
@@ -137,7 +83,16 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .find(query)
     .sort(sortQuery)
     .skip(skip)
-    .limit(pageSize);
+    .limit(pageSize).populate({ path: "category" }).lean()
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "variant", select: "variant  _id" })
+    .populate({ path: "unit", select: "name code  _id" })
+    .populate({ path: "tax", select: "tax  _id" })
+    .populate({ path: "label", select: "name  _id" })
+    .populate({
+      path: "currency",
+      select: "currencyCode currencyName exchangeRate is_primary  _id",
+    });
 
   const notices = product
     .filter((item) => item.alarm >= item.quantity && item.archives !== "true")
@@ -156,6 +111,113 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     notices,
   });
 });
+
+exports.getProductPos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName, { useCache: true });
+
+  const productModel = db.model("Product", productSchema);
+  const currencyModel = db.model("Currency", currencySchema);
+
+  const pageSize = parseInt(req.query.limit, 10) || 25;
+  const page = parseInt(req.query.page, 10) || 1;
+  const skip = (page - 1) * pageSize;
+
+  let query = {};
+
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+
+  if (req.query.label) {
+    query.label = req.query.label;
+  }
+
+  let sortQuery = req.query.sold ? { sold: parseInt(req.query.sold, 10) === 1 ? 1 : -1 } : { createdAt: -1 };
+
+  const [totalItems, products] = await Promise.all([
+    productModel.countDocuments(query),
+    productModel.find(query)
+      .sort(sortQuery)
+      .skip(skip)
+      .limit(pageSize)
+      .populate({ path: "currency", model: currencyModel })
+  ]);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+
+  res.status(200).json({
+    status: "true",
+    results: products.length,
+    pages: totalPages,
+    data: products,
+
+  });
+});
+
+
+const multerOptions = () => {
+  const multerStorage = multer.memoryStorage();
+
+  const multerFilter = function (req, file, cb) {
+    if (file.mimetype.startsWith("image")) {
+      cb(null, true);
+    } else {
+      cb(new ApiError("Only images Allowed", 400), false);
+    }
+  };
+
+  const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
+
+  return upload;
+};
+
+const uploadMixOfImages = (arrayOfFilelds) =>
+  multerOptions().fields(arrayOfFilelds);
+
+exports.uploadProductImage = uploadMixOfImages([
+  { name: "image", maxCount: 1 },
+  { name: "imagesArray", maxCount: 5 },
+]);
+
+exports.resizerImage = asyncHandler(async (req, res, next) => {
+  if (req.files.image) {
+    const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
+    await sharp(req.files.image[0].buffer)
+      .toFormat("png")
+      .png({ quality: 70 })
+      .toFile(`uploads/product/${imageCoverFilename}`);
+
+    //save image into our db
+    req.body.image = imageCoverFilename;
+  }
+  //-2 Images
+  if (req.files.imagesArray) {
+    req.body.imagesArray = [];
+    await Promise.all(
+      req.files.imagesArray.map(async (img, index) => {
+        const imagesName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
+        await sharp(img.buffer)
+          .resize(900, 400)
+          .toFormat("png")
+          .png({ quality: 70 })
+          .toFile(`uploads/product/${imagesName}`);
+
+        //save image into our db
+        req.body.imagesArray.push(imagesName);
+      })
+    );
+  }
+  next();
+});
+
+
+
 
 
 
@@ -284,7 +346,15 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   db.model("Customar", customarSchema);
   const { id } = req.params;
-  let query = productModel.findById(id).populate({ path: "reviews" });
+  let query = productModel.findById(id).populate({ path: "category" }).lean()
+    .populate({ path: "brand", select: "name _id" })
+    .populate({ path: "variant", select: "variant  _id" })
+    .populate({ path: "unit", select: "name code  _id" })
+    .populate({ path: "tax", select: "tax  _id" })
+    .populate({ path: "label", select: "name  _id" }).populate({
+      path: "currency",
+    });
+
 
   const product = await query;
 

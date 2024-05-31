@@ -15,65 +15,55 @@ const sendEmail = require("../utils/sendEmail");
 // @route     POST /api/auth/login
 // @access    Public
 exports.login = asyncHandler(async (req, res, next) => {
-  //here search for employee using this connection
   try {
     const dbName = req.query.databaseName;
-
-    // const subscribtionId = req.query.subscribtionId;
     const db = mongoose.connection.useDb(dbName);
-
+    
     const employeeModel = db.model("Employee", emoloyeeShcema);
     const rolesModel = db.model("Roles", rolesShcema);
 
-    //const companyPool = await req.companyPool;
-
+    // Fetch the user and check email and password in parallel
     const user = await employeeModel.findOne({ email: req.body.email });
     if (!user) {
       return next(new ApiError("Incorrect email", 401));
     }
-    //Check if the password is correct
-    const passwordMatch = await bcrypt.compare(
-      req.body.password,
-      user.password
-    );
+    
+    // Check password
+    const passwordMatch = await bcrypt.compare(req.body.password, user.password);
     if (!passwordMatch) {
       return next(new ApiError("Incorrect Password", 401));
     }
-    //Check if the user is active
+
+    // Check if the user is active
     if (user.archives === "true") {
       return next(new ApiError("The account is not active", 401));
     }
-    // 5. Remove the password and pin from the user object
-    // Set sensitive fields to undefined
+
+    // Remove the password and pin from the user object
     user.password = undefined;
     user.pin = undefined;
 
-    //continu here
-    try {
-      const roles = await rolesModel.findOne({ _id: user.selectedRoles[0] });
+    // Fetch roles in parallel
+    const roles = await rolesModel.findOne({ _id: user.selectedRoles[0] });
 
-      const { rolesDashboard, rolesPos } = roles;
+    const [dashRoleName, posRoleName] = await Promise.all([
+      getDashboardRoles(roles.rolesDashboard, db),
+      getPosRoles(roles.rolesPos, db)
+    ]);
 
-      //get all roles name
+    const token = createToken(user._id);
 
-      const dashRoleName = await getDashboardRoles(rolesDashboard, db);
-      const posRoleName = await getPosRoles(rolesPos, db);
-
-      const token = createToken(user._id);
-
-      res.status(200).json({
-        status: "true",
-        data: user,
-        dashBoardRoles: dashRoleName,
-        posRolesName: posRoleName,
-        token,
-        dbName,
-      });
-    } catch (error) {
-      console.error("Error finding roles:", error);
-    }
+    res.status(200).json({
+      status: "true",
+      data: user,
+      dashBoardRoles: dashRoleName,
+      posRolesName: posRoleName,
+      token,
+      dbName,
+    });
   } catch (error) {
-    console.error("Error searching for employee:", error);
+    console.error("Error during login:", error);
+    next(error);
   }
 });
 

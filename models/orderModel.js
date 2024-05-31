@@ -120,21 +120,6 @@ const orderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-orderSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: "employee",
-    select: "name profileImg email phone",
-  })
-    .populate({
-      path: "financialFunds.fundId",
-      select: "fundName",
-    })
-    .populate({
-      path: "onefinancialFunds",
-      select: "fundName",
-    });
 
-  next();
-});
 
 module.exports = orderSchema;

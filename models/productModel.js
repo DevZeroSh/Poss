@@ -109,11 +109,7 @@ const productSchema = new mongoose.Schema(
     activeCount: { type: Number, default: 0 },
     deactivateCount: { type: Number, default: 0 },
 
-    serialNumberType: {
-      type: String,
-      enum: ["true", "false"],
-      default: "false",
-    },
+
     currency: {
       type: mongoose.Schema.ObjectId,
       ref: "Currency",
@@ -140,50 +136,7 @@ const productSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
-const setImageURL = (doc) => {
-  if (doc.image) {
-    const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
-    doc.image = imageUrl;
-  }
-  if (doc.imagesArray) {
-    const imageList = [];
-    doc.imagesArray.forEach((image) => {
-      const imageUrl = `${process.env.BASE_URL}/product/${image}`;
-      imageList.push(imageUrl);
-    });
-    doc.imagesArray = imageList;
-  }
-};
-
-productSchema.post("find", function (docs) {
-  docs.forEach(setImageURL);
-});
-
-//Create
-productSchema.post("save", (doc) => {
-  setImageURL(doc);
-});
-productSchema.virtual("reviews", {
-  ref: "Review",
-  foreignField: "product",
-  localField: "_id",
-});
 
 
-
-productSchema.pre(/^find/, function (next) {
-  this.populate({ path: "category" }).lean()
-    .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "variant  _id" })
-    .populate({ path: "unit", select: "name code  _id" })
-    .populate({ path: "tax", select: "tax  _id" })
-    .populate({ path: "label", select: "name  _id" })
-    .populate({
-      path: "currency",
-      select: "currencyCode currencyName exchangeRate is_primary  _id",
-    });
-
-  next();
-});
 
 module.exports = productSchema;
