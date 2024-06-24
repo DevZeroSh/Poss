@@ -9,6 +9,7 @@ const sharp = require("sharp");
 const rolePosSchema = require("../models/rolePosModel");
 const roleDashboardSchema = require("../models/roleDashboardModel");
 const rolesShcema = require("../models/roleModel");
+const stockSchema = require("../models/stockModel");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -41,7 +42,6 @@ exports.resizerLogo = asyncHandler(async (req, res, next) => {
 //@route post /api/companyinfo
 exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
   try {
-    console.log(req.body);
 
     const dbName = req.body.databaseName;
     const db = mongoose.connection.useDb(dbName);
@@ -51,6 +51,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const rolePosModel = db.model("RolePos", rolePosSchema);
     const rolesModel = db.model("Roles", rolesShcema);
     const currencyModel = db.model("Currency", currencySchema);
+    const StockModel = db.model("Stock", stockSchema);
 
     //await createConnection(req.body.databaseName);
     //1-craet a company
@@ -263,7 +264,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const mainDashboardRoles = await roleDashboardModel.insertMany(
       allDashRoles
     );
-
+    const stock = await StockModel.create({ name: "main Stcok" })
     //3-insert all pos roles
     const allPosRoles = [
       { title: "discount", desc: "discount" },
@@ -336,7 +337,7 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         companyLogo: req.body.companyLogo,
         pinCode: req.body.pinCode,
         color: req.body.color,
-        havePin:req.body.havePin,
+        havePin: req.body.havePin,
       },
       {
         new: true,

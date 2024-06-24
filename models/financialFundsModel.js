@@ -28,6 +28,10 @@ const financialFundsSchema = new mongoose.Schema(
             enum: [true, false],
             default: false
         },
+        bankRatio: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );

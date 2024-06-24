@@ -26,6 +26,7 @@ router.post("/ecommerce-login", EcommerceLogin);
 router.post("/signup", signup);
 router.post("/forgotPasswords", forgotPassword);
 router.post("/verifyResetCode", verifyPasswordResetCode);
-router.put("/resetPassword", resetPassword);
+router.put("/resetPassword", upload.none(),resetPassword);
+
 
 module.exports = router;

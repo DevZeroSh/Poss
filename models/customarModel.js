@@ -56,7 +56,7 @@ const customarSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     resetCodeVerified: Boolean,
     passwordChangedAt: Date,
-
+    passwordResetToken: String,
     wishlist: [
       {
         type: mongoose.Schema.ObjectId,

@@ -48,13 +48,10 @@ const getPaymentHistory = asyncHandler(async (req, res, next) => {
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
-  const {id} = req.params;
+  const { id } = req.params;
 
-  let mongooseQuery = PaymentHistoryModel.find();
-
-  // Base query to include customerId
-let query = { $or: [{ customerId: id }, { supplierId: id }] };
-  mongooseQuery = mongooseQuery.find(query).sort({ createdAt: -1 });
+  // Base query to include customerId or supplierId
+  const query = { $or: [{ customerId: id }, { supplierId: id }] };
 
   // Count total items without pagination
   const totalItems = await PaymentHistoryModel.countDocuments(query);
@@ -62,16 +59,36 @@ let query = { $or: [{ customerId: id }, { supplierId: id }] };
   // Calculate total pages
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  // Apply pagination
-  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+  // Fetch all transactions before the current page to calculate the initial balance for the current page
+  const transactionsBeforeCurrentPage = await PaymentHistoryModel.find(query)
+    .sort({ date: -1 })
+    .skip(0)
+    .limit(skip); // fetches transactions before the current page
 
-  const PaymentHistory = await mongooseQuery;
+  // Calculate the balance up to the start of the current page
+  let startingBalance = 0;
+  transactionsBeforeCurrentPage.forEach((item) => {
+    if (item.type === "payment") {
+      startingBalance -= item.rest;
+    } else {
+      startingBalance += item.rest;
+    }
+  });
+
+  // Fetch the transactions for the current page with pagination
+  const PaymentHistory = await PaymentHistoryModel.find(query)
+    .sort({ date: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
   res.status(200).json({
     status: "true",
     Pages: totalPages,
     results: PaymentHistory.length,
+    startingBalance, 
     data: PaymentHistory,
   });
 });
+
 
 module.exports = { createPaymentHistory, getPaymentHistory };

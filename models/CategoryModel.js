@@ -14,7 +14,7 @@ const setImageURL = (doc) => {
   }
 };
 categorySchema.pre(/^find/, function (next) {
-  this?.populate({ path: "children" })?.lean();
+  this?.populate({ path: "children" })
   next();
 });
 categorySchema.post("init", (doc) => {

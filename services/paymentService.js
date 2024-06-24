@@ -11,8 +11,45 @@ const emoloyeeShcema = require("../models/employeeModel");
 const TaxSchema = require("../models/taxModel");
 const currencySchema = require("../models/currencyModel");
 const orderSchema = require("../models/orderModel");
-const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const { createPaymentHistory } = require("./paymentHistoryService");
+
+async function recalculateBalances(startDate, dbName) {
+  const db = mongoose.connection.useDb(dbName);
+  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
+  const salesrModel = db.model("Orders", orderSchema);
+
+  // Fetch transactions (purchases and sales) that are affected
+  const affectedPurchases = await PurchaseInvoicesModel.find({
+    date: { $gte: startDate }
+  }).sort({ date: 1 });
+
+  const affectedSales = await salesrModel.find({
+    date: { $gte: startDate }
+  }).sort({ date: 1 });
+
+  // Recalculate balances
+  recalculatePurchaseBalances(affectedPurchases);
+  recalculateSalesBalances(affectedSales);
+}
+
+// Helper function to recalculate purchase balances
+function recalculatePurchaseBalances(purchases) {
+  let cumulativeBalance = 0;
+  for (const purchase of purchases) {
+    purchase.totalRemainderMainCurrency = purchase.totalAmount - cumulativeBalance;
+    cumulativeBalance += purchase.totalRemainderMainCurrency;
+  }
+}
+
+// Helper function to recalculate sales balances
+function recalculateSalesBalances(sales) {
+  let cumulativeBalance = 0;
+  for (const sale of sales) {
+    sale.totalRemainderMainCurrency = sale.totalAmount - cumulativeBalance;
+    cumulativeBalance += sale.totalRemainderMainCurrency;
+  }
+}
+
 
 exports.createPayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -40,14 +77,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   }
 
   const currentDate = new Date();
-  const formattedDate = `${currentDate.getFullYear()}-${padZero(
+  const formattedDate = req.body.date || `${currentDate.getFullYear()}-${padZero(
     currentDate.getMonth() + 1
   )}-${padZero(currentDate.getDate())} ${padZero(
     currentDate.getHours()
   )}:${padZero(currentDate.getMinutes())}:${padZero(currentDate.getSeconds())}`;
   const timeIsoString = currentDate.toISOString();
 
- 
   const financialFundsId = req.body.financialFundsId;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
@@ -60,7 +96,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const totalMainCurrency = req.body.totalMainCurrency;
     suppler.TotalUnpaid -= totalMainCurrency;
     let remainingPayment = totalMainCurrency;
-  
 
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
@@ -121,7 +156,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   } else if (req.body.taker === "customer") {
     const customer = await customerModel.findById(req.body.customerId);
     const totalMainCurrency = req.body.totalMainCurrency;
-
+    const test=customer.TotalUnpaid;
     customer.TotalUnpaid -= totalMainCurrency;
 
     let remainingPayment = totalMainCurrency;
@@ -172,7 +207,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
     await salesrModel.bulkWrite(bulkUpdateOperations);
 
-    financialFunds.fundBalance +=parseFloat( req.body.total);
+    financialFunds.fundBalance += parseFloat(req.body.total);
     paymentText = "payment-cut";
     await customer.save();
 
@@ -180,7 +215,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "payment",
       formattedDate,
       totalMainCurrency,
-      customer.TotalUnpaid,
+      test,
       "customer",
       req.body.customerId,
       salesrModel.counter,
@@ -275,7 +310,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   }
 
   res.status(200).json({ status: "success", data: payment });
+
+  // Ensure this runs after sending the response
+  setImmediate(async () => {
+    await recalculateBalances(formattedDate, dbName);
+  });
 });
+
 
 exports.getPayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;

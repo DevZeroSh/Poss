@@ -117,7 +117,7 @@ const productSchema = new mongoose.Schema(
     profitRatio: { type: Number, default: 5 },
     ratingsAverage: {
       type: Number,
-      default:0,
+      default: 0,
     },
     ratingsQuantity: {
       type: Number,
@@ -128,6 +128,11 @@ const productSchema = new mongoose.Schema(
       of: String,
     },
     addToCart: { type: Number, default: 0 },
+    stocks: [{
+      stockId: String,
+      stockName: String,
+      productQuantity: Number
+    }]
   },
   {
     timestamps: true,
@@ -137,6 +142,40 @@ const productSchema = new mongoose.Schema(
   }
 );
 
+
+
+const setImageURL = (doc) => {
+  if (doc.image) {
+    const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+    doc.image = imageUrl;
+  }
+  if (doc.imagesArray) {
+    const imageList = [];
+    doc.imagesArray.forEach((image) => {
+      const imageUrl = `${process.env.BASE_URL}/product/${image}`;
+      imageList.push(imageUrl);
+    });
+    doc.imagesArray = imageList;
+    
+  }
+};
+
+productSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
+});
+productSchema.post("init", (doc) => {
+  setImageURL(doc);
+});
+//Create
+productSchema.post("save", (doc) => {
+  setImageURL(doc);
+});
+
+productSchema.virtual("review", {
+  ref: "Review",
+  foreignField: "product",
+  localField: "_id",
+});
 
 
 module.exports = productSchema;

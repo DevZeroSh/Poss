@@ -42,6 +42,8 @@ const ecommerceOrderSchema = new mongoose.Schema(
       phone: String,
       city: String,
       postalCode: String,
+      fullName: String,
+      phone: String
     },
     billingAddress: {
       alias: String,
@@ -49,6 +51,8 @@ const ecommerceOrderSchema = new mongoose.Schema(
       phone: String,
       city: String,
       postalCode: String,
+      fullName: String,
+      phone: String
     },
     shippingPrice: {
       type: Number,
@@ -69,7 +73,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
     paidAt: Date,
 
     deliveredAt: Date,
-    orderNumber:String,
+    orderNumber: String,
   },
   { timestamps: true }
 );

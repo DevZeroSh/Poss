@@ -37,6 +37,8 @@ const PaymentSchema = new mongoose.Schema(
       default: 0,
       unique: true,
     },
+    date: String,
+    description: String
   },
   { timestamps: true }
 );

@@ -18,7 +18,7 @@ exports.login = asyncHandler(async (req, res, next) => {
   try {
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
-    
+
     const employeeModel = db.model("Employee", emoloyeeShcema);
     const rolesModel = db.model("Roles", rolesShcema);
 
@@ -27,7 +27,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     if (!user) {
       return next(new ApiError("Incorrect email", 401));
     }
-    
+
     // Check password
     const passwordMatch = await bcrypt.compare(req.body.password, user.password);
     if (!passwordMatch) {
@@ -339,7 +339,7 @@ exports.ecommerceProtect = asyncHandler(async (req, res, next) => {
   next();
 });
 
-// @desc      Forgot password
+// @desc      Request password reset
 // @route     POST /api/auth/forgotPassword
 // @access    Public
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
@@ -351,51 +351,53 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const { email } = req.body;
   const user = await customersModel.findOne({ email });
   if (!user) {
-    return next(
-      new ApiError(`There is no user with this email address ${email}`, 404)
-    );
+    return next(new ApiError(`There is no user with this email address ${email}`, 404));
   }
 
-  // 2) Generate random reset code and save it in db
-  const resetCode = Math.floor(Math.random() * 1000000 + 1).toString();
-  // Encrypt the reset code before saving it in db (Security)
-  const hashedResetCode = await bcrypt.hash(resetCode, 10);
+  // 2) Generate a reset token
+  bcrypt.genSalt(10, (err, salt) => {
+    if (err) {
+      return next(new ApiError("Error generating reset token", 500));
+    }
+    bcrypt.hash(email, salt, async (err, hashedEmail) => {
+      if (err) {
+        return next(new ApiError("Error generating reset token", 500));
+      }
 
-  user.passwordResetCode = hashedResetCode;
-  //10 min
-  user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+      // Encode the hashed token to Base64 URL-safe format
+      let resetToken = Buffer.from(hashedEmail).toString('base64');
+      resetToken = resetToken.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-  user.resetCodeVerified = false;
-  await user.save();
+      // Save the hashed token to the database
+      user.passwordResetToken = resetToken;
+      // Token expires in 10 minutes
+      user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+console.log(user.passwordResetToken)
+      await user.save();
+      console.log(user.passwordResetToken)
+      // 3) Send password reset email with the link containing the token
+      const resetURL = `http://localhost:3000/resetPassword/${resetToken}`;
+      const message = `Forgot your password? Click on the link below to reset your password:\n${resetURL}\nIf you didn't forget your password, please ignore this email!`;
+      try {
+        await sendEmail({
+          email: user.email,
+          subject: "Your Password Reset Link (valid for 10 min)",
+          message,
+        });
 
-  // 3) Send password reset code via email
-  const message = `Forgot your password? Submit this reset password code: ${resetCode}\n If you didn't forget your password, please ignore this email!`;
-
-  try {
-    await sendEmail({
-      email: user.email,
-      subject: "Your Password Reset Code (valid for 10 min)",
-      message,
+        res.status(200).json({
+          status: "Success",
+          message: "Reset link sent to your email",
+          token: resetToken,
+        });
+      } catch (err) {
+        console.error(err);
+        return next(new ApiError("There was an error sending the email. Try again later!", 500));
+      }
     });
-
-    res.status(200).json({
-      status: "Success",
-      message: "Reset code sent to your email",
-    });
-  } catch (err) {
-    // If there's an error sending the email, clear the reset code and expiration time
-    user.passwordResetCode = undefined;
-    user.passwordResetExpires = undefined;
-    await user.save({ validateBeforeSave: false });
-    console.log(err);
-    return next(
-      new ApiError(
-        "There was an error sending the email. Try again later!",
-        500
-      )
-    );
-  }
+  });
 });
+
 
 // @desc      Verify reset password code
 // @route     POST /api/auth/verifyResetCode
@@ -436,6 +438,8 @@ exports.verifyPasswordResetCode = asyncHandler(async (req, res, next) => {
   });
 });
 
+
+
 // @desc      Reset password
 // @route     POST /api/auth/resetPassword
 // @access    Public
@@ -443,34 +447,41 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
-  // 1) Get user based on email
-  const user = await customersModel.findOne({ email: req.body.email });
-  if (!user) {
-    return next(
-      new ApiError(
-        `There is no user with this email address ${req.body.email}`,
-        404
-      )
-    );
-  }
-  // Check if user verify the reset code
-  if (!user.resetCodeVerified) {
-    return next(new ApiError("reset code not verified", 400));
-  }
-  const hashedResetCode = await bcrypt.hash(req.body.newPassword, 10);
 
-  // 2) Update user password & Hide passwordResetCode & passwordResetExpires from the result
-  user.password = hashedResetCode;
-  user.passwordResetCode = undefined;
+  // Get the reset token from the request parameters
+  const resetToken = req.query.token;
+
+  // Find a user with the matching reset token and valid expiration time
+  const user = await customersModel.findOne({
+    passwordResetToken: resetToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+  console.log(req.query.token)
+
+  if (!user) {
+    return next(new ApiError("Reset token is invalid or has expired", 400));
+  }
+  const newPassword = req.body.newPassword;
+
+  if (!newPassword) {
+    return next(new ApiError("New password is required", 400));
+  }
+  
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  user.password = hashedPassword;
+  
+  user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
-  user.resetCodeVerified = undefined;
+
   await user.save();
 
-  // 3) If everything ok, send token to client
-  const token = createToken(user._id);
-
-  res.status(200).json({ user: user, token });
+  res.status(200).json({
+    status: "Success",
+    message: "Password reset successful",
+  });
 });
+
+
 
 //Permissions
 //Verify user permissions

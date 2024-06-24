@@ -37,6 +37,23 @@ exports.resizerCategoryImage = asyncHandler(async (req, res, next) => {
 });
 
 
+//@desc Create  LastChildren
+//@route Post /api/category/last-children
+//@access Private
+exports.getLastChildrenCategories = asyncHandler(async (req, res, next) => {
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const Category = db.model('Category', categorySchema);
+
+    const lastChildrenCategories = await Category.find({ children: { $size: 0 } }).lean();
+
+    res.status(200).json({ status: true, data: lastChildrenCategories });
+  } catch (error) {
+    console.error('Error fetching last children categories:', error);
+    next(error); 
+  }
+});
 
 //@desc Get List category
 //@route Get /api/category/

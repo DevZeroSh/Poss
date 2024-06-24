@@ -19,7 +19,9 @@ const calclatTotalCartPrice = (cart) => {
 
   cart.cartItems.forEach((item) => {
     totalPrice += item.quantity * item.taxPrice;
+
   });
+  console.log(totalPrice)
   cart.totalCartPrice = totalPrice;
   return totalPrice;
 };
@@ -139,15 +141,10 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
 
   const cart = await CartModel.findOne({ customar: req.user._id });
 
-  if (!cart) {
-    return next(
-      new ApiError(`There is no cart for this user id: ${req.user._id}`, 404)
-    );
-  }
   res.status(200).json({
     status: "success",
-    numOfCartItems: cart.cartItems.length,
-    data: cart,
+    numOfCartItems: cart?.cartItems?.length || 0,
+    data: cart || [],
   });
 });
 
@@ -198,7 +195,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
   db.model("customar", customarSchema);
-  const { quantity, taxPrice, taxs } = req.body;
+  const { quantity } = req.body;
   const cart = await CartModel.findOne({ customar: req.user._id });
   if (!cart) {
     return next(
@@ -212,14 +209,15 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   if (itemIndex > -1) {
     const cartItem = cart.cartItems[itemIndex];
     cartItem.quantity = quantity;
-    cartItem.taxPrice = taxPrice;
-    cartItem.taxs = taxs;
+
     cart.cartItems[itemIndex] = cartItem;
   } else {
     return next(
       new ApiError(`there is no item for this id: ${req.params.itemId}`, 404)
     );
   }
+
+  console.log(req.body)
   if (cart.coupon !== "" && cart.coupon !== undefined) {
     calclatTotalCartPrice(cart);
     const coupon = await CouponModel.findOne({ discountName: cart.coupon });

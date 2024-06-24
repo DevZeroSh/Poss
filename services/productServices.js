@@ -5,7 +5,6 @@ const multer = require("multer");
 const ApiError = require("../utils/apiError");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
-const multerStorage = multer.memoryStorage();
 const csvtojson = require("csvtojson");
 const xlsx = require("xlsx");
 const { default: mongoose } = require("mongoose");
@@ -118,7 +117,7 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
 
   const productModel = db.model("Product", productSchema);
   const currencyModel = db.model("Currency", currencySchema);
-
+  db.model("Tax", TaxSchema);
   const pageSize = parseInt(req.query.limit, 10) || 25;
   const page = parseInt(req.query.page, 10) || 1;
   const skip = (page - 1) * pageSize;
@@ -145,7 +144,7 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
       .sort(sortQuery)
       .skip(skip)
       .limit(pageSize)
-      .populate({ path: "currency", model: currencyModel })
+      .populate({ path: "currency", model: currencyModel }).populate({ path: "tax", select: "tax  _id" })
   ]);
 
   const totalPages = Math.ceil(totalItems / pageSize);
@@ -203,7 +202,6 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
       req.files.imagesArray.map(async (img, index) => {
         const imagesName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
         await sharp(img.buffer)
-          .resize(900, 400)
           .toFormat("png")
           .png({ quality: 70 })
           .toFile(`uploads/product/${imagesName}`);
@@ -216,17 +214,134 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
   next();
 });
 
-
-
-
-
-
 //
 exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
   const productModel = db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+  db.model("Brand", brandSchema);
+  db.model("Variant", variantSchema);
+
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = parseInt(req.query.skip) || 0;
+  let query = {};
+
+  // Keyword search
+  if (req.query.keyword) {
+    query.name = { $regex: req.query.keyword, $options: "i" };
+  }
+
+  // Type filtering for category or brand
+  if (req.query.type === "category" && req.query.id) {
+    try {
+      query.category = new mongoose.Types.ObjectId(req.query.id);
+    } catch (error) {
+      return next(new Error("Invalid category ID format"));
+    }
+  }
+  if (req.query.type === "brand" && req.query.id) {
+    try {
+      query.brand = new mongoose.Types.ObjectId(req.query.id);
+    } catch (error) {
+      return next(new Error("Invalid brand ID format"));
+    }
+  }
+
+  // Tax price range filtering
+  if (req.query.taxPriceMin || req.query.taxPriceMax) {
+    query.taxPrice = {};
+    if (req.query.taxPriceMin) {
+      query.taxPrice.$gte = parseFloat(req.query.taxPriceMin);
+    }
+    if (req.query.taxPriceMax) {
+      query.taxPrice.$lte = parseFloat(req.query.taxPriceMax);
+    }
+  }
+
+  // Sorting logic
+  let sortQuery = { createdAt: -1 };
+  if (req.query.sold) {
+    sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
+  }
+  if (req.query.taxPrice) {
+    sortQuery = { taxPrice: parseInt(req.query.taxPrice) === 1 ? 1 : -1 };
+  }
+  if (req.query.ratingsAverage) {
+    sortQuery = { ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1 };
+  }
+
+  try {
+    // Aggregation pipeline for querying and population
+    const aggregationPipeline = [
+      { $match: query },
+      { $sort: sortQuery },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      { 
+        $unwind: "$category" 
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category.children",
+          foreignField: "_id",
+          as: "category.childrenDetails"
+        }
+      },
+      {
+        $lookup: {
+          from: "brands",
+          localField: "brand",
+          foreignField: "_id",
+          as: "brand"
+        }
+      },
+      {
+        $lookup: {
+          from: "variants",
+          localField: "variant",
+          foreignField: "_id",
+          as: "variant"
+        }
+      }
+    ];
+
+    const products = await productModel.aggregate(aggregationPipeline);
+
+    const totalItems = await productModel.countDocuments(query);
+    const totalPages = Math.ceil(totalItems / limit);
+
+
+    res.status(200).json({
+      status: "true",
+      results: products.length,
+      Pages: totalPages,
+      data: products,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// @desc Create  product
+// @route Post /api/product
+// @access Private
+exports.createProduct = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+  const currencyModel = db.model("Currency", currencySchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
@@ -236,61 +351,6 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   db.model("Currency", currencySchema);
   db.model("Review", reviewSchema);
   db.model("Customar", customarSchema);
-
-  let limit = req.query.limit || 20
-  let skip = req.query.skip || 10
-  let query = {};
-
-  if (req.query.keyword) {
-    query.$or = [
-      { name: { $regex: req.query.keyword, $options: "i" } },
-      { qr: { $regex: req.query.keyword, $options: "i" } },
-    ];
-  }
-
-  if (req.query.type === "category" || req.query.type === "brand") {
-    query.$and = [];
-    if (req.query.type === "category") {
-      query.$and.push({ category: req.query.id });
-    }
-    if (req.query.type === "brand") {
-      query.$and.push({ brand: req.query.id });
-    }
-  }
-
-  if (req.query.label) {
-    query.label = req.query.label;
-  }
-
-  let sortQuery = {};
-  if (req.query.sold) {
-    sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
-  } else {
-    sortQuery = { createdAt: -1 };
-  }
-
-  const totalItems = await productModel.countDocuments(query);
-
-  const totalPages = Math.ceil(totalItems / limit);
-  const product = await productModel.find(query)
-    .sort(sortQuery).skip(parseInt(skip))
-    .limit(parseInt(limit))
-  res.status(200).json({
-    status: "true",
-    results: product.length,
-    Pages: totalPages,
-    data: product,
-
-  });
-});
-// @desc Create  product
-// @route Post /api/product
-// @access Private
-exports.createProduct = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const productModel = db.model("Product", productSchema);
-  const currencyModel = db.model("Currency", currencySchema);
 
   try {
     req.body.slug = slugify(req.body.name);
@@ -315,7 +375,6 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
       "create",
       dbName
     );
-
     res.status(201).json({
       status: "true",
       message: "Product Inserted",
@@ -330,37 +389,54 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 // @desc Get specific product by id
 // @route Get /api/product/:id
 // @access Private
+
 exports.getOneProduct = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
 
-  const movementsModel = db.model("ProductMovements", ProductMovementSchema);
-  const productModel = db.model("Product", productSchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
-  db.model("Currency", currencySchema);
-  db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
-  const { id } = req.params;
-  let query = productModel.findById(id).populate({ path: "category" }).lean()
-    .populate({ path: "brand", select: "name _id" })
-    .populate({ path: "variant", select: "variant  _id" })
-    .populate({ path: "unit", select: "name code  _id" })
-    .populate({ path: "tax", select: "tax  _id" })
-    .populate({ path: "label", select: "name  _id" }).populate({
-      path: "currency",
-    });
+    // Initialize only required models
+    const productModel = db.model("Product", productSchema);
+    const movementsModel = db.model("ProductMovements", ProductMovementSchema);
+    db.model("Category", categorySchema);
+    db.model("brand", brandSchema);
+    db.model("Labels", labelsSchema);
+    db.model("Tax", TaxSchema);
+    db.model("Unit", UnitSchema);
+    db.model("Variant", variantSchema);
+    db.model("Currency", currencySchema);
+    db.model("Review", reviewSchema);
+    db.model("Customar", customarSchema);
 
+    const { id } = req.params;
 
-  const product = await query;
+    // Fetch product and movements concurrently
+    const [product, movements] = await Promise.all([
+      productModel.findById(id)
+        .populate({ path: "category" })
+        .populate({ path: "brand", select: "name _id" })
+        .populate({ path: "variant", select: "variant _id" })
+        .populate({ path: "unit", select: "name code _id" })
+        .populate({ path: "tax", select: "tax _id" })
+        .populate({ path: "label", select: "name _id" })
+        .populate({ path: "currency" })
+        .populate({ path: "review", options: { limit: 10 } }),
 
-  const movements = await movementsModel.find({ productId: id });
-  res.status(200).json({ data: product, movements: movements });
+      movementsModel.find({ productId: id })
+    ]);
+
+    // Check if product exists
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.status(200).json({ data: product, movements });
+  } catch (error) {
+    next(error);
+  }
 });
+
+
 
 // @desc Update specific product
 // @route Put /api/product/:id

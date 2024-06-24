@@ -15,10 +15,7 @@ const paymentTypesSchema = new mongoose.Schema(
       enum: [true, false],
       default: false,
     },
-    bankRatio: {
-      type: Number,
-      default: 0,
-    },
+   
     expenseCategory: {
       type: mongoose.Schema.ObjectId,
       ref: "ExpensesCategory",

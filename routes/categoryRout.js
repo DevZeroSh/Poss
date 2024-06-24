@@ -7,6 +7,7 @@ const {
   deleteCategory,
   uploadCategoryImage,
   resizerCategoryImage,
+  getLastChildrenCategories,
 } = require("../services/CategoryServices");
 const {
   createCategoryVlaidator,
@@ -17,6 +18,12 @@ const {
 
 const authService = require("../services/authService");
 const categoryRout = express.Router();
+
+
+
+categoryRout
+  .route("/last-children")
+  .get(getLastChildrenCategories)
 
 categoryRout
   .route("/")

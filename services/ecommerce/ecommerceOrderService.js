@@ -60,6 +60,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customar: req.user._id,
     cartItems: cart.cartItems,
     shippingAddress: req.body.shippingAddress,
+    billingAddress: req.body.billingAddress,
     date: formattedDate,
     orderNumber: nextCounter,
     totalOrderPrice,
@@ -94,6 +95,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("Product", productSchema)
   db.model("customar", customarSchema);
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
@@ -114,7 +116,9 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
     mongooseQuery = mongooseQuery.find(query);
   }
   sortQuery = { createdAt: -1 };
-
+  mongooseQuery = mongooseQuery.populate({
+    path: "cartItems.product",
+  });
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
   const totalItems = await orderModel.countDocuments();

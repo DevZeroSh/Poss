@@ -7,8 +7,11 @@ const stockSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
     },
-    number: String,
-    productCount: { type: Number, default: 0 },
+    description: {
+      type: String,
+      default: "Stock description",
+    },
+    location: String
   },
   { timestamps: true }
 );
