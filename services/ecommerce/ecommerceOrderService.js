@@ -91,6 +91,7 @@ exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   };
   next();
 });
+
 exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -118,6 +119,9 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   sortQuery = { createdAt: -1 };
   mongooseQuery = mongooseQuery.populate({
     path: "cartItems.product",
+  }).populate({
+    path: "customar",
+    select: "name email phone",
   });
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
@@ -184,4 +188,47 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
   await order.save();
 
   res.status(200).json({ status: "success", data: order });
+});
+
+exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+    db.model("customar", customarSchema);
+
+    const { id } = req.params;
+    const updates = req.body; // Array of objects with _id and new orderStatus
+
+    // Find the order by ID
+    const order = await orderModel.findById(id);
+
+    // Check if the order exists
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Ensure order has cartItems
+    if (!order.cartItems || !Array.isArray(order.cartItems)) {
+      return res.status(400).json({ error: 'Invalid order data: missing cartItems' });
+    }
+
+    // Update the orderStatus for each cart item based on the provided updates
+    updates.forEach(update => {
+      const itemIndex = order.cartItems.findIndex(
+        (item) => item._id.toString() === update._id
+      );
+      if (itemIndex !== -1) {
+        order.cartItems[itemIndex].orderStatus = update.orderStatus;
+      }
+    });
+
+    // Save the updated order
+    await order.save();
+
+    res.status(200).json({ status: "success", data: order });
+
+  } catch (error) {
+    next(error);
+  }
 });

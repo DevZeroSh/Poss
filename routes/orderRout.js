@@ -10,6 +10,7 @@ const {
   getOneReturnOrder,
   DashBordSalse,
   margeOrderFish,
+  findAllSalesPos,
 } = require("../services/orderServices");
 
 const authService = require("../services/authService");
@@ -24,6 +25,7 @@ OrderRout.route("/return").post(returnOrder);
 OrderRout.route("/getReturnOrder").get(getReturnOrder);
 OrderRout.route("/getReturnOrder/:id").get(getOneReturnOrder);
 
+OrderRout.route("/salespos").get(findAllSalesPos);
 OrderRout.route("/").get(findAllOrder).post(createCashOrder);
 OrderRout.route("/funds").post(createCashOrderMultipelFunds);
 OrderRout.route("/salesDashbord").post(DashBordSalse);

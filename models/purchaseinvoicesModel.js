@@ -37,7 +37,6 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     addedValue: Number,
     totalQuantity: Number,
     totalbuyingprice: Number,
-
     suppliers: { type: mongoose.Schema.ObjectId, ref: "Supplier" },
     supplier: String,
     supplierPhone: String,
@@ -46,11 +45,14 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     supplierCompany: String,
     invoiceCurrencyId: { type: mongoose.Schema.ObjectId, ref: "Currency" },
     invoiceCurrency: String,
+    invoiceCurrencyExchangeRate: Number,
     invoiceFinancialFund: String,
     finalPriceMainCurrency: Number,
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
-    payments: [{ payment: Number,paymentMainCurrency: Number, financialFunds: String, date: String }],
+    payments: [{ payment: Number, paymentMainCurrency: Number, financialFunds: String, date: String }],
+    date: String,
+    description: String,
     paid: {
       type: String,
       default: "unpaid",

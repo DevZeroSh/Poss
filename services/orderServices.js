@@ -28,6 +28,8 @@ const { createActiveProductsValue } = require("../utils/activeProductsValue");
 const { createPaymentHistory } = require("./paymentHistoryService");
 const paymentTypesSchema = require("../models/paymentTypesModel");
 const expensesSchema = require("../models/expensesModel");
+const orderFishSchema = require("../models/orderModelFish");
+const orderFishPosSchema = require("../models/orderModelFishPos");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/orders/cartId
@@ -43,6 +45,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema)
   const expensesModel = db.model("Expenses", expensesSchema);
   const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+  const orderFishPosModel = db.model("orderFishPosSchema", orderFishPosSchema);
+
   db.model("PaymentType", paymentTypesSchema);
   db.model("Currency", currencySchema);
   const cartItems = req.body.cartItems;
@@ -67,7 +71,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   }
 
 
-  const nextCounter = (await orderModel.countDocuments()) + 1;
+  const nextCounter = (await orderFishPosModel.countDocuments()) + 1;
+  const nextCounter2 = (await ReportsSalesModel.countDocuments()) + 1;
 
 
 
@@ -93,7 +98,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     type: req.body.type,
     onefinancialFunds: financialFundsId,
     paidAt: formattedDate,
-    counter: nextCounter,
+    counter: "pos-" + nextCounter,
     exchangeRate,
     paid: "paid",
   });
@@ -131,7 +136,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     fund: financialFundsId,
     amount: totalOrderPrice,
     cartItems,
-    counter: nextCounter,
+    counter: nextCounter2,
     paymentType: "Single Fund",
     employee: req.user._id,
     type: "pos",
@@ -199,7 +204,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   await financialFunds.save();
   const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
-
+  orderFishPosModel.create(createReportsFinancialFundsPromise)
   res.status(201).json({ status: "success", data: order, history });
 });
 
@@ -219,6 +224,8 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("PaymentType", paymentTypesSchema);
+  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
+
   const cartItems = req.body.cartItems;
 
   function padZero(value) {
@@ -233,11 +240,12 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     return next(new ApiError("The cart is empty", 400));
   }
 
-  const { paid, totalOrderPrice, financialFunds: financialFundsId, exchangeRate, customarId } = req.body;
+  const { paid, totalOrderPrice, financialFunds: financialFundsId, exchangeRate, customarId, description, date } = req.body;
   const timeIsoString = new Date().toISOString();
 
   const customarsPromise = customersModel.findById(customarId);
-  const nextCounterPromise = orderModel.countDocuments().then(count => count + 1);
+  const nextCounterPromise = orderFishModel.countDocuments().then(count => count + 1);
+  const nextCounterReports = ReportsSalesModel.countDocuments().then(count => count + 1);
 
   let financialFunds;
   if (paid === "paid") {
@@ -248,7 +256,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     financialFunds.fundBalance += req.body.totalPriceExchangeRate;
   }
 
-  const [customars, nextCounter] = await Promise.all([customarsPromise, nextCounterPromise]);
+  const [customars, nextCounter, reportCounter] = await Promise.all([customarsPromise, nextCounterPromise, nextCounterReports]);
 
   let order;
   if (paid === "paid") {
@@ -274,9 +282,11 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       type: req.body.type,
       onefinancialFunds: financialFundsId,
       paidAt: formattedDate,
-      counter: nextCounter,
+      counter: "in-" + nextCounter,
       exchangeRate: exchangeRate,
       paid: paid,
+      description,
+      date,
     });
 
     const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
@@ -309,7 +319,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           expenseTax: "0",
           type: "paid",
         });
-        console.log("test")
         ReportsFinancialFundsModel.create({
           date: formattedDate,
           amount: expenseQuantityAfterKdv,
@@ -327,7 +336,32 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   } else {
     customars.total += totalOrderPrice;
-    customars.TotalUnpaid += totalOrderPrice;
+
+    let total = totalOrderPrice;
+    if (customars.TotalUnpaid <= -1) {
+      const t = total + customars.TotalUnpaid;
+      if (t > 0) {
+        total = t;
+        customars.TotalUnpaid = t
+        console.log(">")
+      }
+      else if (t < 0) {
+        customars.TotalUnpaid = t;
+        req.body.paid = "paid"
+        console.log("<")
+      }
+      else {
+        total = 0;
+        customars.TotalUnpaid = 0;
+        req.body.paid = "paid";
+        console.log("=");
+      }
+
+    }
+    else {
+
+      customars.TotalUnpaid += total;
+    }
     await customars.save();
 
     order = await orderModel.create({
@@ -352,11 +386,11 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       type: req.body.type,
       onefinancialFunds: financialFundsId,
       paidAt: formattedDate,
-      counter: nextCounter,
+      counter: "in-" + nextCounter,
       exchangeRate: exchangeRate,
-      paid: paid,
+      paid: req.body.paid,
       totalRemainder: req.body.priceExchangeRate,
-      totalRemainderMainCurrency: totalOrderPrice,
+      totalRemainderMainCurrency: total,
     });
   }
 
@@ -384,7 +418,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     fund: financialFundsId,
     amount: totalOrderPrice,
     cartItems: cartItems,
-    counter: nextCounter,
+    counter: reportCounter,
     paymentType: "Single Fund",
     employee: req.user._id,
   });
@@ -419,7 +453,8 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   ]);
 
   const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
-  await createPaymentHistory("invoice", formattedDate, totalOrderPrice, customars.TotalUnpaid, "customer", customarId, nextCounter, dbName);
+  await createPaymentHistory("invoice", formattedDate, totalOrderPrice, customars.TotalUnpaid, "customer", customarId, "in-" + nextCounter, dbName);
+  orderFishModel.create(reportsSalesPromise);
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -438,6 +473,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
   db.model("PaymentType", paymentTypesSchema);
+  const orderFishPosModel = db.model("orderFishPosSchema", orderFishPosSchema);
+
   db.model("Currency", currencySchema);
   const padZero = value => value < 10 ? `0${value}` : value;
 
@@ -452,7 +489,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     return next(new ApiError("The cart is empty", 400));
   }
 
-  const totalOrderCount = await orderModel.countDocuments();
+  const totalOrderCount = await orderFishPosModel.countDocuments() + 1;
+  const reportsOrderCount = await ReportsSalesModel.countDocuments() + 1;
   const order = await orderModel.create({
     ...orderData,
     employee: req.user._id,
@@ -460,7 +498,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     returnCartItem: cartItems,
     totalOrderPrice: 0,
     paidAt: date,
-    counter: totalOrderCount + 1,
+    counter: "pos " + totalOrderCount,
     financialFunds: financialFunds.filter(fund => fund.amount !== 0).map(fund => ({
       fundId: fund.fundId,
       allocatedAmount: parseFloat(fund.amount),
@@ -596,7 +634,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     cartItems,
     paymentType: "Multiple Funds",
     employee: req.user._id,
-    counter: totalOrderCount + 1,
+    counter: reportsOrderCount,
     type: "pos",
   });
 
@@ -644,6 +682,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   }
 
   const history = createInvoiceHistory(dbName, order._id, "create", req.user._id);
+  orderFishPosModel.create(fundsPromises)
 
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -684,30 +723,91 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   const pageSize = 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-  // Search for product or qr
-  let mongooseQuery = orderModel.find();
 
+  // Initialize the base query to exclude type "pos"
+  let query = { type: { $ne: "pos" } };
+
+  // Add keyword filter if provided
   if (req.query.keyword) {
-    const query = {
+    query = {
       $and: [
+        query,
         {
           $or: [{ counter: req.query.keyword }],
         },
-        { archives: { $ne: true } },
       ],
     };
-    mongooseQuery = mongooseQuery.find(query);
   }
+
+  let mongooseQuery = orderModel.find(query);
+
+  // Apply sorting
   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
   // Count total items without pagination
-  const totalItems = await orderModel.countDocuments();
+  const totalItems = await orderModel.countDocuments(query);
 
   // Calculate total pages
   const totalPages = Math.ceil(totalItems / pageSize);
 
   // Apply pagination
-  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize).populate({ path: "employee" })
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize).populate({ path: "employee" });
+
+  const order = await mongooseQuery;
+
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    results: order.length,
+    data: order,
+  });
+});
+
+// @desc    Get All order
+// @route   GET /api/orders/cartId
+// @access  privet/All
+exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const orderModel = db.model("Orders", orderSchema);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+
+  const pageSize = 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  // Initialize the base query to exclude type "pos"
+  let query = { type: "pos" };
+
+  // Add keyword filter if provided
+  if (req.query.keyword) {
+    query = {
+      $and: [
+        query,
+        {
+          $or: [{ counter: req.query.keyword }],
+        },
+      ],
+    };
+  }
+
+  let mongooseQuery = orderModel.find(query);
+
+  // Apply sorting
+  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+
+  // Count total items without pagination
+  const totalItems = await orderModel.countDocuments(query);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Apply pagination
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize).populate({ path: "employee" });
 
   const order = await mongooseQuery;
 
@@ -729,18 +829,33 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const orderModel = db.model("Orders", orderSchema);
 
   const { id } = req.params;
-  const order = await orderModel.findById(id).populate({
-    path: "financialFunds.fundId",
-    select: "fundName",
-  }).populate({
-    path: "onefinancialFunds",
-    select: "fundName",
-  });
-  if (!order) {
-    return next(new ApiError(`No order for this id ${id}`, 404));
-  }
-  res.status(200).json({ status: "true", data: order });
+  let query = {};
+  // Check if the id is a valid ObjectId
+  const isObjectId = mongoose.Types.ObjectId.isValid(id);
 
+  if (isObjectId) {
+    query = { _id: id };
+  } else  {
+    // Check if the id is a number
+    query = { counter: id };
+  } 
+  try {
+    const order = await orderModel.findOne(query).populate({
+      path: "financialFunds.fundId",
+      select: "fundName",
+    }).populate({
+      path: "onefinancialFunds",
+      select: "fundName",
+    });
+
+    if (!order) {
+      return next(new ApiError(`No order found for this id ${id}`, 404));
+    }
+
+    res.status(200).json({ status: "true", data: order });
+  } catch (error) {
+    return next(new ApiError(`Error retrieving order for id ${id}: ${error.message}`, 500));
+  }
 
 });
 
@@ -1318,11 +1433,14 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   db.model("Employee", emoloyeeShcema);
-  const financialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   db.model("Product", productSchema);
   db.model("ReportsSales", ReportsSalesSchema);
   const orderModel = db.model("Orders", orderSchema);
+  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -1405,17 +1523,16 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
   // Convert the map of financial funds to an array
   const aggregatedFunds = Array.from(financialFundsMap.values());
 
-  const nextCounter = (await orderModel.countDocuments()) + 1;
-
+  const nextCounter = (await orderFishModel.countDocuments()) + 1;
 
 
   const newOrderData = {
     cartItems: cartItems,
     priceExchangeRate: totalOrderPrice,
     paidAt: formattedDate,
-    type: 'normal',
+    type: 'bills',
     totalOrderPrice: totalOrderPrice,
-    counter: nextCounter,
+    counter: "in " + nextCounter,
     paid: "paid",
     exchangeRate: 1,
     fish: fish,
@@ -1426,7 +1543,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
 
   const newOrders = await orderModel.insertMany(newOrderData);
 
-
+  orderFishModel.create(newOrderData);
 
   res.json(newOrders);
 });

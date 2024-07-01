@@ -90,7 +90,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   let paymentText = "";
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
-
+  const description = req.body.description
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const totalMainCurrency = req.body.totalMainCurrency;
@@ -151,12 +151,14 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "supplier",
       req.body.supplierId,
       purchases.counter,
-      dbName
+      dbName,
+      description,
+      nextCounter
     );
   } else if (req.body.taker === "customer") {
     const customer = await customerModel.findById(req.body.customerId);
     const totalMainCurrency = req.body.totalMainCurrency;
-    const test=customer.TotalUnpaid;
+    const test = customer.TotalUnpaid;
     customer.TotalUnpaid -= totalMainCurrency;
 
     let remainingPayment = totalMainCurrency;
@@ -219,7 +221,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "customer",
       req.body.customerId,
       salesrModel.counter,
-      dbName
+      dbName,
+      description,
+      nextCounter
     );
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById(req.body.supplierId);
@@ -254,7 +258,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "supplier",
       req.body.supplierId,
       purchase.counter,
-      dbName
+      dbName,
+      description,
+      nextCounter
     );
   } else if (req.body.taker === "sales") {
     const sales = await salesrModel.findById(req.body.salesId);
@@ -287,11 +293,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "customer",
       req.body.customerId,
       salesrModel.counter,
-      dbName
+      dbName,
+      description,
+      nextCounter
     );
   }
 
-  req.body.data = formattedDate;
+  req.body.date = formattedDate;
   await financialFunds.save();
   const payment = await paymentModel.create(req.body);
 
@@ -323,21 +331,36 @@ exports.getPayment = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const paymentModel = db.model("Payment", paymentSchma);
 
-  const payment = await paymentModel.find();
+  const payment = await paymentModel.find().sort({createdAt:-1});
   if (!payment) {
     return next(new ApiError("Not found any Payment here", 404));
   }
   res.status(200).json({ status: "success", data: payment });
 });
 
+
 exports.getOnePayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const paymentModel = db.model("Payment", paymentSchma);
   const { id } = req.params;
-  const payment = await paymentModel.findById(id);
+
+  let query = {};
+
+  const isObjectId = mongoose.Types.ObjectId.isValid(id);
+
+  if (isObjectId) {
+    query = { _id: id };
+  } else if (!isNaN(id)) {
+    query = { counter: Number(id) };
+  } else {
+    query = { stringId: id };
+  }
+
+  const payment = await paymentModel.findOne(query);
+
   if (!payment) {
-    return next(new ApiError("Payment not found", 404));
+    return res.status(404).json({ status: "fail", message: "Payment not found" });
   }
 
   res.status(200).json({ status: "success", data: payment });

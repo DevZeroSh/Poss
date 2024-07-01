@@ -18,6 +18,8 @@ const supplierSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
     },
+    openingBalanceId: String,
+    openingBalance: Number,
     companyName: String,
     country: String,
     city: String,

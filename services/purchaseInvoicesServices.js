@@ -92,6 +92,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     invoiceCurrency,
     paid,
     finalPriceMainCurrency,
+    invoiceCurrencyExchangeRate,
+    description
   } = req.body;
 
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
@@ -140,6 +142,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalTax: totalTax,
       totalPrice: totalPrice,
       profitRatio: profitRatio,
+
     };
     invoiceItems.push(invoiceItem);
   }
@@ -171,6 +174,9 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       invoiceCurrencyId,
       invoiceCurrency,
       counter: nextCounter,
+      invoiceCurrencyExchangeRate,
+      description,
+      date: req.body.date,
       paid: paid,
     });
 
@@ -319,6 +325,34 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     res.status(201).json({ status: "success", data: savedInvoice, history });
   } else {
+    const supplier = await suppl.findById(suppliersId);
+    supplier.total += req.body.finalPricetest;
+
+    let total = req.body.finalPricetest;
+    if (supplier.TotalUnpaid <= -1) {
+      const t = total + supplier.TotalUnpaid;
+      if (t > 0) {
+        total = t;
+        supplier.TotalUnpaid = t
+        console.log(">")
+      }
+      else if (t < 0) {
+        supplier.TotalUnpaid = t;
+        req.body.paid = "paid"
+        console.log("<")
+      }
+      else {
+        total = 0;
+        supplier.TotalUnpaid = 0;
+        req.body.paid = "paid";
+        console.log("=");
+      }
+    }
+    else {
+      supplier.TotalUnpaid += total;
+    }
+
+
     const newPurchaseInvoice = new PurchaseInvoicesModel({
       invoices: invoiceItems,
       paidAt: formattedDate,
@@ -341,6 +375,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalRemainder: finalPrice,
       totalRemainderMainCurrency: finalPriceMainCurrency,
       counter: nextCounter,
+      invoiceCurrencyExchangeRate,
+      paid: req.body.paid
     });
     bulkOption = invoiceItems.map((item) => ({
       updateOne: {
@@ -357,12 +393,9 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         },
       },
     }));
-    const supplier = await suppl.findById(suppliersId);
-    supplier.total += req.body.finalPricetest;
-    supplier.TotalUnpaid += req.body.finalPricetest;
-    // Loop through each item in the invoiceItems array
 
-    // Loop through each item in the invoiceItems array
+    await supplier.save();
+
     invoiceItems.forEach((newInvoiceItem) => {
       const existingProductIndex = supplier.products.findIndex(
         (existingProduct) => existingProduct.qr === newInvoiceItem.qr
@@ -396,7 +429,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     try {
       // Save the updated supplier
-      await supplier.save();
+
       await productModel.bulkWrite(bulkOption, {});
       const savedInvoice = await newPurchaseInvoice.save();
 

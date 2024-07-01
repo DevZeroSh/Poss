@@ -66,7 +66,7 @@ const ReportsSalesSchema = new mongoose.Schema(
       ref: "Employee",
     },
     counter: {
-      type: Number,
+      type: String,
       default: 0,
       unique: true,
     },

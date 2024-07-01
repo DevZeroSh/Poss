@@ -7,6 +7,7 @@ const {
   filterOrderForLoggedUser,
   filterOneOrderForLoggedUser,
   UpdateEcommersOrder,
+  customarChangeOrderStatus,
 } = require("../../services/ecommerce/ecommerceOrderService");
 
 const ecommerceOrderRouter = express.Router();
@@ -27,7 +28,7 @@ ecommerceOrderRouter
 
 ecommerceOrderRouter
   .route("/ecommerceOrder/:id")
-  .get(authService.protect, filterOneOrderForLoggedUser)
+  .get(authService.protect, filterOneOrderForLoggedUser).patch(customarChangeOrderStatus)
   .put(authService.protect, UpdateEcommersOrder);
 
 ecommerceOrderRouter

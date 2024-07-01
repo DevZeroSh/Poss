@@ -27,6 +27,8 @@ const customarSchema = new mongoose.Schema(
         number: String,
       },
     ],
+    openingBalanceId: String,
+    openingBalance: Number,
     sex: {
       type: String,
       enum: ["male", "female", "unknow"],
@@ -36,6 +38,7 @@ const customarSchema = new mongoose.Schema(
     country: String,
     city: String,
     address: String,
+    nickName:String,
     customarType: {
       type: String,
       enum: ["individual", "corporate", "ecommerce"],

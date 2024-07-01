@@ -78,13 +78,6 @@ const ecommerceOrderSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-ecommerceOrderSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: "customar",
-    select: "name email phone",
-  });
 
-  next();
-});
 
 module.exports = ecommerceOrderSchema;

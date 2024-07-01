@@ -10,7 +10,7 @@ const TaxSchema = require("../models/taxModel");
 const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
 const currencySchema = require("../models/currencyModel");
-const { createPaymentHistory } = require("./paymentHistoryService");
+const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -44,18 +44,21 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
+  req.body.openingBalance = req.body.TotalUnpaid;
+
   const supplier = await supplierModel.create(req.body);
-  await createPaymentHistory(
+  const openingBalance = await createPaymentHistory(
     "Opening balance",
     supplier.date || formattedDate,
-    0,
+    req.body.TotalUnpaid,
     supplier.TotalUnpaid,
     "supplier",
     supplier.id,
     "",
     dbName
   );
-
+  supplier.openingBalanceId = openingBalance._id;
+  supplier.save()
   res
     .status(201)
     .json({ status: "true", message: "Supplier Inserted", data: supplier });
@@ -110,15 +113,24 @@ exports.updataSupplier = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
 
-  const supplier = await supplierModel.findByIdAndUpdate(id, req.body, {
-    new: true,
-  });
+  const supplier = await supplierModel.findById(id,);
   if (!supplier) {
     return next(new ApiError(`There is no supplier with this id ${id}`, 404));
   } else {
+
+    await editPaymentHistory(
+      dbName,
+      supplier.openingBalanceId,
+      req.body.openingBalance,
+    )
+    req.body.TotalUnpaid = parseFloat(supplier.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    req.body.total = parseFloat(supplier.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    const updatedSupplier = await supplierModel.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
     res
       .status(200)
-      .json({ status: "true", message: "Supplier updated", data: supplier });
+      .json({ status: "true", message: "Supplier updated", data: updatedSupplier });
   }
 });
 

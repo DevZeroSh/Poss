@@ -5,7 +5,7 @@ const customarSchema = require("../models/customarModel");
 const { Search } = require("../utils/search");
 const bcrypt = require("bcrypt");
 const createToken = require("../utils/createToken");
-const { createPaymentHistory } = require("./paymentHistoryService");
+const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
 //Create New Customar
 //@rol: Who has rol can create
 exports.createCustomar = asyncHandler(async (req, res, next) => {
@@ -45,17 +45,21 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   ) {
     req.body.email = `email@email.email${nextCounter}`;
   }
+  req.body.openingBalance = req.body.TotalUnpaid;
   const customar = await customersModel.create(req.body);
-  await createPaymentHistory(
+
+  const openingBalance = await createPaymentHistory(
     "Opening balance",
-    customar.date || formattedDate,
-    0,
+    req.body.date || formattedDate,
+    req.body.TotalUnpaid,
     customar.TotalUnpaid,
     "customer",
     customar.id,
     "",
     dbName
   );
+  customar.openingBalanceId = openingBalance._id;
+  await customar.save();
   res
     .status(201)
     .json({ status: "true", message: "Customar Inserted", data: customar });
@@ -101,16 +105,28 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
 
-  const customar = await customersModel.findByIdAndUpdate(id, req.body, {
-    new: true,
-  });
+  const customar = await customersModel.findById(id);
+
 
   if (!customar) {
     return next(new ApiError(`There is no customar with this id ${id}`, 404));
   } else {
+
+    await editPaymentHistory(
+      dbName,
+      customar.openingBalanceId,
+      req.body.openingBalance,
+    )
+    req.body.TotalUnpaid = parseFloat(customar.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    req.body.total = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    const updatedCustomar = await customersModel.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+
+
     res
       .status(200)
-      .json({ status: "true", message: "Customar updated", data: customar });
+      .json({ status: "true", message: "Customar updated", data: updatedCustomar });
   }
 });
 

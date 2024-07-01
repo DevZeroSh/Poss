@@ -163,9 +163,7 @@ const setImageURL = (doc) => {
 productSchema.post("find", function (docs) {
   docs.forEach(setImageURL);
 });
-productSchema.post("init", (doc) => {
-  setImageURL(doc);
-});
+
 //Create
 productSchema.post("save", (doc) => {
   setImageURL(doc);

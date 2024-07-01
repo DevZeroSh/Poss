@@ -26,6 +26,7 @@ const orderSchema = new mongoose.Schema(
     },
 
     exchangeRate: Number,
+    fundExchangeRate: Number,
 
     cartItems: [
       {
@@ -60,14 +61,13 @@ const orderSchema = new mongoose.Schema(
         name: String,
         qr: String,
         exchangeRate: Number,
-    
+
       },
     ],
     priceExchangeRate: {
       type: Number,
       default: 0,
     },
-    // paymentMethodType: { type: String, default: "Nakit" },
     totalOrderPrice: Number,
     totalPriceAfterDiscount: Number,
     currencyCode: String,
@@ -95,9 +95,11 @@ const orderSchema = new mongoose.Schema(
     customarEmail: String,
     customarPhone: String,
     customaraddres: String,
+    date: String,
+    description: String,
     type: {
       type: String,
-      enum: ["pos", "normal"],
+      enum: ["pos", "normal", "bills"],
       default: "normal",
     },
     fish: [String],
