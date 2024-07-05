@@ -6,12 +6,16 @@ const { Search } = require("../utils/search");
 const bcrypt = require("bcrypt");
 const createToken = require("../utils/createToken");
 const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
+const orderSchema = require("../models/orderModel");
+const orderFishSchema = require("../models/orderModelFish");
 //Create New Customar
 //@rol: Who has rol can create
 exports.createCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -59,6 +63,31 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
     dbName
   );
   customar.openingBalanceId = openingBalance._id;
+  if (openingBalance.rest !== 0) {
+
+
+    const nextCounterPromise = orderFishModel.countDocuments().then(count => count + 1);
+
+    await orderModel.create({
+      employee: req.user._id,
+      totalOrderPrice: req.body.TotalUnpaid,
+      priceExchangeRate: req.body.TotalUnpaid,
+      totalRemainderMainCurrency: req.body.TotalUnpaid,
+      totalRemainder: req.body.TotalUnpaid,
+      customarId: customar.id,
+      customarName: customar.name,
+      customarEmail: customar.email,
+      customarPhone: customar.phone,
+      customarAddress: customar.address,
+      exchangeRate: 1,
+      type: "openBalance",
+      paidAt: formattedDate,
+      counter: "in-" + nextCounterPromise,
+      paid: "unpaid",
+      date,
+    })
+
+  }
   await customar.save();
   res
     .status(201)
@@ -111,11 +140,13 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
   if (!customar) {
     return next(new ApiError(`There is no customar with this id ${id}`, 404));
   } else {
-
+    const amountBalance = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
     await editPaymentHistory(
       dbName,
       customar.openingBalanceId,
       req.body.openingBalance,
+      req.body.date,
+      amountBalance
     )
     req.body.TotalUnpaid = parseFloat(customar.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
     req.body.total = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);

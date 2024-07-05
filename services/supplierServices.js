@@ -11,6 +11,7 @@ const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
 const currencySchema = require("../models/currencyModel");
 const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
+const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -44,20 +45,46 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
   req.body.openingBalance = req.body.TotalUnpaid;
 
   const supplier = await supplierModel.create(req.body);
   const openingBalance = await createPaymentHistory(
     "Opening balance",
-    supplier.date || formattedDate,
+    req.body.date || formattedDate,
     req.body.TotalUnpaid,
     supplier.TotalUnpaid,
     "supplier",
     supplier.id,
     "",
     dbName
+    
   );
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
+
   supplier.openingBalanceId = openingBalance._id;
+  await PurchaseInvoicesModel.create({
+    paidAt: formattedDate,
+    suppliers: supplier.id,
+    supplier: supplier.supplier,
+    supplierPhone: supplier.phoneNumber,
+    supplierEmail: supplier.email,
+    supplierAddress: supplier.address,
+    supplierCompany: supplier.companyName,
+    finalPrice: req.body.TotalUnpaid,
+    finalPriceMainCurrency: req.body.TotalUnpaid,
+    totalPriceWitheOutTax: req.body.TotalUnpaid,
+    employee: req.user._id,
+    counter: nextCounter,
+    invoiceCurrencyExchangeRate: 1,
+    date: req.body.date,
+    totalRemainder: req.body.TotalUnpaid,
+    totalRemainderMainCurrency: req.body.TotalUnpaid,
+    paid: "unpaid",
+  })
   supplier.save()
   res
     .status(201)
@@ -122,6 +149,7 @@ exports.updataSupplier = asyncHandler(async (req, res, next) => {
       dbName,
       supplier.openingBalanceId,
       req.body.openingBalance,
+      req.body.date
     )
     req.body.TotalUnpaid = parseFloat(supplier.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
     req.body.total = parseFloat(supplier.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);

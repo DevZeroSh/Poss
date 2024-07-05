@@ -99,7 +99,7 @@ const orderSchema = new mongoose.Schema(
     description: String,
     type: {
       type: String,
-      enum: ["pos", "normal", "bills"],
+      enum: ["pos", "normal", "bills","openBalance"],
       default: "normal",
     },
     fish: [String],

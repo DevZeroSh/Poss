@@ -69,6 +69,9 @@ const getPaymentHistory = asyncHandler(async (req, res, next) => {
     transaction.runningBalance = runningBalance;
   });
 
+
+  
+
   // Sort transactions in descending order before applying pagination
   const sortedTransactions = allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -90,14 +93,16 @@ const getPaymentHistory = asyncHandler(async (req, res, next) => {
 const editPaymentHistory = async (
   dbName,
   openingBalanceId,
-  openingBalance
+  openingBalance,
+  date,
+  amountBalance
 ) => {
   const db = mongoose.connection.useDb(dbName);
   const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
   const paymentHistory = await PaymentHistoryModel.findOne({ _id: openingBalanceId })
   paymentHistory.rest = openingBalance
-  paymentHistory.amount = openingBalance
-  paymentHistory.date
+  paymentHistory.amount = amountBalance
+  paymentHistory.date = date
   paymentHistory.save()
   return paymentHistory;
 }

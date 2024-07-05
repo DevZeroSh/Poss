@@ -2,9 +2,9 @@ const axios = require("axios");
 const crypto = require("crypto");
 
 const PaymentService = async (order, body) => {
-  const merchant_id = process.env.MERCHANT_ID;
-  const merchant_key = process.env.MERCHANT_KEY;
-  const merchant_salt = process.env.MERCHANT_SALT;
+  const merchant_id = 471531;
+  const merchant_key = "77ZNHe2byM2unZCU";
+  const merchant_salt = "zkAHcxfG7XnJNqWk";
 
   const user_basket = JSON.stringify(
     order.cartItems.map((item) => [

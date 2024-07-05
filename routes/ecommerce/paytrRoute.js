@@ -4,9 +4,13 @@ const nodeBase64 = require("nodejs-base64-converter");
 const axios = require("axios");
 const paytrRouter = express.Router();
 
-const merchant_id = process.env.MERCHANT_ID;
-const merchant_key = process.env.MERCHANT_KEY;
-const merchant_salt = process.env.MERCHANT_SALT;
+const merchant_id = 471531;
+const merchant_key = "77ZNHe2byM2unZCU";
+const merchant_salt ="zkAHcxfG7XnJNqWk";
+
+console.log('Merchant ID:', merchant_id);
+console.log('Merchant Key:', merchant_key);
+console.log('Merchant Salt:', merchant_salt);
 
 paytrRouter.post("/paytr-token", async (req, res) => {
   const {
@@ -35,6 +39,10 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 
   const hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}${currency}${test_mode}`;
   const paytr_token = hashSTR + merchant_salt;
+  console.log("paytr_token")
+  console.log(paytr_token)
+  console.log("merchant_key")
+  console.log(merchant_key)
   const token = crypto
     .createHmac("sha256", merchant_key)
     .update(paytr_token)
@@ -84,6 +92,7 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 });
 
 paytrRouter.post("/callback", (req, res) => {
+  console.log(req);
   const callback = req.body;
   const paytr_token =
     callback.merchant_oid +

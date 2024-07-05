@@ -725,8 +725,12 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   const skip = (page - 1) * pageSize;
 
   // Initialize the base query to exclude type "pos"
-  let query = { type: { $ne: "pos" } };
-
+  let query = {
+    $and: [
+      { type: { $ne: "pos" } },
+      { type: { $ne: "openBalance" } }
+    ]
+  };
   // Add keyword filter if provided
   if (req.query.keyword) {
     query = {
@@ -835,10 +839,10 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
 
   if (isObjectId) {
     query = { _id: id };
-  } else  {
+  } else {
     // Check if the id is a number
     query = { counter: id };
-  } 
+  }
   try {
     const order = await orderModel.findOne(query).populate({
       path: "financialFunds.fundId",

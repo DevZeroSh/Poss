@@ -77,11 +77,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   }
 
   const currentDate = new Date();
-  const formattedDate = req.body.date || `${currentDate.getFullYear()}-${padZero(
-    currentDate.getMonth() + 1
-  )}-${padZero(currentDate.getDate())} ${padZero(
-    currentDate.getHours()
-  )}:${padZero(currentDate.getMinutes())}:${padZero(currentDate.getSeconds())}`;
+  const formattedDate = req.body.date + ` ${padZero(currentDate.getHours())}:${padZero(currentDate.getMinutes())}:${padZero(currentDate.getSeconds())}`
+    || `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)} 
+   -${padZero(currentDate.getDate())}`;
   const timeIsoString = currentDate.toISOString();
 
   const financialFundsId = req.body.financialFundsId;
@@ -113,11 +111,11 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             purchase.totalRemainderMainCurrency - paymentAmount,
           totalRemainder:
             purchase.totalRemainder -
-            paymentAmount / purchase.invoiceCurrencyId.exchangeRate,
+            paymentAmount / purchase.invoiceCurrencyExchangeRate,
         },
         $push: {
           payments: {
-            payment: paymentAmount / purchase.invoiceCurrencyId.exchangeRate,
+            payment: paymentAmount / purchase.invoiceCurrencyExchangeRate,
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
             date: formattedDate,
@@ -167,7 +165,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paid: "unpaid",
       customarId: req.body.customerId,
     });
-
     const bulkUpdateOperations = sales.map((sale) => {
       const paymentAmount = Math.min(
         sale.totalRemainderMainCurrency,
@@ -331,7 +328,7 @@ exports.getPayment = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const paymentModel = db.model("Payment", paymentSchma);
 
-  const payment = await paymentModel.find().sort({createdAt:-1});
+  const payment = await paymentModel.find().sort({ createdAt: -1 });
   if (!payment) {
     return next(new ApiError("Not found any Payment here", 404));
   }
