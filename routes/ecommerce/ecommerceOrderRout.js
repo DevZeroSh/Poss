@@ -28,11 +28,12 @@ ecommerceOrderRouter
 
 ecommerceOrderRouter
   .route("/ecommerceOrder/:id")
-  .get(authService.protect, filterOneOrderForLoggedUser).patch(customarChangeOrderStatus)
+  .get(authService.protect, filterOneOrderForLoggedUser)
+  .patch(customarChangeOrderStatus)
   .put(authService.protect, UpdateEcommersOrder);
 
 ecommerceOrderRouter
-  .route("/:cartId")
+  .route("/:id")
   .post(authService.ecommerceProtect, createCashOrder);
 
 module.exports = ecommerceOrderRouter;

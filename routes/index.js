@@ -42,6 +42,7 @@ const pagesRout = require("./ecommerce/pagesRout");
 const stockRout = require("./stokRoute");
 const footerRout = require("./ecommerce/footerRout");
 const offersRouter = require("./offersRoute");
+const paytrRouter = require("./ecommerce/paytrRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -93,5 +94,8 @@ const mountRoutes = (app) => {
 
   //Hr
   app.use("/api/finger-print", fingerPrintRout);
+
+  //Payment
+  app.use("/api", paytrRouter);
 };
 module.exports = mountRoutes;

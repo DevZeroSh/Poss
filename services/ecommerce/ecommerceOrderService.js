@@ -13,6 +13,9 @@ const UnitSchema = require("../../models/UnitsModel");
 const variantSchema = require("../../models/variantsModel");
 const currencySchema = require("../../models/currencyModel");
 const reviewSchema = require("../../models/ecommerce/reviewModel");
+const { PaymentService } = require("./paymentService");
+const { getIP } = require("../../utils/getIP");
+const { stringify } = require("flatted");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -41,11 +44,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const shippingPrice = 0;
 
   // 1) Get cart depend on cartId
-  const cart = await CartModel.findById(req.params.cartId);
+  const { id } = req.params;
+  const cart = await CartModel.findById(id);
   if (!cart) {
-    return next(
-      new ApiError(`There is no such cart with id ${req.params.cartId}`, 404)
-    );
+    return next(new ApiError(`There is no such cart with id ${id}`, 404));
   }
 
   // 2) Get order price depend on cart price "Check if coupon apply"
@@ -55,7 +57,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const totalOrderPrice = cartPrice + taxPrice + shippingPrice;
   const nextCounter = (await orderModel.countDocuments()) + 1;
-  // // 3) Create order with default paymentMethodType cash
+
+  // 3) Create order with default paymentMethodType cash
   const order = await orderModel.create({
     customar: req.user._id,
     cartItems: cart.cartItems,
@@ -66,23 +69,33 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     totalOrderPrice,
   });
 
-  // // 4) After creating order, decrement product quantity, increment product sold
-  if (order) {
-    const bulkOption = cart.cartItems.map((item) => ({
-      updateOne: {
-        filter: { _id: item.product },
-        update: {
-          $inc: { activeCount: -item.quantity, sold: -item.quantity },
+  try {
+    const { body } = req;
+    const ipAddress = await getIP();
+    body.ipAddress = ipAddress;
+
+    const paymentContext = await PaymentService(order, body);
+    console.log(paymentContext);
+
+    // 4) After creating order, decrement product quantity, increment product sold
+    if (order) {
+      const bulkOption = cart.cartItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item.product },
+          update: {
+            $inc: { activeCount: -item.quantity, sold: -item.quantity },
+          },
         },
-      },
-    }));
-    await productModel.bulkWrite(bulkOption, {});
+      }));
+      await productModel.bulkWrite(bulkOption, {});
+      // 5) Clear cart depending on cartId
+      await CartModel.findByIdAndDelete(id);
+    }
 
-    // 5) Clear cart depend on cartId
-    await CartModel.findByIdAndDelete(req.params.cartId);
+    res.status(201).json({ status: "success", data: order });
+  } catch (error) {
+    return next(error);
   }
-
-  res.status(201).json({ status: "success", data: order });
 });
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
@@ -96,7 +109,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-  db.model("Product", productSchema)
+  db.model("Product", productSchema);
   db.model("customar", customarSchema);
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
@@ -117,12 +130,14 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
     mongooseQuery = mongooseQuery.find(query);
   }
   sortQuery = { createdAt: -1 };
-  mongooseQuery = mongooseQuery.populate({
-    path: "cartItems.product",
-  }).populate({
-    path: "customar",
-    select: "name email phone",
-  });
+  mongooseQuery = mongooseQuery
+    .populate({
+      path: "cartItems.product",
+    })
+    .populate({
+      path: "customar",
+      select: "name email phone",
+    });
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
   const totalItems = await orderModel.countDocuments();
@@ -147,7 +162,7 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("customar", customarSchema);
-  db.model("Product", productSchema)
+  db.model("Product", productSchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
@@ -158,7 +173,10 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   db.model("Review", reviewSchema);
   const { id } = req.params;
 
-  const order = await orderModel.findById(id).populate({ path: "cartItems.product" }).lean();
+  const order = await orderModel
+    .findById(id)
+    .populate({ path: "cartItems.product" })
+    .lean();
 
   res.status(200).json({ status: "success", data: order });
 });
@@ -205,16 +223,18 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
 
     // Check if the order exists
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: "Order not found" });
     }
 
     // Ensure order has cartItems
     if (!order.cartItems || !Array.isArray(order.cartItems)) {
-      return res.status(400).json({ error: 'Invalid order data: missing cartItems' });
+      return res
+        .status(400)
+        .json({ error: "Invalid order data: missing cartItems" });
     }
 
     // Update the orderStatus for each cart item based on the provided updates
-    updates.forEach(update => {
+    updates.forEach((update) => {
       const itemIndex = order.cartItems.findIndex(
         (item) => item._id.toString() === update._id
       );
@@ -227,7 +247,6 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
     await order.save();
 
     res.status(200).json({ status: "success", data: order });
-
   } catch (error) {
     next(error);
   }

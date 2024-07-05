@@ -17,6 +17,7 @@ const cartSchema = new mongoose.Schema(
         taxs: Number,
         price: Number,
         image: String,
+        maxQuantity: Number,
       },
     ],
     coupon: String,

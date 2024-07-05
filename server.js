@@ -1,17 +1,19 @@
 const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
-const globalError = require("./middlewares/errorMiddleware");
 const cors = require("cors");
 const morgan = require("morgan");
+const globalError = require("./middlewares/errorMiddleware");
 
 dotenv.config({ path: "config.env" });
+
 const app = express();
 
-//Routes
+// Database connection (assuming dbContacion is a function connecting to your database)
 const dbContacion = require("./config/database");
 const mountRoutes = require("./routes");
 dbContacion();
+
 // Middleware
 app.use(express.json());
 app.use(cors());
@@ -21,9 +23,11 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
   console.log(`mode: ${process.env.NODE_ENV}`);
 }
+
 // Mount Routes
 mountRoutes(app);
-//Global error handling middleware for express
+
+// Global error handling middleware for express
 app.use(globalError);
 
 const PORT = process.env.PORT || 4000;

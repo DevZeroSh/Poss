@@ -19,9 +19,8 @@ const calclatTotalCartPrice = (cart) => {
 
   cart.cartItems.forEach((item) => {
     totalPrice += item.quantity * item.taxPrice;
-
   });
-  console.log(totalPrice)
+  console.log(totalPrice);
   cart.totalCartPrice = totalPrice;
   return totalPrice;
 };
@@ -82,6 +81,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
           taxs: taxs,
           price: price,
           image: product.image,
+          maxQuantity: product.activeCount,
         },
       ],
     });
@@ -109,6 +109,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
         taxs: taxs,
         price: price,
         image: product.image,
+        maxQuantity: product.activeCount,
       });
     }
   }
@@ -217,7 +218,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
     );
   }
 
-  console.log(req.body)
+  console.log(req.body);
   if (cart.coupon !== "" && cart.coupon !== undefined) {
     calclatTotalCartPrice(cart);
     const coupon = await CouponModel.findOne({ discountName: cart.coupon });
