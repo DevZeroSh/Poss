@@ -6,11 +6,11 @@ const paytrRouter = express.Router();
 
 const merchant_id = 471531;
 const merchant_key = "77ZNHe2byM2unZCU";
-const merchant_salt ="zkAHcxfG7XnJNqWk";
+const merchant_salt = "zkAHcxfG7XnJNqWk";
 
-console.log('Merchant ID:', merchant_id);
-console.log('Merchant Key:', merchant_key);
-console.log('Merchant Salt:', merchant_salt);
+console.log("Merchant ID:", merchant_id);
+console.log("Merchant Key:", merchant_key);
+console.log("Merchant Salt:", merchant_salt);
 
 paytrRouter.post("/paytr-token", async (req, res) => {
   const {
@@ -20,13 +20,27 @@ paytrRouter.post("/paytr-token", async (req, res) => {
     user_name,
     user_address,
     user_phone,
+    order,
   } = req.body;
-  const merchant_oid = "IN" + Date.now();
-  const basket = JSON.stringify([
-    ["Product 1", "100.00", 1],
-    ["Product 2", "200.00", 2],
-  ]);
-  const user_basket = nodeBase64.encode(basket);
+
+  if (
+    !email ||
+    !payment_amount ||
+    !user_ip ||
+    !user_name ||
+    !user_address ||
+    !user_phone ||
+    !order
+  ) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+  const userBasket = cartItems.map((item) => {
+    return [item.product, item.taxPrice.toFixed(2), item.quantity];
+  });
+  const userBasketStr = JSON.stringify(userBasket);
+
+  const merchant_oid = order?.data?._id;
+  const user_basket = nodeBase64.encode(userBasketStr);
   const max_installment = "0";
   const no_installment = "0";
   const currency = "TL";
@@ -39,10 +53,7 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 
   const hashSTR = `${merchant_id}${user_ip}${merchant_oid}${email}${payment_amount}${user_basket}${no_installment}${max_installment}${currency}${test_mode}`;
   const paytr_token = hashSTR + merchant_salt;
-  console.log("paytr_token")
-  console.log(paytr_token)
-  console.log("merchant_key")
-  console.log(merchant_key)
+
   const token = crypto
     .createHmac("sha256", merchant_key)
     .update(paytr_token)
@@ -92,8 +103,12 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 });
 
 paytrRouter.post("/callback", (req, res) => {
-  console.log(req);
   const callback = req.body;
+  console.log("\n-------callback-------");
+  console.log(callback);
+  console.log("-------callback end-------\n");
+
+  // Construct the hash
   const paytr_token =
     callback.merchant_oid +
     merchant_salt +
@@ -104,15 +119,21 @@ paytrRouter.post("/callback", (req, res) => {
     .update(paytr_token)
     .digest("base64");
 
+  // Verify the hash
   if (token !== callback.hash) {
-    console.error("Hash mismatch:", token, callback.hash);
-    return res.status(400).send("PAYTR notification failed: bad hash");
+    console.error("PAYTR notification failed: bad hash");
+    return res.status(400).send("Bad hash");
   }
 
+  // Process the payment status
   if (callback.status === "success") {
-    console.log("Payment success for order:", callback.merchant_oid);
+    // Payment successful
+    console.log("Payment successful for order:", callback.merchant_oid);
+    // Update your order status in the database
   } else {
+    // Payment failed
     console.log("Payment failed for order:", callback.merchant_oid);
+    // Update your order status in the database
   }
 
   res.send("OK");
