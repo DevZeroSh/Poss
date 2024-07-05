@@ -34,7 +34,7 @@ paytrRouter.post("/paytr-token", async (req, res) => {
   ) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  const userBasket = cartItems.map((item) => {
+  const userBasket = order?.data?.cartItems.map((item) => {
     return [item.product, item.taxPrice.toFixed(2), item.quantity];
   });
   const userBasketStr = JSON.stringify(userBasket);
