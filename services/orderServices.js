@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const mongoose = require("mongoose");
 const { default: slugify } = require("slugify");
+const cron = require('node-cron');
 
 const productSchema = require("../models/productModel");
 const orderSchema = require("../models/orderModel");
@@ -30,6 +31,7 @@ const paymentTypesSchema = require("../models/paymentTypesModel");
 const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const orderFishPosSchema = require("../models/orderModelFishPos");
+const { default: axios } = require("axios");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/orders/cartId
@@ -1430,12 +1432,12 @@ exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
   res.status(200).json({ status: "true", data: order });
 });
 
+
 // @desc    Post Marge Salse invoice
 // @route   GET /api/margeorder
 // @access  privet
-exports.margeOrderFish = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
+const margeOrderFish = asyncHandler(async (databaseName) => {
+  const db = mongoose.connection.useDb(databaseName);
   db.model("Employee", emoloyeeShcema);
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
@@ -1448,7 +1450,6 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
-
   let ts = Date.now();
   let date_ob = new Date(ts);
   let date = padZero(date_ob.getDate());
@@ -1457,6 +1458,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
   let hours = padZero(date_ob.getHours());
   let minutes = padZero(date_ob.getMinutes());
   let seconds = padZero(date_ob.getSeconds());
+  console.log(databaseName);
 
   const formattedDate =
     year +
@@ -1490,6 +1492,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
 
   const financialFundsMap = new Map();
 
+
   for (const order of orders) {
     order.cartItems.forEach(item => {
       cartItems.push(item);
@@ -1497,7 +1500,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
       totalOrderPrice += item.taxPrice * item.quantity;
 
     });
-    order.financialFunds?.forEach(fund => {
+    await order.financialFunds?.forEach(fund => {
       const fundId = fund.fundId.toString();
 
       if (financialFundsMap.has(fundId)) {
@@ -1510,6 +1513,7 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
         });
       }
     });
+
 
     if (order.onefinancialFunds) {
       const fundId = order.onefinancialFunds.toString();
@@ -1541,16 +1545,49 @@ exports.margeOrderFish = asyncHandler(async (req, res, next) => {
     exchangeRate: 1,
     fish: fish,
     financialFunds: aggregatedFunds,
-    employee: req.user._id,
   };
 
 
   const newOrders = await orderModel.insertMany(newOrderData);
 
-  orderFishModel.create(newOrderData);
+  await
+    orderFishModel.create(newOrderData);
 
-  res.json(newOrders);
+
 });
+
+const fetchAllSubscriberDatabases = async () => {
+  try {
+    console.log('Fetching subscriber databases...');
+
+    // Make a request to get all subscriber databases
+    const response = await axios.get("https://nooncar.com:4000/api/subscribers");
+
+
+
+    if (response.data.status === "success") {
+      const subscriberDatabases = response.data.data.map(user => user.dbName);
+      console.log("Subscriber databases:", subscriberDatabases);
+      return subscriberDatabases;
+    } else {
+      throw new Error("Failed to fetch subscriber databases.");
+    }
+  } catch (error) {
+    console.error("Error fetching subscriber databases:", error);
+    return [];
+  }
+};
+
+cron.schedule('59 23 * * *', async () => {
+  console.log('Running offer status update task for all databases...');
+
+  // Fetch all subscriber databases
+  const subscriberDatabases = await fetchAllSubscriberDatabases();
+  // for (const dbName of subscriberDatabases) {
+  margeOrderFish("muhammedshahrour");
+  // }
+});
+
 
 /*
 // @desc post order

@@ -1,4 +1,3 @@
-const express = require('express');
 const offerSchema = require('../models/offersModel');
 const { default: mongoose } = require('mongoose');
 const productSchema = require('../models/productModel');
@@ -25,7 +24,7 @@ async function getAllChildCategories(parentCategoryId, db, categorySchema) {
         nestedChildCategories.forEach(catId => allCategories.add(catId));
     }
 
-    return Array.from(allCategories); 
+    return Array.from(allCategories);
 }
 
 exports.createOffer = async (req, res) => {
@@ -58,7 +57,7 @@ exports.createOffer = async (req, res) => {
 
         }
         else {
-              // Find products by id
+            // Find products by id
             const products = await Product.find({ _id: { $in: offerData.applicableProducts } });
             const applicableProducts = products.map(product => product._id.toString());
 
@@ -182,8 +181,7 @@ exports.updateOffer = async (req, res) => {
         if (!updatedOffer) {
             return res.status(404).send({ error: "Offer not found" });
         }
-
-        res.send(updatedOffer);
+        res.status(200).json({ status: "success", data: updatedOffer });
     } catch (error) {
         res.status(500).send({ error: "Failed to update offer" });
     }

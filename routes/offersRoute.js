@@ -14,7 +14,7 @@ offersRouter.get('/', getOffer);
 offersRouter.get('/:id', getOneOffer);
 
 // Update an offer
-offersRouter.patch('/:id', updateOffer);
+offersRouter.put('/:id', updateOffer);
 
 // Delete an offer
 offersRouter.delete('/:id', deleteOffer);

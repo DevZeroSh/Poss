@@ -9,7 +9,6 @@ const {
   getReturnOrder,
   getOneReturnOrder,
   DashBordSalse,
-  margeOrderFish,
   findAllSalesPos,
 } = require("../services/orderServices");
 
@@ -20,7 +19,6 @@ const OrderRout = express.Router();
 OrderRout.use(authService.protect);
 
 // Define more specific routes before general ones
-OrderRout.route("/margeorder").post(margeOrderFish);
 OrderRout.route("/return").post(returnOrder);
 OrderRout.route("/getReturnOrder").get(getReturnOrder);
 OrderRout.route("/getReturnOrder/:id").get(getOneReturnOrder);
