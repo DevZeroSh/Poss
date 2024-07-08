@@ -65,3 +65,59 @@ exports.getLoggedUserAddresses = asyncHandler(async (req, res, next) => {
     data: user.addresses,
   });
 });
+
+// @desc    Update address in user addresses list
+// @route   PUT /api/addresses/:addressId
+// @access  Protected/User
+exports.updateAddress = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const customerModel = db.model("customar", customarSchema);
+
+  const user = await customerModel.findOneAndUpdate(
+    { _id: req.user._id, "addresses._id": req.params.addressId },
+    {
+      $set: { "addresses.$": req.body },
+    },
+    { new: true }
+  );
+
+  if (!user) {
+    return res.status(404).json({
+      status: "fail",
+      message: "Address not found",
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    message: "Address updated successfully.",
+    data: user.addresses,
+  });
+});
+
+// @desc    Get one address by ID
+// @route   GET /api/addresses/:addressId
+// @access  Protected/User
+exports.getAddressById = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const customerModel = db.model("customar", customarSchema);
+
+  const user = await customerModel.findOne(
+    { _id: req.user._id, "addresses._id": req.params.addressId },
+    { "addresses.$": 1 }
+  );
+
+  if (!user || !user.addresses.length) {
+    return res.status(404).json({
+      status: "fail",
+      message: "Address not found",
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: user.addresses[0],
+  });
+});
