@@ -30,7 +30,7 @@ mountRoutes(app);
 // Global error handling middleware for express
 app.use(globalError);
 
-const PORT = process.env.PORT || 4000;
+const PORT = 80 || 4000;
 const server = app.listen(PORT, () => {
   console.log(`app running on port ${PORT}`);
 });
