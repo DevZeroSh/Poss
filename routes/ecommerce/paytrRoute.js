@@ -103,34 +103,40 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 });
 
 paytrRouter.post("/callback", (req, res) => {
-    // ÖNEMLİ UYARILAR!
-    // 1) Bu sayfaya oturum (SESSION) ile veri taşıyamazsınız. Çünkü bu sayfa müşterilerin yönlendirildiği bir sayfa değildir.
-    // 2) Entegrasyonun 1. ADIM'ında gönderdiğniz merchant_oid değeri bu sayfaya POST ile gelir. Bu değeri kullanarak
-    // veri tabanınızdan ilgili siparişi tespit edip onaylamalı veya iptal etmelisiniz.
-    // 3) Aynı sipariş için birden fazla bildirim ulaşabilir (Ağ bağlantı sorunları vb. nedeniyle). Bu nedenle öncelikle
-    // siparişin durumunu veri tabanınızdan kontrol edin, eğer onaylandıysa tekrar işlem yapmayın. Örneği aşağıda bulunmaktadır.
+const callback = req.body;
+  console.log("\n-------callback-------");
+  console.log(callback);
+  console.log("-------callback end-------\n");
 
-    var callback = req.body;
+  // Construct the hash
+  const paytr_token =
+    callback.merchant_oid +
+    merchant_salt +
+    callback.status +
+    callback.total_amount;
+  const token = crypto
+    .createHmac("sha256", merchant_key)
+    .update(paytr_token)
+    .digest("base64");
 
-    // POST değerleri ile hash oluştur.
-    paytr_token = callback.merchant_oid + merchant_salt + callback.status + callback.total_amount;
-    var token = crypto.createHmac('sha256', merchant_key).update(paytr_token).digest('base64');
+  // Verify the hash
+  if (token !== callback.hash) {
+    console.error("PAYTR notification failed: bad hash");
+    return res.status(400).send("Bad hash");
+  }
 
-    // Oluşturulan hash'i, paytr'dan gelen post içindeki hash ile karşılaştır (isteğin paytr'dan geldiğine ve değişmediğine emin olmak için)
-    // Bu işlemi yapmazsanız maddi zarara uğramanız olasıdır.
+  // Process the payment status
+  if (callback.status === "success") {
+    // Payment successful
+    console.log("Payment successful for order:", callback.merchant_oid);
+    // Update your order status in the database
+  } else {
+    // Payment failed
+    console.log("Payment failed for order:", callback.merchant_oid);
+    // Update your order status in the database
+  }
 
-    if (token != callback.hash) {
-        throw new Error("PAYTR notification failed: bad hash");
-    }
-
-    if (callback.status == 'success') {
-        console.log("OK")
-    } else {
-       console.log("Not Ok")
-    }
-
-    res.send('OK');
-
+  res.send("OK");
 });
 
 
