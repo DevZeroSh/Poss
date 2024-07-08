@@ -108,7 +108,7 @@ const callback = req.body;
   console.log(callback);
   console.log("-------callback end-------\n");
    console.log("\n-------callback-------");
-console.log(req.body);
+console.log(req);
   // Construct the hash
   const paytr_token =
     callback.merchant_oid +
