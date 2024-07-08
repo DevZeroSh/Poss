@@ -118,7 +118,7 @@ paytrRouter.post("/callback", (req, res) => {
     .createHmac("sha256", merchant_key)
     .update(paytr_token)
     .digest("base64");
-
+console.log(callback);
   // Verify the hash
   if (token !== callback.hash) {
     console.error("PAYTR notification failed: bad hash");
