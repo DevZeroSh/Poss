@@ -133,9 +133,6 @@ paytrRouter.post("/callback", (req, res) => {
 
 });
 
-var port = 3000;
-app.listen(port, function () {
-    console.log("Server is running. Port:" + port);
-});
+
 
 module.exports = paytrRouter;
