@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const StockSchema = require("../models/stockModel");
 const { default: slugify } = require("slugify");
 const ApiError = require("../utils/apiError");
+const productSchema = require("../models/productModel");
 
 exports.createStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -34,7 +35,8 @@ exports.getOneStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
-  const Stock = await StockModel.findById(req.params.id);
+  db.model("Product", productSchema);
+  const Stock = await StockModel.findById(req.params.id).populate({ path: "proudct" });
   if (!Stock) {
     return next(new ApiError(`No Stock found for id ${req.params.id}`, 404));
   }
@@ -74,3 +76,5 @@ exports.deleteStock = asyncHandler(async (req, res, next) => {
     message: "Stock Delete successfully",
   });
 });
+
+

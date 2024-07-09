@@ -63,11 +63,12 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
     dbName
   );
   customar.openingBalanceId = openingBalance._id;
+
   if (openingBalance.rest !== 0) {
 
 
-    const nextCounterPromise = orderFishModel.countDocuments().then(count => count + 1);
-
+    const nextCounterPromise = (await orderModel.countDocuments()) + 1
+    console.log(nextCounterPromise)
     await orderModel.create({
       employee: req.user._id,
       totalOrderPrice: req.body.TotalUnpaid,
@@ -82,8 +83,9 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
       exchangeRate: 1,
       type: "openBalance",
       paidAt: formattedDate,
-      counter: "in-" + nextCounterPromise,
+      counter: "op-" + nextCounterPromise,
       paid: "unpaid",
+      openingBalanceId: customar.openingBalanceId,
       date,
     })
 
@@ -133,6 +135,7 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
+  const orderModel = db.model("Orders", orderSchema);
 
   const customar = await customersModel.findById(id);
 
@@ -148,12 +151,15 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
       req.body.date,
       amountBalance
     )
+
     req.body.TotalUnpaid = parseFloat(customar.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
     req.body.total = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
     const updatedCustomar = await customersModel.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-
+    // const order = await orderModel.findOne({ openingBalanceId: customar.openingBalanceId });
+    // const amountBalance2 =  parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    // console.log(amountBalance2)
 
     res
       .status(200)

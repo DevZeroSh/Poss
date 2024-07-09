@@ -99,7 +99,7 @@ const orderSchema = new mongoose.Schema(
     description: String,
     type: {
       type: String,
-      enum: ["pos", "normal", "bills","openBalance"],
+      enum: ["pos", "normal", "bills", "openBalance"],
       default: "normal",
     },
     fish: [String],
@@ -118,6 +118,7 @@ const orderSchema = new mongoose.Schema(
         date: String,
       },
     ],
+    openingBalanceId: String
   },
 
   { timestamps: true }

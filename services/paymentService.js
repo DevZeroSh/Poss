@@ -173,16 +173,16 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       const updateObj = {
         $set: {
           totalRemainderMainCurrency: parseFloat(
-            (sale.totalRemainderMainCurrency - paymentAmount).toFixed(3)
+            (sale.totalRemainderMainCurrency - paymentAmount).toFixed(2)
           ),
 
           totalRemainder: parseFloat(
-            (sale.totalRemainder - paymentAmount / sale.exchangeRate).toFixed(3)
+            (sale.totalRemainder - paymentAmount / sale.exchangeRate).toFixed(2)
           ),
         },
         $push: {
           payments: {
-            payment: parseFloat((paymentAmount / sale.exchangeRate).toFixed(3)),
+            payment: parseFloat((paymentAmount / sale.exchangeRate).toFixed(2)),
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
             date: formattedDate,

@@ -11,7 +11,14 @@ const stockSchema = new mongoose.Schema(
       type: String,
       default: "Stock description",
     },
-    location: String
+    location: String,
+
+    proudcts: [{
+      proudctId: String,
+      proudctName: String,
+      proudctQuantity: Number,
+    }]
+
   },
   { timestamps: true }
 );

@@ -21,6 +21,7 @@ const ProductMovementSchema = require("../models/productMovementModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
+const stockSchema = require("../models/stockModel");
 
 
 // @desc Get list product
@@ -287,8 +288,8 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           as: "category"
         }
       },
-      { 
-        $unwind: "$category" 
+      {
+        $unwind: "$category"
       },
       {
         $lookup: {
@@ -333,56 +334,94 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
+const updateStocks = async (dbName, productId, stocks) => {
+  try {
+    // Connect to the appropriate database
+    const db = mongoose.connection.useDb(dbName);
+
+    // Define stock model
+    const stockModel = db.model("Stock", stockSchema);
+
+    // Update or create stock information for each stock provided
+    for (const stockInfo of stocks) {
+      const { stockId, stockName, productQuantity } = stockInfo;
+
+      // Update stock information
+      const updatedStock = await stockModel.findOneAndUpdate(
+        { _id: stockId },
+        {
+          $push: {
+            products: {
+              $each: [{
+                productId: productId,
+                productName: stockName,
+                productQuantity: productQuantity
+              }],
+              $position: 0
+            }
+          }
+        },
+        {
+          new: true,
+          upsert: true,
+          strict: false
+        }
+      );
+
+      // Log or handle the updatedStock as needed
+    }
+  } catch (error) {
+    throw new Error(`Error updating stocks: ${error.message}`);
+  }
+};
+const createProductHandler = async (dbName, productData) => {
+  try {
+    // Connect to the appropriate database
+    const db = mongoose.connection.useDb(dbName);
+
+    // Define product model
+    const productModel = db.model("Product", productSchema);
+
+    // Create a slug for the product name
+    productData.slug = slugify(productData.name);
+
+    // Create the product in the database
+    const product = await productModel.create(productData);
+
+    return product;
+  } catch (error) {
+    throw new Error(`Error creating product: ${error.message}`);
+  }
+};
 
 // @desc Create  product
 // @route Post /api/product
 // @access Private
 exports.createProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const productModel = db.model("Product", productSchema);
-  const currencyModel = db.model("Currency", currencySchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
-  db.model("Currency", currencySchema);
-  db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
+  const productData = req.body;
 
   try {
-    req.body.slug = slugify(req.body.name);
-    const product = await productModel.create(req.body);
-    const currency = await currencyModel.findById(product.currency);
-    const productValue = product.activeCount * product.buyingprice;
-    createActiveProductsValue(
-      product.activeCount,
-      productValue,
-      currency._id,
-      dbName
-    )
-      .then((savedData) => { })
-      .catch((error) => {
-        console.log(error);
-      });
-    const savedMovement = await createProductMovement(
-      product._id,
-      product.quantity,
-      product.quantity,
-      "in",
-      "create",
-      dbName
-    );
+    // Create product
+    const product = await createProductHandler(dbName, productData);
+
+    // Update stocks with product ID
+    await updateStocks(dbName, product._id, productData.stocks);
+
+    // Respond with success message and data
     res.status(201).json({
       status: "true",
       message: "Product Inserted",
       data: product,
-      movement: savedMovement,
     });
+
   } catch (error) {
-    return new ApiError(`Error creating product: ${error.message}`, 500);
+    // Handle errors
+    console.error(`Error creating product: ${error.message}`);
+    return res.status(500).json({
+      status: false,
+      message: error.message,
+    });
   }
 });
 
@@ -455,6 +494,8 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
 
   const { id } = req.params;
+  const productData = req.body;
+
   if (req.body.name) {
     req.body.slug = slugify(req.body.name);
   }
@@ -533,6 +574,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     } catch (e) {
       console.error(e.message);
     }
+    await updateStocks(dbName, id, productData.stocks);
 
     res.status(200).json({
       status: "true",
