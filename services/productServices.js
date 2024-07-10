@@ -475,6 +475,36 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
+// @desc Update the product to go in Ecommers
+// @route put /api/ecommersproduct
+// @access private
+
+exports.updateEcommerceProducts = async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const productIds = req.body.productId;
+
+    // Update products matching the given productIds
+    const updatedProducts = await Promise.all(productIds.map(async (productId) => {
+      const product = await productModel.findByIdAndUpdate(productId, { ecommerceActive: true }, { new: true });
+
+      if (!product) {
+        throw new Error(`Product with productId ${productId} not found.`);
+      }
+
+      return product;
+    }));
+
+    res.status(200).json({ success: true, data: updatedProducts });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Server Error' });
+  }
+};
+
 
 
 // @desc Update specific product

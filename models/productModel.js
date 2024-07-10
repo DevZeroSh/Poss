@@ -132,7 +132,9 @@ const productSchema = new mongoose.Schema(
       stockId: String,
       stockName: String,
       productQuantity: Number
-    }]
+    }],
+    ecommerceProducts: Boolean,
+    ecommerceActive: Boolean,
   },
   {
     timestamps: true,
@@ -155,7 +157,7 @@ const setImageURL = (doc) => {
       imageList.push(imageUrl);
     });
     doc.imagesArray = imageList;
-    
+
   }
 };
 

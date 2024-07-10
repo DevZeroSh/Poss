@@ -11,6 +11,7 @@ const {
   archiveProduct,
   getLezyProduct,
   getProductPos,
+  updateEcommerceProducts,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -35,6 +36,8 @@ productRout
 
 productRout.route("/productLazy").get(getLezyProduct)
 productRout.route("/productpos").get(getProductPos)
+
+productRout.route("/ecommersproduct").put(authService.protect, updateEcommerceProducts)
 
 productRout
   .route("/deactive/:id")
