@@ -157,13 +157,17 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
     const updatedCustomar = await customersModel.findByIdAndUpdate(id, req.body, {
       new: true,
     });
-    // const order = await orderModel.findOne({ openingBalanceId: customar.openingBalanceId });
-    // const amountBalance2 =  parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
-    // console.log(amountBalance2)
-
+    const order = await orderModel.findOne({ openingBalanceId: customar.openingBalanceId });
+    const amountBalance2 = parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    order.totalRemainderMainCurrency += amountBalance2;
+    order.priceExchangeRate += amountBalance2;
+    order.totalOrderPrice += amountBalance2;
+    order.totalRemainder += amountBalance2;
+    await order.save()
     res
       .status(200)
       .json({ status: "true", message: "Customar updated", data: updatedCustomar });
+
   }
 });
 

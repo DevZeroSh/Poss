@@ -36,7 +36,7 @@ exports.getOneStock = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
   db.model("Product", productSchema);
-  const Stock = await StockModel.findById(req.params.id).populate({ path: "proudct" });
+  const Stock = await StockModel.findById(req.params.id);
   if (!Stock) {
     return next(new ApiError(`No Stock found for id ${req.params.id}`, 404));
   }

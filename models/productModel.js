@@ -133,8 +133,8 @@ const productSchema = new mongoose.Schema(
       stockName: String,
       productQuantity: Number
     }],
-    ecommerceProducts: Boolean,
-    ecommerceActive: Boolean,
+    ecommerceActive: { type: Boolean, default: false },
+    publish: { type: Boolean, default: false },
   },
   {
     timestamps: true,
