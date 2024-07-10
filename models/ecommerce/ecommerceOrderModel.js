@@ -43,7 +43,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
       city: String,
       postalCode: String,
       fullName: String,
-      phone: String
+      phone: String,
     },
     billingAddress: {
       alias: String,
@@ -52,7 +52,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
       city: String,
       postalCode: String,
       fullName: String,
-      phone: String
+      phone: String,
     },
     shippingPrice: {
       type: Number,
@@ -63,7 +63,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
     },
     paymentMethodType: {
       type: String,
-      enum: ["card", "cash"],
+      enum: ["card", "cash", "transfer"],
       default: "cash",
     },
     isPaid: {
@@ -71,13 +71,10 @@ const ecommerceOrderSchema = new mongoose.Schema(
       default: true,
     },
     paidAt: Date,
-
     deliveredAt: Date,
     orderNumber: String,
   },
   { timestamps: true }
 );
-
-
 
 module.exports = ecommerceOrderSchema;

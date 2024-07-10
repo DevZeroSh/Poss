@@ -8,10 +8,6 @@ const merchant_id = 471531;
 const merchant_key = "77ZNHe2byM2unZCU";
 const merchant_salt = "zkAHcxfG7XnJNqWk";
 
-console.log("Merchant ID:", merchant_id);
-console.log("Merchant Key:", merchant_key);
-console.log("Merchant Salt:", merchant_salt);
-
 paytrRouter.post("/paytr-token", async (req, res) => {
   const {
     email,
@@ -103,12 +99,13 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 });
 
 paytrRouter.post("/callback", (req, res) => {
-const callback = req.body;
+  const callback = req.body;
   console.log("\n-------callback-------");
   console.log(callback);
   console.log("-------callback end-------\n");
-   console.log("\n-------callback-------");
-console.log(res);
+  console.log("\n-------res-------");
+  console.log(res);
+  console.log("\n-------res end-------");
   // Construct the hash
   const paytr_token =
     callback.merchant_oid +
@@ -120,10 +117,10 @@ console.log(res);
     .update(paytr_token)
     .digest("base64");
 
-  // Verify the hash
-//  if (token !== callback.hash) {
+  // Verify the hash (closed because the response from PayTR is empty)
+  //  if (token !== callback.hash) {
   //  console.error("PAYTR notification failed: bad hash");
-    //return res.status(400).send("Bad hash");
+  //return res.status(400).send("Bad hash");
   //}
 
   // Process the payment status
@@ -139,7 +136,5 @@ console.log(res);
 
   res.send("OK");
 });
-
-
 
 module.exports = paytrRouter;

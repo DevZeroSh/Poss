@@ -8,12 +8,14 @@ const {
   filterOneOrderForLoggedUser,
   UpdateEcommersOrder,
   customarChangeOrderStatus,
+  createOrderDashboard,
 } = require("../../services/ecommerce/ecommerceOrderService");
 
 const ecommerceOrderRouter = express.Router();
 ecommerceOrderRouter
   .route("/ecommerceOrder")
-  .get(authService.protect, findAllOrderforCustomer);
+  .get(authService.protect, findAllOrderforCustomer)
+  .post(authService.protect, createOrderDashboard);
 
 ecommerceOrderRouter
   .route("/")
@@ -24,16 +26,13 @@ ecommerceOrderRouter
   );
 ecommerceOrderRouter
   .route("/:id")
-  .get(authService.ecommerceProtect, filterOneOrderForLoggedUser);
+  .get(authService.ecommerceProtect, filterOneOrderForLoggedUser)
+  .post(authService.ecommerceProtect, createCashOrder);
 
 ecommerceOrderRouter
   .route("/ecommerceOrder/:id")
   .get(authService.protect, filterOneOrderForLoggedUser)
   .patch(customarChangeOrderStatus)
   .put(authService.protect, UpdateEcommersOrder);
-
-ecommerceOrderRouter
-  .route("/:id")
-  .post(authService.ecommerceProtect, createCashOrder);
 
 module.exports = ecommerceOrderRouter;

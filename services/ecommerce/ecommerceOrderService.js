@@ -46,6 +46,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // 1) Get cart depend on cartId
   const { id } = req.params;
   const cart = await CartModel.findById(id);
+  console.log(cart);
   if (!cart) {
     return next(new ApiError(`There is no such cart with id ${id}`, 404));
   }
@@ -90,6 +91,80 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       await productModel.bulkWrite(bulkOption, {});
       // 5) Clear cart depending on cartId
       await CartModel.findByIdAndDelete(id);
+    }
+
+    res.status(201).json({ status: "success", data: order });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+
+  const formattedDate =
+    year + "-" + month + "-" + date + " " + hours + ":" + minutes;
+
+  const taxPrice = 0;
+  const shippingPrice = 0;
+
+  try {
+    const { customerId, shippingAddress, billingAddress, cartItems } = req.body;
+    console.log("req.body");
+    console.log(req.body);
+
+    if (!cartItems || !cartItems.length) {
+      return next(new ApiError("Cart items are required", 400));
+    }
+
+    // Calculate total order price
+    const cartPrice = cartItems.reduce(
+      (acc, item) => acc + item.taxPrice * item.quantity,
+      0
+    );
+    const totalOrderPrice = cartPrice + taxPrice + shippingPrice;
+    const nextCounter = (await orderModel.countDocuments()) + 1;
+
+    // Create order with default paymentMethodType EFT
+    const order = await orderModel.create({
+      customar: customerId,
+      cartItems: cartItems,
+      shippingAddress: shippingAddress,
+      billingAddress: billingAddress,
+      paymentMethodType: "transfer",
+      date: formattedDate,
+      orderNumber: nextCounter,
+      totalOrderPrice,
+    });
+    console.log("order");
+    console.log(order);
+
+    // After creating order, decrement product quantity, increment product sold
+    if (order) {
+      const bulkOption = cartItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item.productId },
+          update: {
+            $inc: { activeCount: -item.quantity, sold: -item.quantity },
+          },
+        },
+      }));
+      await productModel.bulkWrite(bulkOption, {});
     }
 
     res.status(201).json({ status: "success", data: order });

@@ -42,7 +42,6 @@ exports.resizerLogo = asyncHandler(async (req, res, next) => {
 //@route post /api/companyinfo
 exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
   try {
-
     const dbName = req.body.databaseName;
     const db = mongoose.connection.useDb(dbName);
 
@@ -264,7 +263,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const mainDashboardRoles = await roleDashboardModel.insertMany(
       allDashRoles
     );
-    const stock = await StockModel.create({ name: "main Stcok" })
+    const stock = await StockModel.create({ name: "main Stcok" });
     //3-insert all pos roles
     const allPosRoles = [
       { title: "discount", desc: "discount" },
@@ -338,6 +337,10 @@ exports.updataCompanyInfo = asyncHandler(async (req, res, next) => {
         pinCode: req.body.pinCode,
         color: req.body.color,
         havePin: req.body.havePin,
+        facebookUrl: req.body.facebookUrl,
+        instagramUrl: req.body.instagramUrl,
+        xtwitterUrl: req.body.xtwitterUrl,
+        linkedinUrl: req.body.linkedinUrl,
       },
       {
         new: true,

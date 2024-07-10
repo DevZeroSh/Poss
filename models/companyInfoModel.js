@@ -19,8 +19,12 @@ const companyIfnoSchema = new mongoose.Schema({
   havePin: {
     type: Boolean,
     enum: ["true", "false"],
-    default: "false"
-  }
+    default: "false",
+  },
+  facebookUrl: String,
+  instagramUrl: String,
+  linkedinUrl: String,
+  xtwitterUrl: String,
 });
 
 const setImageURL = (doc) => {
