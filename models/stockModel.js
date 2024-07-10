@@ -13,7 +13,7 @@ const stockSchema = new mongoose.Schema(
     },
     location: String,
 
-    proudcts: [{
+    products: [{
       proudctId: String,
       proudctName: String,
       proudctQuantity: Number,

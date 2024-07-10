@@ -43,9 +43,14 @@ const orderSchema = new mongoose.Schema(
         name: String,
         qr: String,
         exchangeRate: Number,
+    
       },
     ],
-
+    stocks: [{
+      stockId: String,
+      stockName: String,
+      stockQuantity: Number,
+    }],
     returnCartItem: [
       {
         product: {

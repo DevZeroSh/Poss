@@ -334,7 +334,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-const updateStocks = async (dbName, productId, stocks) => {
+const updateStocks = async (dbName, productId, stocks, productName) => {
   try {
     // Connect to the appropriate database
     const db = mongoose.connection.useDb(dbName);
@@ -353,9 +353,9 @@ const updateStocks = async (dbName, productId, stocks) => {
           $push: {
             products: {
               $each: [{
-                productId: productId,
-                productName: stockName,
-                productQuantity: productQuantity
+                proudctId: productId,
+                proudctName: productName,
+                proudctQuantity: productQuantity
               }],
               $position: 0
             }
@@ -406,7 +406,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const product = await createProductHandler(dbName, productData);
 
     // Update stocks with product ID
-    await updateStocks(dbName, product._id, productData.stocks);
+    await updateStocks(dbName, product._id, productData.stocks, product.name);
 
     // Respond with success message and data
     res.status(201).json({

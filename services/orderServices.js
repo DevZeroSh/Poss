@@ -32,6 +32,7 @@ const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const orderFishPosSchema = require("../models/orderModelFishPos");
 const { default: axios } = require("axios");
+const stockSchema = require("../models/stockModel");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/orders/cartId
@@ -227,8 +228,10 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("PaymentType", paymentTypesSchema);
   const orderFishModel = db.model("OrdersNumber", orderFishSchema);
+  const stockModel = db.model("Stock", stockSchema);
 
   const cartItems = req.body.cartItems;
+  const stocks = req.body.stocks;
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -266,6 +269,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       employee: req.user._id,
       priceExchangeRate: req.body.priceExchangeRate,
       cartItems,
+      stocks: stocks,
       returnCartItem: cartItems,
       currencyCode: req.body.currency,
       totalOrderPrice,
@@ -371,6 +375,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       priceExchangeRate: req.body.priceExchangeRate,
       cartItems,
       returnCartItem: cartItems,
+      stocks: stocks,
       currencyCode: req.body.currency,
       totalOrderPrice,
       totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
@@ -411,7 +416,22 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       },
     }));
 
-  const bulkWritePromise = productModel.bulkWrite(bulkOption);
+  const bulkWritePromise = await productModel.bulkWrite(bulkOption);
+
+  const bulkOptionst = stocks.map(item => ({
+    updateOne: {
+      filter: { _id: item.stockId, 'products.proudctId': item.product },
+      update: {
+        $inc: {
+          'products.$.proudctQuantity': -item.stockQuantity,
+        },
+      },
+    },
+  }));
+
+  
+
+  const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
 
   const reportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
@@ -449,6 +469,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   await Promise.all([
     bulkWritePromise,
+    bulkWritePromisest,
     reportsSalesPromise,
     ...productMovementPromises,
     ...activeProductsValueUpdates

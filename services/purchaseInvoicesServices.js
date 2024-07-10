@@ -22,6 +22,7 @@ const { createInvoiceHistory } = require("./invoiceHistoryService");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const { createActiveProductsValue } = require("../utils/activeProductsValue");
 const { createPaymentHistory } = require("./paymentHistoryService");
+const stockSchema = require("../models/stockModel");
 
 exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -46,6 +47,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
+  const stockModel = db.model("Stock", stockSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -95,6 +97,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     invoiceCurrencyExchangeRate,
     description
   } = req.body;
+  const stocks = req.body.stocks;
 
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
 
@@ -197,6 +200,18 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     }));
     await productModel.bulkWrite(bulkOption, {});
 
+    const bulkOptionst = stocks.map(item => ({
+      updateOne: {
+        filter: { _id: item.stockId, 'products.proudctId': item.product },
+        update: {
+          $inc: {
+            'products.$.proudctQuantity': +item.stockQuantity,
+          },
+        },
+      },
+    }));
+
+   await stockModel.bulkWrite(bulkOptionst);
     const supplier = await suppl.findById(suppliersId);
 
     // Loop through each item in the invoiceItems array
@@ -428,7 +443,18 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
 
     try {
-      // Save the updated supplier
+      const bulkOptionst = stocks.map(item => ({
+        updateOne: {
+          filter: { _id: item.stockId, 'products.proudctId': item.product },
+          update: {
+            $inc: {
+              'products.$.proudctQuantity': +item.stockQuantity,
+            },
+          },
+        },
+      }));
+
+      const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
 
       await productModel.bulkWrite(bulkOption, {});
       const savedInvoice = await newPurchaseInvoice.save();
