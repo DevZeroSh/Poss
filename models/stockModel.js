@@ -14,10 +14,14 @@ const stockSchema = new mongoose.Schema(
     location: String,
 
     products: [{
-      proudctId: String,
+      proudctId: {
+        type: mongoose.Schema.ObjectId,
+        ref: "Product",
+      },
       proudctName: String,
       proudctQuantity: Number,
-    }]
+    }],
+    posStock: { type: Boolean, default: false }
 
   },
   { timestamps: true }

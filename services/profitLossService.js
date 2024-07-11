@@ -5,24 +5,23 @@ const ProfitLossReportsSchema = require("../models/profitLossReports");
 
 //@desc     Create a new profit loss report
 exports.createProfitLossReport = asyncHandler(async (req, res, next) => {
-  try {
-    const reportData = req.body;
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-    const ProfitLoss = db.model("ProfitLossReports", ProfitLossReportsSchema);
 
-    const { year, month } = reportData;
+  const reportData = req.body;
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const ProfitLoss = db.model("ProfitLossReports", ProfitLossReportsSchema);
 
-    const existingReport = await checkIfReportExists(year, month, req);
+  const { year, month } = reportData;
 
-    if (!existingReport) {
-      const newReport = new ProfitLoss(reportData);
-      const savedReport = await newReport.save();
-      res.status(201).json(savedReport);
-    }
-  } catch (error) {
-    return next(new ApiError("Error creating profit loss report: " + error.message));
+  const existingReport = await checkIfReportExists(year, month, req);
+  if (!existingReport) {
+    const newReport = new ProfitLoss(reportData);
+    const savedReport = await newReport.save();
+    res.status(201).json(savedReport);
+  } else {
+    return res.status(201).json(existingReport);
   }
+
 });
 
 const checkIfReportExists = async (year, month, req) => {
@@ -82,7 +81,7 @@ exports.updateProfitLossReportByYearMonth = asyncHandler(async (req, res, next) 
 });
 
 exports.createInitialProfitLossReports = async () => {
- 
+
 
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -93,7 +92,7 @@ exports.createInitialProfitLossReports = async () => {
   const year = currentDate.getFullYear();
 
 
- 
+
   // Check if a report already exists for the current month
   const existingReport = await ProfitLoss.findOne({ month, year });
 

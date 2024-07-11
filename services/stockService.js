@@ -50,6 +50,7 @@ exports.updateStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
+
   req.body.slug = slugify(req.body.name);
   const Stock = await StockModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,

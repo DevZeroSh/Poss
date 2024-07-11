@@ -49,6 +49,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
   const orderFishPosModel = db.model("orderFishPosSchema", orderFishPosSchema);
+  const StockModel = db.model("Stock", stockSchema);
 
   db.model("PaymentType", paymentTypesSchema);
   db.model("Currency", currencySchema);
@@ -72,11 +73,11 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   if (!financialFunds) {
     return next(new ApiError(`There is no such financial funds with id ${financialFundsId}`, 404));
   }
+  const stockID = req.body.stock
 
 
   const nextCounter = (await orderFishPosModel.countDocuments()) + 1;
   const nextCounter2 = (await ReportsSalesModel.countDocuments()) + 1;
-
 
 
   const order = await orderModel.create({
@@ -132,6 +133,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   const bulkWritePromise = productModel.bulkWrite(bulkOption);
 
+
   const createReportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
     orderId: order._id,
@@ -144,13 +146,29 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     type: "pos",
   });
-  const productMovementPromises = cartItems.map((item) => {
-    const product = productModel.findOne({ qr: item.qr });
+  const productMovementPromises = cartItems.map(async (item) => {
+    const product = await productModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
+      // Check if the product exists in the stock
+      const stock = await StockModel.findOne({ _id: stockID, 'products.proudctId': item.product });
+
+      if (stock) {
+        // Product exists, update the quantity
+        await StockModel.findOneAndUpdate(
+          { _id: stockID, 'products.proudctId': item.product },
+          { $inc: { 'products.$.proudctQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
+          { new: true, strict: false }
+        );
+      } else {
+        // Product does not exist in the stock, handle this case if needed
+        console.log(`Product with ID ${item.product} not found in stock ${stockID}`);
+      }
+
+      // Create product movement record (assuming createProductMovement is a function you have defined)
       createProductMovement(item.product, item.productQuantity - item.quantity, item.quantity, "out", "sales", dbName);
     }
-
   });
+
   const activeProductsValueUpdates = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
@@ -429,7 +447,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     },
   }));
 
-  
+
 
   const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
 
@@ -448,10 +466,13 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const productMovementPromises = cartItems.map(async (item) => {
 
     const product = await productModel.findOne({ qr: item.qr });
+
     if (product && product.type !== "Service") {
+
       await createProductMovement(item.product, product.quantity, item.quantity, "out", "sales", dbName);
     }
   });
+
 
   const activeProductsValueUpdates = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
@@ -497,14 +518,16 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   db.model("PaymentType", paymentTypesSchema);
   const orderFishPosModel = db.model("orderFishPosSchema", orderFishPosSchema);
+  const StockModel = db.model("Stock", stockSchema);
+  const stockID = req.body.stock
 
   db.model("Currency", currencySchema);
   const padZero = value => value < 10 ? `0${value}` : value;
-
   const ts = Date.now();
   const date_ob = new Date(ts);
   const date = `${date_ob.getFullYear()}-${padZero(date_ob.getMonth() + 1)}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(date_ob.getMinutes())}:${padZero(date_ob.getSeconds())}`;
   const timeIsoString = new Date().toISOString();
+
 
   const { cartItems, financialFunds, ...orderData } = req.body;
 
@@ -661,6 +684,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     type: "pos",
   });
 
+
+
   await Promise.all(cartItems.map(async item => {
     const { quantity, type } = await productModel.findOne({ qr: item.qr });
     if (type !== "Service") {
@@ -672,7 +697,22 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         "sales",
         dbName
       );
+      const stock = await StockModel.findOne({ _id: stockID, 'products.proudctId': item.product });
+
+      if (stock) {
+        // Product exists, update the quantity
+        await StockModel.findOneAndUpdate(
+          { _id: stockID, 'products.proudctId': item.product },
+          { $inc: { 'products.$.proudctQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
+          { new: true, strict: false }
+        );
+      } else {
+        // Product does not exist in the stock, handle this case if needed
+        console.log(`Product with ID ${item.product} not found in stock ${stockID}`);
+      }
+
     }
+
   }));
 
   try {

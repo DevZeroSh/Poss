@@ -113,6 +113,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   });
 });
 
+
 exports.getProductPos = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName, { useCache: true });
@@ -120,6 +121,8 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const currencyModel = db.model("Currency", currencySchema);
   db.model("Tax", TaxSchema);
+  const StockModel = db.model("Stock", stockSchema);
+
   const pageSize = parseInt(req.query.limit, 10) || 25;
   const page = parseInt(req.query.page, 10) || 1;
   const skip = (page - 1) * pageSize;
@@ -131,6 +134,18 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
       { name: { $regex: req.query.keyword, $options: "i" } },
       { qr: { $regex: req.query.keyword, $options: "i" } },
     ];
+  }
+
+  // Fetch the stock document
+  const stockId = req.query.stockId 
+  const stock = await StockModel.findById(stockId);
+
+  // If stock document found, add productId filter to query
+  if (stock) {
+    const productIdsInStock = stock.products.map(product => product.proudctId);
+    query._id = { $in: productIdsInStock };
+  } else {
+    return res.status(404).json({ status: "false", message: "Stock not found" });
   }
 
   if (req.query.label) {
@@ -161,6 +176,7 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     data: products,
   });
 });
+
 
 const multerOptions = () => {
   const multerStorage = multer.memoryStorage();
@@ -395,7 +411,10 @@ const createProductHandler = async (dbName, productData) => {
     // Create the product in the database
     const product = await productModel.create(productData);
 
+    await createProductMovement(product._id, product.quantity, product.quantity, "in",
+      "create")
     return product;
+
   } catch (error) {
     throw new Error(`Error creating product: ${error.message}`);
   }
@@ -762,7 +781,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });
