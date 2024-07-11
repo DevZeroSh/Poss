@@ -11,7 +11,6 @@ const orderSchema = new mongoose.Schema(
         fundId: {
           type: mongoose.Schema.ObjectId,
           ref: "FinancialFunds",
-          required: true,
         },
         allocatedAmount: {
           type: Number,
@@ -43,14 +42,15 @@ const orderSchema = new mongoose.Schema(
         name: String,
         qr: String,
         exchangeRate: Number,
-    
       },
     ],
-    stocks: [{
-      stockId: String,
-      stockName: String,
-      stockQuantity: Number,
-    }],
+    stocks: [
+      {
+        stockId: String,
+        stockName: String,
+        stockQuantity: Number,
+      },
+    ],
     returnCartItem: [
       {
         product: {
@@ -66,7 +66,6 @@ const orderSchema = new mongoose.Schema(
         name: String,
         qr: String,
         exchangeRate: Number,
-
       },
     ],
     priceExchangeRate: {
@@ -104,7 +103,7 @@ const orderSchema = new mongoose.Schema(
     description: String,
     type: {
       type: String,
-      enum: ["pos", "normal", "bills", "openBalance"],
+      enum: ["pos", "normal", "bills", "openBalance", "ecommerce"],
       default: "normal",
     },
     fish: [String],
@@ -123,12 +122,10 @@ const orderSchema = new mongoose.Schema(
         date: String,
       },
     ],
-    openingBalanceId: String
+    openingBalanceId: String,
   },
 
   { timestamps: true }
 );
-
-
 
 module.exports = orderSchema;

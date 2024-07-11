@@ -12,6 +12,7 @@ const {
   getLezyProduct,
   getProductPos,
   updateEcommerceProducts,
+  setEcommerceProductPublish,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -34,24 +35,25 @@ productRout
   .get(getProduct)
   .post(authService.protect, uploadProductImage, resizerImage, createProduct);
 
-productRout.route("/productLazy").get(getLezyProduct)
-productRout.route("/productpos").get(getProductPos)
+productRout.route("/productLazy").get(getLezyProduct);
+productRout.route("/productpos").get(getProductPos);
 
-productRout.route("/ecommersproduct").put(authService.protect, updateEcommerceProducts)
+productRout
+  .route("/ecommersproduct")
+  .put(authService.protect, updateEcommerceProducts);
 
 productRout
   .route("/deactive/:id")
   .put(authService.protect, deActiveProductQuantity);
 
 productRout
+  .route("/publish")
+  .put(authService.protect, setEcommerceProductPublish);
+
+productRout
   .route("/:id")
   .get(getOneProduct)
-  .put(
-    authService.protect,
-    uploadProductImage,
-    resizerImage,
-    updateProduct
-  )
+  .put(authService.protect, uploadProductImage, resizerImage, updateProduct)
   .delete(authService.protect, deleteProductValdiator, archiveProduct);
 
 module.exports = productRout;

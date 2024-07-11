@@ -23,7 +23,6 @@ const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
 const stockSchema = require("../models/stockModel");
 
-
 // @desc Get list product
 // @route Get /api/product
 // @access Public
@@ -83,7 +82,9 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
     .find(query)
     .sort(sortQuery)
     .skip(skip)
-    .limit(pageSize).populate({ path: "category" }).lean()
+    .limit(pageSize)
+    .populate({ path: "category" })
+    .lean()
     .populate({ path: "brand", select: "name _id" })
     .populate({ path: "variant", select: "variant  _id" })
     .populate({ path: "unit", select: "name code  _id" })
@@ -132,34 +133,34 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     ];
   }
 
-
   if (req.query.label) {
     query.label = req.query.label;
   }
 
-  let sortQuery = req.query.sold ? { sold: parseInt(req.query.sold, 10) === 1 ? 1 : -1 } : { createdAt: -1 };
+  let sortQuery = req.query.sold
+    ? { sold: parseInt(req.query.sold, 10) === 1 ? 1 : -1 }
+    : { createdAt: -1 };
 
   const [totalItems, products] = await Promise.all([
     productModel.countDocuments(query),
-    productModel.find(query)
+    productModel
+      .find(query)
       .sort(sortQuery)
       .skip(skip)
       .limit(pageSize)
-      .populate({ path: "currency", model: currencyModel }).populate({ path: "tax", select: "tax  _id" })
+      .populate({ path: "currency", model: currencyModel })
+      .populate({ path: "tax", select: "tax  _id" }),
   ]);
 
   const totalPages = Math.ceil(totalItems / pageSize);
-
 
   res.status(200).json({
     status: "true",
     results: products.length,
     pages: totalPages,
     data: products,
-
   });
 });
-
 
 const multerOptions = () => {
   const multerStorage = multer.memoryStorage();
@@ -227,7 +228,10 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
   const limit = parseInt(req.query.limit) || 20;
   const skip = parseInt(req.query.skip) || 0;
-  let query = {};
+  let query = {
+    publish: true,
+    ecommerceActive: true,
+  };
 
   // Keyword search
   if (req.query.keyword) {
@@ -270,7 +274,9 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     sortQuery = { taxPrice: parseInt(req.query.taxPrice) === 1 ? 1 : -1 };
   }
   if (req.query.ratingsAverage) {
-    sortQuery = { ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1 };
+    sortQuery = {
+      ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1,
+    };
   }
 
   try {
@@ -285,43 +291,42 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           from: "categories",
           localField: "category",
           foreignField: "_id",
-          as: "category"
-        }
+          as: "category",
+        },
       },
       {
-        $unwind: "$category"
+        $unwind: "$category",
       },
       {
         $lookup: {
           from: "categories",
           localField: "category.children",
           foreignField: "_id",
-          as: "category.childrenDetails"
-        }
+          as: "category.childrenDetails",
+        },
       },
       {
         $lookup: {
           from: "brands",
           localField: "brand",
           foreignField: "_id",
-          as: "brand"
-        }
+          as: "brand",
+        },
       },
       {
         $lookup: {
           from: "variants",
           localField: "variant",
           foreignField: "_id",
-          as: "variant"
-        }
-      }
+          as: "variant",
+        },
+      },
     ];
 
     const products = await productModel.aggregate(aggregationPipeline);
 
     const totalItems = await productModel.countDocuments(query);
     const totalPages = Math.ceil(totalItems / limit);
-
 
     res.status(200).json({
       status: "true",
@@ -352,19 +357,21 @@ const updateStocks = async (dbName, productId, stocks, productName) => {
         {
           $push: {
             products: {
-              $each: [{
-                proudctId: productId,
-                proudctName: productName,
-                proudctQuantity: productQuantity
-              }],
-              $position: 0
-            }
-          }
+              $each: [
+                {
+                  proudctId: productId,
+                  proudctName: productName,
+                  proudctQuantity: productQuantity,
+                },
+              ],
+              $position: 0,
+            },
+          },
         },
         {
           new: true,
           upsert: true,
-          strict: false
+          strict: false,
         }
       );
 
@@ -414,7 +421,6 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
       message: "Product Inserted",
       data: product,
     });
-
   } catch (error) {
     // Handle errors
     console.error(`Error creating product: ${error.message}`);
@@ -451,7 +457,8 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
 
     // Fetch product and movements concurrently
     const [product, movements] = await Promise.all([
-      productModel.findById(id)
+      productModel
+        .findById(id)
         .populate({ path: "category" })
         .populate({ path: "brand", select: "name _id" })
         .populate({ path: "variant", select: "variant _id" })
@@ -461,7 +468,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
         .populate({ path: "currency" })
         .populate({ path: "review", options: { limit: 10 } }),
 
-      movementsModel.find({ productId: id })
+      movementsModel.find({ productId: id }),
     ]);
 
     // Check if product exists
@@ -488,24 +495,53 @@ exports.updateEcommerceProducts = async (req, res, next) => {
     const productIds = req.body.productId;
 
     // Update products matching the given productIds
-    const updatedProducts = await Promise.all(productIds.map(async (productId) => {
-      const product = await productModel.findByIdAndUpdate(productId, { ecommerceActive: true }, { new: true });
+    const updatedProducts = await Promise.all(
+      productIds.map(async (productId) => {
+        const product = await productModel.findByIdAndUpdate(
+          productId,
+          { ecommerceActive: true },
+          { new: true }
+        );
 
-      if (!product) {
-        throw new Error(`Product with productId ${productId} not found.`);
-      }
+        if (!product) {
+          throw new Error(`Product with productId ${productId} not found.`);
+        }
 
-      return product;
-    }));
+        return product;
+      })
+    );
 
     res.status(200).json({ success: true, data: updatedProducts });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Server Error' });
+    res.status(500).json({ error: "Server Error" });
   }
 };
 
+// @desc Update the product to go in Ecommers
+// @route put /api/ecommersproduct
+// @access private
+exports.setEcommerceProductPublish = async (req, res, next) => {
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const productModel = db.model("Product", productSchema);
 
+    const id = req.body.id;
+    const publish = req.body.publish;
+
+    // Await the findByIdAndUpdate operation
+    const product = await productModel.findByIdAndUpdate(
+      { _id: id },
+      { publish: publish },
+      { new: true }
+    );
+
+    res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc Update specific product
 // @route Put /api/product/:id
@@ -726,7 +762,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });

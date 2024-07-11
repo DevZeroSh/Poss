@@ -16,6 +16,7 @@ const reviewSchema = require("../../models/ecommerce/reviewModel");
 const { PaymentService } = require("./paymentService");
 const { getIP } = require("../../utils/getIP");
 const { stringify } = require("flatted");
+// const orderSchema = require("../../models/orderModel");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -104,6 +105,8 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  // const orderInvoiceModel = db.model("Orders", orderSchema);
+  // const customersModel = db.model("Customar", customarSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -125,8 +128,6 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
 
   try {
     const { customerId, shippingAddress, billingAddress, cartItems } = req.body;
-    console.log("req.body");
-    console.log(req.body);
 
     if (!cartItems || !cartItems.length) {
       return next(new ApiError("Cart items are required", 400));
@@ -151,14 +152,31 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
       orderNumber: nextCounter,
       totalOrderPrice,
     });
-    console.log("order");
-    console.log(order);
+
+    // const customer = await customersModel.findById(customerId);
+
+    // await orderInvoiceModel.create({
+    //   date: formattedDate,
+    //   employee: req.user._id,
+    //   priceExchangeRate: totalOrderPrice,
+    //   cartItems,
+    //   returnCartItem: cartItems,
+    //   totalOrderPrice,
+    //   customarId: customerId,
+    //   customarName: customer.name,
+    //   customarEmail: customer.email,
+    //   customarPhone: customer.phoneNumber,
+    //   customarAddress: billingAddress,
+    //   type: "ecommerce",
+    //   counter: "in-" + nextCounter,
+    //   paid: "paid",
+    // });
 
     // After creating order, decrement product quantity, increment product sold
     if (order) {
       const bulkOption = cartItems.map((item) => ({
         updateOne: {
-          filter: { _id: item.productId },
+          filter: { _id: item.product },
           update: {
             $inc: { activeCount: -item.quantity, sold: -item.quantity },
           },
