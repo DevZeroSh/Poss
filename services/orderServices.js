@@ -1622,7 +1622,7 @@ const fetchAllSubscriberDatabases = async () => {
     console.log('Fetching subscriber databases...');
 
     // Make a request to get all subscriber databases
-    const response = await axios.get("https://nooncar.com:4000/api/subscribers");
+    const response = await axios.get("http://ec2-16-171-21-186.eu-north-1.compute.amazonaws.com:4000/api/subscribers");
 
 
 
