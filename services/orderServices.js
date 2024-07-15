@@ -150,13 +150,13 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     const product = await productModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
       // Check if the product exists in the stock
-      const stock = await StockModel.findOne({ _id: stockID, 'products.proudctId': item.product });
+      const stock = await StockModel.findOne({ _id: stockID, 'products.productId': item.product });
 
       if (stock) {
         // Product exists, update the quantity
         await StockModel.findOneAndUpdate(
-          { _id: stockID, 'products.proudctId': item.product },
-          { $inc: { 'products.$.proudctQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
+          { _id: stockID, 'products.productId': item.product },
+          { $inc: { 'products.$.productQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
           { new: true, strict: false }
         );
       } else {
@@ -438,10 +438,10 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const bulkOptionst = stocks.map(item => ({
     updateOne: {
-      filter: { _id: item.stockId, 'products.proudctId': item.product },
+      filter: { _id: item.stockId, 'products.productId': item.product },
       update: {
         $inc: {
-          'products.$.proudctQuantity': -item.stockQuantity,
+          'products.$.productQuantity': -item.stockQuantity,
         },
       },
     },
@@ -697,13 +697,13 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         "sales",
         dbName
       );
-      const stock = await StockModel.findOne({ _id: stockID, 'products.proudctId': item.product });
+      const stock = await StockModel.findOne({ _id: stockID, 'products.productId': item.product });
 
       if (stock) {
         // Product exists, update the quantity
         await StockModel.findOneAndUpdate(
-          { _id: stockID, 'products.proudctId': item.product },
-          { $inc: { 'products.$.proudctQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
+          { _id: stockID, 'products.productId': item.product },
+          { $inc: { 'products.$.productQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
           { new: true, strict: false }
         );
       } else {

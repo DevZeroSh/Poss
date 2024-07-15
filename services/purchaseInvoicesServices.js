@@ -202,10 +202,10 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     const bulkOptionst = stocks.map(item => ({
       updateOne: {
-        filter: { _id: item.stockId, 'products.proudctId': item.product },
+        filter: { _id: item.stockId, 'products.productId': item.product },
         update: {
           $inc: {
-            'products.$.proudctQuantity': +item.stockQuantity,
+            'products.$.productQuantity': +item.stockQuantity,
           },
         },
       },
@@ -445,10 +445,10 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     try {
       const bulkOptionst = stocks.map(item => ({
         updateOne: {
-          filter: { _id: item.stockId, 'products.proudctId': item.product },
+          filter: { _id: item.stockId, 'products.productId': item.product },
           update: {
             $inc: {
-              'products.$.proudctQuantity': +item.stockQuantity,
+              'products.$.productQuantity': +item.stockQuantity,
             },
           },
         },
