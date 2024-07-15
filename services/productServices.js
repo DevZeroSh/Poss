@@ -137,13 +137,20 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
   }
 
   // Fetch the stock document
-  const stockId = req.query.stockId 
+  const stockId = req.query.stockId;
   const stock = await StockModel.findById(stockId);
+
+  let productQuantityMap = {};
 
   // If stock document found, add productId filter to query
   if (stock) {
     const productIdsInStock = stock.products.map(product => product.proudctId);
     query._id = { $in: productIdsInStock };
+
+    // Create a mapping from productId to productQuantity
+    stock.products.forEach(product => {
+      productQuantityMap[product.proudctId] = product.proudctQuantity;
+    });
   } else {
     return res.status(404).json({ status: "false", message: "Stock not found" });
   }
@@ -167,15 +174,24 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
       .populate({ path: "tax", select: "tax  _id" }),
   ]);
 
-  const totalPages = Math.ceil(totalItems / pageSize);
+  // Add productQuantity to each product
+  const productsWithQuantity = products.map(product => {
+    const productObject = product.toObject();
+    productObject.activeCount = productQuantityMap[product._id] || 0;
+    return productObject;
+  });
 
+  const totalPages = Math.ceil(totalItems / pageSize);
+  console.log(productsWithQuantity)
   res.status(200).json({
     status: "true",
-    results: products.length,
+    results: productsWithQuantity.length,
     pages: totalPages,
-    data: products,
+    data: productsWithQuantity,
   });
 });
+
+
 
 
 const multerOptions = () => {
@@ -355,41 +371,41 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-const updateStocks = async (dbName, productId, stocks, productName) => {
+const addProductInStocks = async (dbName, productId, stocks, productName) => {
   try {
     // Connect to the appropriate database
     const db = mongoose.connection.useDb(dbName);
 
     // Define stock model
     const stockModel = db.model("Stock", stockSchema);
-
     // Update or create stock information for each stock provided
     for (const stockInfo of stocks) {
       const { stockId, stockName, productQuantity } = stockInfo;
-
       // Update stock information
-      const updatedStock = await stockModel.findOneAndUpdate(
-        { _id: stockId },
-        {
-          $push: {
-            products: {
-              $each: [
-                {
-                  proudctId: productId,
-                  proudctName: productName,
-                  proudctQuantity: productQuantity,
-                },
-              ],
-              $position: 0,
+      if (productQuantity > 0) {
+        await stockModel.findOneAndUpdate(
+          { _id: stockId },
+          {
+            $push: {
+              products: {
+                $each: [
+                  {
+                    proudctId: productId,
+                    proudctName: productName,
+                    proudctQuantity: productQuantity,
+                  },
+                ],
+                $position: 0,
+              },
             },
           },
-        },
-        {
-          new: true,
-          upsert: true,
-          strict: false,
-        }
-      );
+          {
+            new: true,
+            upsert: true,
+            strict: false,
+          }
+        );
+      }
 
       // Log or handle the updatedStock as needed
     }
@@ -397,6 +413,43 @@ const updateStocks = async (dbName, productId, stocks, productName) => {
     throw new Error(`Error updating stocks: ${error.message}`);
   }
 };
+
+const updateStocks = async (dbName, productId, stocks, quantity) => {
+  try {
+    // Connect to the appropriate database
+    const db = mongoose.connection.useDb(dbName);
+
+    // Define stock model
+    const stockModel = db.model("Stock", stockSchema);
+
+    // Update stock information for each stock provided
+    for (const stockInfo of stocks) {
+      const { stockId, stockName, productQuantity } = stockInfo;
+      console.log(productQuantity)
+
+      // Check if the product exists in the stock's products array
+      const stock = await stockModel.findOne({ _id: stockId, 'products.proudctId': productId });
+
+      if (stock) {
+
+        await stockModel.findOneAndUpdate(
+          { _id: stockId, 'products.proudctId': productId },
+          { $set: { 'products.$.proudctQuantity': productQuantity } },
+          { new: true, strict: false }
+        );
+        console.log(`Updated product ${productId} in stock ${stockId}`);
+      } else {
+        // Handle the case where the product does not exist in the stock's products array
+        console.log(`Product with ID ${productId} not found in stock ${stockId}`);
+
+      }
+    }
+  } catch (error) {
+    throw new Error(`Error updating stocks: ${error.message}`);
+  }
+};
+
+
 const createProductHandler = async (dbName, productData) => {
   try {
     // Connect to the appropriate database
@@ -432,7 +485,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const product = await createProductHandler(dbName, productData);
 
     // Update stocks with product ID
-    await updateStocks(dbName, product._id, productData.stocks, product.name);
+    await addProductInStocks(dbName, product._id, productData.stocks, product.name);
 
     // Respond with success message and data
     res.status(201).json({
@@ -659,8 +712,8 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     } catch (e) {
       console.error(e.message);
     }
-    await updateStocks(dbName, id, productData.stocks);
-
+    console.log(productData.stocks)
+    await updateStocks(dbName, id, productData.stocks, productData.quantity);
     res.status(200).json({
       status: "true",
       message: "Product updated",
