@@ -5,6 +5,7 @@ const StockSchema = require("../models/stockModel");
 const { default: slugify } = require("slugify");
 const ApiError = require("../utils/apiError");
 const productSchema = require("../models/productModel");
+const stockTransferSchema = require("../models/stockTransfer");
 
 exports.createStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -77,5 +78,193 @@ exports.deleteStock = asyncHandler(async (req, res, next) => {
     message: "Stock Delete successfully",
   });
 });
+
+// @desc put list product
+// @route put /api/stock/transfer
+// @access Private
+exports.transformQuantity = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const StockModel = db.model("Stock", StockSchema);
+  const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+
+  const { fromStockId, toStockId, products } = req.body;
+  console.log(req.body);
+  const stocks = await StockModel.find({ _id: { $in: [fromStockId, toStockId] } });
+  const fromStock = stocks.find(stock => stock._id.toString() === fromStockId);
+  const toStock = stocks.find(stock => stock._id.toString() === toStockId);
+
+  if (!fromStock || !toStock) {
+    return res.status(404).json({ message: 'Stock not found' });
+  }
+
+  // Validation: check if any product quantity is less than 0
+  for (const product of products) {
+    const quantity = parseInt(product.productQuantity, 10);
+    if (quantity < 0) {
+      return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
+    }
+  }
+
+  const productMap = new Map();
+  for (const product of products) {
+    const { productId, productName, productQuantity } = product;
+    const quantity = parseInt(productQuantity, 10);
+
+    if (!productMap.has(productId)) {
+      productMap.set(productId, { productName, formQuantity: 0, toQuantity: 0 });
+    }
+
+    productMap.get(productId).formQuantity -= quantity;
+    productMap.get(productId).toQuantity += quantity;
+  }
+
+  for (const product of fromStock.products) {
+    const { productId, productQuantity } = product;
+    if (productQuantity <= 0) {
+      return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
+    }
+    if (productMap.has(productId.toString())) {
+      product.productQuantity += productMap.get(productId.toString()).formQuantity;
+    }
+  }
+
+  for (const product of toStock.products) {
+    const { productId, productQuantity } = product;
+    if (productMap.has(productId.toString())) {
+      product.productQuantity += productMap.get(productId.toString()).toQuantity;
+    }
+  }
+
+  for (const [productId, { productName, formQuantity, toQuantity }] of productMap.entries()) {
+    if (!toStock.products.some(p => p.productId.toString() === productId)) {
+      toStock.products.push({
+        productId,
+        productName,
+        productQuantity: toQuantity,
+      });
+    }
+  }
+
+  await StockModel.bulkWrite([
+    {
+      updateOne: {
+        filter: { _id: fromStockId },
+        update: { $set: { products: fromStock.products } }
+      }
+    },
+    {
+      updateOne: {
+        filter: { _id: toStockId },
+        update: { $set: { products: toStock.products } }
+      }
+    }
+  ]);
+
+  const transferStock = await stockTransferModel.create(req.body);
+  res.status(200).json({ message: 'Transfer successful', data: transferStock });
+});
+
+
+
+// @desc put list product
+// @route put /api/stock/transfer
+// @access Private
+
+exports.getTransferStock = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+  const pageSize = req.query.limit || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  let query = {};
+
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { date: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+  const totalItems = await stockTransferModel.countDocuments(query);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+
+  res
+    .status(200)
+    .json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+});
+
+exports.getTransferForStock = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+  const pageSize = req.query.limit || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const { id } = req.params;
+
+  let query = {
+    $or: [
+      { toStockId: id },
+      { fromStockId: id }
+    ]
+  };
+
+  if (req.query.keyword) {
+    query.$or.push(
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { date: { $regex: req.query.keyword, $options: "i" } }
+    );
+  }
+
+  const totalItems = await stockTransferModel.countDocuments(query);
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+
+  res.status(200).json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+});
+
+exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+  const pageSize = req.query.limit || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+
+  let query = {};
+
+  if (req.query.keyword) {
+    query.$or.push(
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { date: { $regex: req.query.keyword, $options: "i" } }
+    );
+  }
+
+  const totalItems = await stockTransferModel.countDocuments(query);
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+
+  res.status(200).json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+});
+
+exports.getOneTransferStock = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+  const { id } = req.params;
+  const transfer = await stockTransferModel.findById(id);
+
+  res
+    .status(200)
+    .json({ statusbar: "success", data: transfer });
+});
+
+
 
 

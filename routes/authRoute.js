@@ -12,6 +12,7 @@ const {
   forgotPasswordPos,
   resetPasswordPos,
   verifyPasswordResetCodePos,
+  googleSignin,
 } = require("../services/authService");
 const { checkUserSubsicreber } = require("../middlewares/checkUserSubsicreber");
 
@@ -23,6 +24,7 @@ router.post("/verifyresetcodepos",verifyPasswordResetCodePos);
 router.put("/resetpasswordpos", upload.none(),checkUserSubsicreber,resetPasswordPos);
 
 router.post("/ecommerce-login", EcommerceLogin);
+router.post("/google-signin", googleSignin);
 router.post("/signup", signup);
 router.post("/forgotPasswords", forgotPassword);
 router.post("/verifyResetCode", verifyPasswordResetCode);

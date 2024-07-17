@@ -10,6 +10,12 @@ const emoloyeeShcema = require("../models/employeeModel");
 const rolesShcema = require("../models/roleModel");
 const customarSchema = require("../models/customarModel");
 const sendEmail = require("../utils/sendEmail");
+const { OAuth2Client } = require('google-auth-library');
+
+
+
+
+
 
 // @desc      Login
 // @route     POST /api/auth/login
@@ -258,6 +264,59 @@ exports.signup = asyncHandler(async (req, res, next) => {
   res.status(201).json({ data: user, token });
 });
 
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Function to verify Google ID token
+async function verifyGoogleToken(token) {
+  const ticket = await client.verifyIdToken({
+    idToken: token,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+  return ticket.getPayload();
+}
+
+
+
+exports.googleSignin = asyncHandler(async (req, res, next) => {
+
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const customersModel = db.model("Customer", customarSchema);
+
+  const { name, email } = req.body;
+  try {
+    const user = await customersModel.findOne({ email })
+    if (user) {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
+      const { password, ...rest } = user._doc;
+      res.status(200).cookie("access_token", token, {
+        httpOnly: true,
+      }).json(rest);
+    } else {
+      const generatedPassword =
+        Math.round().toString(36).slice(-8) +
+        Math.round().toString(36).slice(-8);
+
+      const hashePassword = bcrypt.hashSync(generatedPassword, 10);
+
+      const newUser = new customersModel({
+        name: name.toLowerCase().Math.round().toString(9).slice(-4),
+        email,
+        password: hashePassword
+
+      })
+      await newUser.save();
+      const token = createToken(user._id);
+      const { password, ...rest } = newUser._doc;
+
+      res.status(200).cookie("access_token", token, { httpOnly: true }).json(rest)
+    }
+
+  } catch (error) {
+    console.error("Error during Google Sign-In:", error);
+    next(new Error("Google Sign-In failed"));
+  }
+});
 // @desc    Login
 // @route   GET /api/v1/auth/login
 // @access  Public
@@ -372,7 +431,7 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
       user.passwordResetToken = resetToken;
       // Token expires in 10 minutes
       user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-console.log(user.passwordResetToken)
+      console.log(user.passwordResetToken)
       await user.save();
       console.log(user.passwordResetToken)
       // 3) Send password reset email with the link containing the token
@@ -466,10 +525,10 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   if (!newPassword) {
     return next(new ApiError("New password is required", 400));
   }
-  
+
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   user.password = hashedPassword;
-  
+
   user.passwordResetToken = undefined;
   user.passwordResetExpires = undefined;
 

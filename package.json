@@ -25,6 +25,7 @@
         "flatted": "^3.3.1",
         "fs": "^0.0.1-security",
         "generic-pool": "^3.9.0",
+        "google-auth-library": "^9.11.0",
         "https": "^1.0.0",
         "jsonwebtoken": "^9.0.2",
         "mongodb": "4.0",

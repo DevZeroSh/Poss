@@ -370,7 +370,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-
+// @desc Add Stock product Quantity
 const addProductInStocks = async (dbName, productId, stocks, productName) => {
   try {
     // Connect to the appropriate database
@@ -413,7 +413,7 @@ const addProductInStocks = async (dbName, productId, stocks, productName) => {
     throw new Error(`Error updating stocks: ${error.message}`);
   }
 };
-
+// @desc update Stock product Quantity
 const updateStocks = async (dbName, productId, stocks, quantity, productName) => {
   try {
     // Connect to the appropriate database
@@ -450,7 +450,7 @@ const updateStocks = async (dbName, productId, stocks, quantity, productName) =>
         );
         console.log(`Added product ${productId} to stock ${stockId}`);
       }
-      else{
+      else {
         console.log(`Not Added product ${productId} to stock ${stockId}`);
 
       }
@@ -460,7 +460,7 @@ const updateStocks = async (dbName, productId, stocks, quantity, productName) =>
   }
 };
 
-
+// @desc Create  product
 const createProductHandler = async (dbName, productData) => {
   try {
     // Connect to the appropriate database
@@ -475,8 +475,7 @@ const createProductHandler = async (dbName, productData) => {
     // Create the product in the database
     const product = await productModel.create(productData);
 
-    await createProductMovement(product._id, product.quantity, product.quantity, "in",
-      "create")
+
     return product;
 
   } catch (error) {
@@ -498,6 +497,8 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     // Update stocks with product ID
     await addProductInStocks(dbName, product._id, productData.stocks, product.name);
 
+    await createProductMovement(product._id, product.quantity, product.quantity, "in",
+      "create", dbName)
     // Respond with success message and data
     res.status(201).json({
       status: "true",
