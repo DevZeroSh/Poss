@@ -5,8 +5,18 @@ const productSchema = new mongoose.Schema(
     name: {
       type: String,
       require: true,
-      minlength: [3, "Too short product title"],
-      maxlength: [100, "too long product title"],
+      minlength: [3, "Too short product name"],
+      maxlength: [100, "Too long product name"],
+    },
+    nameAR: {
+      type: String,
+      minlength: [3, "Too short product name"],
+      maxlength: [30, "Too long product name"],
+    },
+    nameTR: {
+      type: String,
+      minlength: [3, "Too short product name"],
+      maxlength: [30, "Too long product name"],
     },
     slug: {
       type: String,
@@ -19,10 +29,28 @@ const productSchema = new mongoose.Schema(
     shortDescription: {
       type: String,
       default: "Product short description",
+      maxlength: [50, "Too long product English short description"],
+    },
+    shortDescriptionAR: {
+      type: String,
+      maxlength: [50, "Too long product Arabic short description"],
+    },
+    shortDescriptionTR: {
+      type: String,
+      maxlength: [50, "Too long product Turkish short description"],
     },
     description: {
       type: String,
       default: "Product description",
+      maxlength: [500, "Too long product English long description"],
+    },
+    descriptionAR: {
+      type: String,
+      maxlength: [500, "Too long product Arabic long description"],
+    },
+    descriptionTR: {
+      type: String,
+      maxlength: [500, "Too long product Turkish long description"],
     },
     sold: {
       type: Number,
@@ -39,6 +67,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    ecommercePrice: {
+      type: Number,
+      default: 0,
+    },
     buyingprice: {
       type: Number,
       default: 0,
@@ -50,9 +82,9 @@ const productSchema = new mongoose.Schema(
     },
     qr: {
       type: String,
-      unique: [true, "Qr must be unique"],
-      minlength: [3, "Too short product title"],
-      maxlength: [30, "too long product title"],
+      unique: [true, "QR must be unique"],
+      minlength: [3, "Too short QR code"],
+      maxlength: [30, "Too long QR code"],
       index: true,
       require: true,
     },
@@ -60,7 +92,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: 0,
     },
-
     image: {
       type: String,
       require: true,
@@ -84,7 +115,6 @@ const productSchema = new mongoose.Schema(
       ref: "Variant",
     },
     value: [String],
-
     variant2: {
       type: mongoose.Schema.ObjectId,
       ref: "Variant",
@@ -105,11 +135,8 @@ const productSchema = new mongoose.Schema(
       enum: ["true", "false"],
       default: "false",
     },
-
     activeCount: { type: Number, default: 0 },
     deactivateCount: { type: Number, default: 0 },
-
-
     currency: {
       type: mongoose.Schema.ObjectId,
       ref: "Currency",
@@ -123,18 +150,45 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    customAttributes: {
-      type: Map,
-      of: String,
-    },
+    customAttributes: [
+      {
+        type: String,
+      },
+    ],
     addToCart: { type: Number, default: 0 },
-    stocks: [{
-      stockId: String,
-      stockName: String,
-      productQuantity: Number
-    }],
+    addToFavourites: { type: Number, default: 0 },
+    stocks: [
+      {
+        stockId: String,
+        stockName: String,
+        productQuantity: Number,
+      },
+    ],
     ecommerceActive: { type: Boolean, default: false },
     publish: { type: Boolean, default: false },
+    height: {
+      type: Number,
+      default: 0,
+    },
+    width: {
+      type: Number,
+      default: 0,
+    },
+    weight: {
+      type: Number,
+      default: 0,
+    },
+    length: {
+      type: Number,
+      default: 0,
+    },
+    shippingCompany: {
+      type: mongoose.Schema.ObjectId,
+      ref: "ShippingCompany",
+    },
+    alternateProducts: {
+      type: [mongoose.Schema.ObjectId],
+    },
   },
   {
     timestamps: true,
@@ -142,8 +196,6 @@ const productSchema = new mongoose.Schema(
     toObject: { virtuals: true },
   }
 );
-
-
 
 const setImageURL = (doc) => {
   if (doc.image) {
@@ -157,7 +209,6 @@ const setImageURL = (doc) => {
       imageList.push(imageUrl);
     });
     doc.imagesArray = imageList;
-
   }
 };
 
@@ -175,6 +226,5 @@ productSchema.virtual("review", {
   foreignField: "product",
   localField: "_id",
 });
-
 
 module.exports = productSchema;
