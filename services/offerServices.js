@@ -135,7 +135,7 @@ const fetchAllSubscriberDatabases = async () => {
         console.log('Fetching subscriber databases...');
 
         // Make a request to get all subscriber databases
-        const response = await axios.get("http://localhost:4000/api/subscribers");
+        const response = await axios.get("https://api2.smartinb.ai:4001/api/subscribers");
 
 
 

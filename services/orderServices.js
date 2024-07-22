@@ -146,32 +146,60 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
     type: "pos",
   });
+  /* const productMovementPromises = cartItems.map(async (item) => {
+     const product = await productModel.findOne({ qr: item.qr });
+     if (product && product.type !== "Service") {
+       // Check if the product exists in the stock
+       const stock = await StockModel.findOne({ _id: stockID, 'products.productId': item.product });
+ 
+       if (stock) {
+         // Product exists, update the quantity
+         await StockModel.findOneAndUpdate(
+           { _id: stockID, 'products.productId': item.product },
+           { $inc: { 'products.$.productQuantity': -item.quantity } }, 
+           { new: true, strict: false }
+         );
+       } else {
+         // Product does not exist in the stock, handle this case if needed
+         console.log(`Product with ID ${item.product} not found in stock ${stockID}`);
+       }
+ 
+       // Create product movement record (assuming createProductMovement is a function you have defined)
+       createProductMovement(item.product, item.productQuantity - item.quantity, item.quantity, "out", "sales", dbName);
+     }
+   });*/
+
   const productMovementPromises = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
-      // Check if the product exists in the stock
-      const stock = await StockModel.findOne({ _id: stockID, 'products.productId': item.product });
+      const stockEntry = product.stocks.find(stock => stock.stockId === stockID);
+      if (stockEntry) {
+        const stock = await StockModel.findOne({ _id: stockID, 'products.productId': item.product });
 
-      if (stock) {
-        // Product exists, update the quantity
-        await StockModel.findOneAndUpdate(
-          { _id: stockID, 'products.productId': item.product },
-          { $inc: { 'products.$.productQuantity': -item.quantity } }, // Decrease product quantity by item.quantity
-          { new: true, strict: false }
-        );
+        if (stock) {
+          // Product exists, update the quantity
+          await StockModel.findOneAndUpdate(
+            { _id: stockID, 'products.productId': item.product },
+            { $inc: { 'products.$.productQuantity': -item.quantity } },
+            { new: true, strict: false }
+          );
+        } else {
+          // Product does not exist in the stock, handle this case if needed
+          console.log(`Product with ID ${item.product} not found in stock ${stockID}`);
+        }
+        stockEntry.productQuantity -= item.quantity;
       } else {
-        // Product does not exist in the stock, handle this case if needed
         console.log(`Product with ID ${item.product} not found in stock ${stockID}`);
       }
 
-      // Create product movement record (assuming createProductMovement is a function you have defined)
-      createProductMovement(item.product, item.productQuantity - item.quantity, item.quantity, "out", "sales", dbName);
+      await product.save();
+      createProductMovement(item.product, product.quantity, item.quantity, "out", "sales", dbName);
     }
   });
-
   const activeProductsValueUpdates = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
+
       const existingRecord = await ActiveProductsValue.findOne({ currency: product.currency._id });
       if (existingRecord) {
         existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
@@ -332,7 +360,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           || req.body.priceExchangeRate * (financialFunds.bankRatio / 100);
         const updatedFundBalance = financialFunds.fundBalance - expenseQuantityAfterKdv;
         financialFunds.fundBalance = updatedFundBalance;
-        const expensee = expensesModel.create({
+        const expensee = await expensesModel.create({
           ...req.body,
           expenseQuantityAfterKdv,
           expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
@@ -343,7 +371,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           expenseTax: "0",
           type: "paid",
         });
-        ReportsFinancialFundsModel.create({
+        await ReportsFinancialFundsModel.create({
           date: formattedDate,
           amount: expenseQuantityAfterKdv,
           order: expensee._id,
@@ -367,18 +395,15 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       if (t > 0) {
         total = t;
         customars.TotalUnpaid = t
-        console.log(">")
       }
       else if (t < 0) {
         customars.TotalUnpaid = t;
         req.body.paid = "paid"
-        console.log("<")
       }
       else {
         total = 0;
         customars.TotalUnpaid = 0;
         req.body.paid = "paid";
-        console.log("=");
       }
 
     }
@@ -447,8 +472,37 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     },
   }));
 
-
-
+  const bulkOptionst2 = await Promise.all(
+    cartItems
+      .filter(item => item.product && item.quantity)
+      .map(async item => {
+        const product = await productModel.findById(item.product);
+        if (product) {
+          return stocks
+            .filter(stock => stock.product === item.product) 
+            .map(stock => (
+              {
+                updateOne: {
+                  filter: { _id: product._id, 'stocks.stockId': stock.stockId },
+                  update: {
+                    $inc: {
+                      'stocks.$.productQuantity': -item.quantity,
+                    },
+                  },
+                },
+              }
+            ));
+        }
+      })
+  );
+  
+  // Flatten the array of arrays and filter out any undefined values
+  const bulkOptionst2Flat = bulkOptionst2.flat().filter(Boolean);
+  
+  if (bulkOptionst2Flat.length > 0) {
+    await productModel.bulkWrite(bulkOptionst2Flat);
+  }
+  
   const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
 
   const reportsSalesPromise = ReportsSalesModel.create({
@@ -464,15 +518,12 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   });
 
   const productMovementPromises = cartItems.map(async (item) => {
-
     const product = await productModel.findOne({ qr: item.qr });
 
     if (product && product.type !== "Service") {
-
       await createProductMovement(item.product, product.quantity, item.quantity, "out", "sales", dbName);
     }
   });
-
 
   const activeProductsValueUpdates = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
@@ -502,6 +553,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({ status: "success", data: order, history });
 });
+
 
 // @desc    create cash order for multiple funds
 // @route   POST /api/orders/cartId
@@ -1519,7 +1571,6 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   let hours = padZero(date_ob.getHours());
   let minutes = padZero(date_ob.getMinutes());
   let seconds = padZero(date_ob.getSeconds());
-  console.log(databaseName);
 
   const formattedDate =
     year +
@@ -1622,13 +1673,12 @@ const fetchAllSubscriberDatabases = async () => {
     console.log('Fetching subscriber databases...');
 
     // Make a request to get all subscriber databases
-    const response = await axios.get("http://localhost:4000/api/subscribers");
+    const response = await axios.get("https://api2.smartinb.ai:4001/api/subscribers");
 
 
 
     if (response.data.status === "success") {
       const subscriberDatabases = response.data.data.map(user => user.dbName);
-      console.log("Subscriber databases:", subscriberDatabases);
       return subscriberDatabases;
     } else {
       throw new Error("Failed to fetch subscriber databases.");

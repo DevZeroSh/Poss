@@ -58,15 +58,16 @@ const getPaymentHistory = asyncHandler(async (req, res, next) => {
 
   // Fetch all transactions up to the current page
   const allTransactions = await PaymentHistoryModel.find(query).sort({ date: 1 });
-
+  // console.log(allTransactions);
   let runningBalance = 0;
   allTransactions.forEach(transaction => {
     if (transaction.type === "payment") {
-      runningBalance -= transaction.rest;
+      runningBalance -= transaction?.rest;
     } else {
-      runningBalance += transaction.rest;
+      runningBalance += transaction?.rest;
     }
     transaction.runningBalance = runningBalance;
+
   });
 
 

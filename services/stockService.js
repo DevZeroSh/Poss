@@ -87,9 +87,9 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
   const stockTransferModel = db.model("StockTransfer", stockTransferSchema);
+  const productModel = db.model("Product", productSchema);
 
   const { fromStockId, toStockId, products } = req.body;
-  console.log(req.body);
   const stocks = await StockModel.find({ _id: { $in: [fromStockId, toStockId] } });
   const fromStock = stocks.find(stock => stock._id.toString() === fromStockId);
   const toStock = stocks.find(stock => stock._id.toString() === toStockId);
@@ -108,40 +108,44 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
 
   const productMap = new Map();
   for (const product of products) {
+    console.log(products);
     const { productId, productName, productQuantity } = product;
     const quantity = parseInt(productQuantity, 10);
 
     if (!productMap.has(productId)) {
-      productMap.set(productId, { productName, formQuantity: 0, toQuantity: 0 });
+      productMap.set(productId, { fromQuantity: 0, toQuantity: 0, productName });
     }
 
-    productMap.get(productId).formQuantity -= quantity;
+    productMap.get(productId).fromQuantity -= quantity;
     productMap.get(productId).toQuantity += quantity;
   }
 
+  // Update fromStock products
   for (const product of fromStock.products) {
-    const { productId, productQuantity } = product;
-    if (productQuantity <= 0) {
-      return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
-    }
+    const { productId } = product;
     if (productMap.has(productId.toString())) {
-      product.productQuantity += productMap.get(productId.toString()).formQuantity;
+      product.productQuantity += productMap.get(productId.toString()).fromQuantity;
+      if (product.productQuantity < 0) {
+        return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
+      }
     }
   }
 
+  // Update toStock products
   for (const product of toStock.products) {
-    const { productId, productQuantity } = product;
+    const { productId } = product;
     if (productMap.has(productId.toString())) {
       product.productQuantity += productMap.get(productId.toString()).toQuantity;
     }
   }
 
-  for (const [productId, { productName, formQuantity, toQuantity }] of productMap.entries()) {
+  // Add new products to toStock
+  for (const [productId, quantities] of productMap.entries()) {
     if (!toStock.products.some(p => p.productId.toString() === productId)) {
       toStock.products.push({
         productId,
-        productName,
-        productQuantity: toQuantity,
+        productQuantity: quantities.toQuantity,
+        productName: quantities.productName
       });
     }
   }
@@ -161,8 +165,32 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
     }
   ]);
 
+  // Update the stocks array in the product model
+  const bulkOps = [];
+  for (const product of products) {
+    const { productId, productQuantity } = product;
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: productId, "stocks.stockId": fromStockId },
+        update: { $inc: { "stocks.$.productQuantity": -productQuantity } }
+      }
+    });
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: productId, "stocks.stockId": toStockId },
+        update: {
+          $inc: { "stocks.$.productQuantity": productQuantity },
+          $setOnInsert: { "stocks.$.stockId": toStockId, "stocks.$.stockName": toStock.stockName }
+        },
+        upsert: true
+      }
+    });
+  }
+
+  await productModel.bulkWrite(bulkOps);
+
   const transferStock = await stockTransferModel.create(req.body);
-  res.status(200).json({ message: 'Transfer successful', data: transferStock });
+  res.status(200).json({ status: "success", message: 'Transfer successful', data: transferStock });
 });
 
 
