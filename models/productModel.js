@@ -152,7 +152,8 @@ const productSchema = new mongoose.Schema(
     },
     customAttributes: [
       {
-        type: String,
+        key: String,
+        value: String,
       },
     ],
     addToCart: { type: Number, default: 0 },
