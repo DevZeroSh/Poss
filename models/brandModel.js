@@ -24,8 +24,12 @@ const setImageURL = (doc) => {
   }
 };
 
-brandSchema.post("find", function (docs) {
-  docs.forEach(setImageURL);
+brandSchema.post("init", function (doc) {
+  if (Array.isArray(doc)) {
+    doc.forEach(setImageURL);
+  } else {
+    setImageURL(doc);
+  }
 });
 
 //Create

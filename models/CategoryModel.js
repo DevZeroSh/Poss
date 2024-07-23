@@ -17,12 +17,16 @@ categorySchema.pre(/^find/, function (next) {
   this?.populate({ path: "children" })
   next();
 });
-categorySchema.post("init", (doc) => {
-  setImageURL(doc);
+categorySchema.post("init", function (doc) {
+  if (Array.isArray(doc)) {
+    doc.forEach(setImageURL);
+  } else {
+    setImageURL(doc);
+  }
 });
-categorySchema.post("find", function (docs) {
-  docs.forEach(setImageURL);
-});
+// categorySchema.post("find", function (docs) {
+//   docs.forEach(setImageURL);
+// });
 //Create
 categorySchema.post("save", (doc) => {
   

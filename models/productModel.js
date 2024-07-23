@@ -204,22 +204,25 @@ const setImageURL = (doc) => {
     doc.image = imageUrl;
   }
   if (doc.imagesArray) {
-    const imageList = [];
-    doc.imagesArray.forEach((image) => {
-      const imageUrl = `${process.env.BASE_URL}/product/${image}`;
-      imageList.push(imageUrl);
-    });
+    const imageList = doc.imagesArray.map((image) => `${process.env.BASE_URL}/product/${image}`);
     doc.imagesArray = imageList;
   }
 };
 
-productSchema.post("find", function (docs) {
-  docs.forEach(setImageURL);
+productSchema.post("init", function (doc) {
+  if (Array.isArray(doc)) {
+    doc.forEach(setImageURL);
+  } else {
+    setImageURL(doc);
+  }
 });
 
-//Create
 productSchema.post("save", (doc) => {
   setImageURL(doc);
+});
+
+productSchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
 });
 
 productSchema.virtual("review", {

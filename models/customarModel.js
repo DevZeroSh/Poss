@@ -78,6 +78,7 @@ const customarSchema = new mongoose.Schema(
         lastName: String,
       },
     ],
+    facebookId: String,
   },
   { timestamps: true }
 );
