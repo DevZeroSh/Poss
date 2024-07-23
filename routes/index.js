@@ -44,6 +44,7 @@ const footerRout = require("./ecommerce/footerRout");
 const offersRouter = require("./offersRoute");
 const paytrRouter = require("./ecommerce/paytrRoute");
 const devicesRout = require("./devicesRout");
+const quotationRouter = require("./quotationRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -83,6 +84,7 @@ const mountRoutes = (app) => {
   app.use("/api/stock", stockRout);
   app.use("/api/offers", offersRouter);
   app.use("/api/device", devicesRout);
+  app.use("/api/quotation", quotationRouter);
 
   //Ecommerce routes
   app.use("/api/cart", cartRout);
