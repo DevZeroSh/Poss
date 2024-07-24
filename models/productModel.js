@@ -71,6 +71,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    ecommercePriceAftereDiscount: {
+      type: Number,
+      default: 0,
+    },
     buyingprice: {
       type: Number,
       default: 0,
@@ -204,18 +208,12 @@ const setImageURL = (doc) => {
     doc.image = imageUrl;
   }
   if (doc.imagesArray) {
-    const imageList = doc.imagesArray.map((image) => `${process.env.BASE_URL}/product/${image}`);
+    const imageList = doc.imagesArray.map(
+      (image) => `${process.env.BASE_URL}/product/${image}`
+    );
     doc.imagesArray = imageList;
   }
 };
-
-productSchema.post("init", function (doc) {
-  if (Array.isArray(doc)) {
-    doc.forEach(setImageURL);
-  } else {
-    setImageURL(doc);
-  }
-});
 
 productSchema.post("save", (doc) => {
   setImageURL(doc);

@@ -113,7 +113,6 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   });
 });
 
-
 exports.getProductPos = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName, { useCache: true });
@@ -144,15 +143,19 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
 
   // If stock document found, add productId filter to query
   if (stock) {
-    const productIdsInStock = stock.products.map(product => product.productId);
+    const productIdsInStock = stock.products.map(
+      (product) => product.productId
+    );
     query._id = { $in: productIdsInStock };
 
     // Create a mapping from productId to productQuantity
-    stock.products.forEach(product => {
+    stock.products.forEach((product) => {
       productQuantityMap[product.productId] = product.productQuantity;
     });
   } else {
-    return res.status(404).json({ status: "false", message: "Stock not found" });
+    return res
+      .status(404)
+      .json({ status: "false", message: "Stock not found" });
   }
 
   if (req.query.label) {
@@ -175,14 +178,14 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
   ]);
 
   // Add productQuantity to each product
-  const productsWithQuantity = products.map(product => {
+  const productsWithQuantity = products.map((product) => {
     const productObject = product.toObject();
     productObject.activeCount = productQuantityMap[product._id] || 0;
     return productObject;
   });
 
   const totalPages = Math.ceil(totalItems / pageSize);
-  console.log(productsWithQuantity)
+  console.log(productsWithQuantity);
   res.status(200).json({
     status: "true",
     results: productsWithQuantity.length,
@@ -190,9 +193,6 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     data: productsWithQuantity,
   });
 });
-
-
-
 
 const multerOptions = () => {
   const multerStorage = multer.memoryStorage();
@@ -414,7 +414,13 @@ const addProductInStocks = async (dbName, productId, stocks, productName) => {
   }
 };
 // @desc update Stock product Quantity
-const updateStocks = async (dbName, productId, stocks, quantity, productName) => {
+const updateStocks = async (
+  dbName,
+  productId,
+  stocks,
+  quantity,
+  productName
+) => {
   try {
     // Connect to the appropriate database
     const db = mongoose.connection.useDb(dbName);
@@ -427,17 +433,22 @@ const updateStocks = async (dbName, productId, stocks, quantity, productName) =>
       const { stockId, stockName, productQuantity } = stockInfo;
       // Skip updating or adding the product if productQuantity is 0
       if (productQuantity === 0) {
-        console.log(`Skipping product ${productId} in stock ${stockId} due to quantity 0`);
+        console.log(
+          `Skipping product ${productId} in stock ${stockId} due to quantity 0`
+        );
         continue;
       }
 
       // Check if the product exists in the stock's products array
-      const stock = await stockModel.findOne({ _id: stockId, 'products.productId': productId });
+      const stock = await stockModel.findOne({
+        _id: stockId,
+        "products.productId": productId,
+      });
 
       if (stock) {
         await stockModel.findOneAndUpdate(
-          { _id: stockId, 'products.productId': productId },
-          { $set: { 'products.$.productQuantity': productQuantity } },
+          { _id: stockId, "products.productId": productId },
+          { $set: { "products.$.productQuantity": productQuantity } },
           { new: true, strict: false }
         );
         console.log(`Updated product ${productId} in stock ${stockId}`);
@@ -449,10 +460,8 @@ const updateStocks = async (dbName, productId, stocks, quantity, productName) =>
           { new: true, strict: false }
         );
         console.log(`Added product ${productId} to stock ${stockId}`);
-      }
-      else {
+      } else {
         console.log(`Not Added product ${productId} to stock ${stockId}`);
-
       }
     }
   } catch (error) {
@@ -475,9 +484,7 @@ const createProductHandler = async (dbName, productData) => {
     // Create the product in the database
     const product = await productModel.create(productData);
 
-
     return product;
-
   } catch (error) {
     throw new Error(`Error creating product: ${error.message}`);
   }
@@ -495,10 +502,21 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const product = await createProductHandler(dbName, productData);
 
     // Update stocks with product ID
-    await addProductInStocks(dbName, product._id, productData.stocks, product.name);
+    await addProductInStocks(
+      dbName,
+      product._id,
+      productData.stocks,
+      product.name
+    );
 
-    await createProductMovement(product._id, product.quantity, product.quantity, "in",
-      "create", dbName)
+    await createProductMovement(
+      product._id,
+      product.quantity,
+      product.quantity,
+      "in",
+      "create",
+      dbName
+    );
     // Respond with success message and data
     res.status(201).json({
       status: "true",
@@ -559,7 +577,20 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    const setImageURL = (doc) => {
+      if (doc.image) {
+        const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+        doc.image = imageUrl;
+      }
+      if (doc.imagesArray) {
+        const imageList = doc.imagesArray.map(
+          (image) => `${process.env.BASE_URL}/product/${image}`
+        );
+        doc.imagesArray = imageList;
+      }
+    };
 
+    setImageURL(product); 
     res.status(200).json({ data: product, movements });
   } catch (error) {
     next(error);
@@ -725,7 +756,13 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
       console.error(e.message);
     }
     console.log(productData);
-    await updateStocks(dbName, id, productData.stocks, productData.quantity, productData.name);
+    await updateStocks(
+      dbName,
+      id,
+      productData.stocks,
+      productData.quantity,
+      productData.name
+    );
     res.status(200).json({
       status: "true",
       message: "Product updated",
@@ -846,7 +883,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else if (
       req.file.originalname.endsWith(".xlsx") ||
       req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
       // Use xlsx library to convert XLSX buffer to JSON array
       const workbook = xlsx.read(buffer, { type: "buffer" });
