@@ -24,9 +24,9 @@ categorySchema.post("init", function (doc) {
     setImageURL(doc);
   }
 });
-// categorySchema.post("find", function (docs) {
-//   docs.forEach(setImageURL);
-// });
+categorySchema.post("find", function (docs) {
+  docs.forEach(setImageURL);
+});
 //Create
 categorySchema.post("save", (doc) => {
   

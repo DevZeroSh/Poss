@@ -359,7 +359,23 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
     const totalItems = await productModel.countDocuments(query);
     const totalPages = Math.ceil(totalItems / limit);
+    const setImageURL = (doc) => {
+      if (doc.image) {
+        const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+        doc.image = imageUrl;
+      }
+      if (doc.imagesArray) {
+        const imageList = doc.imagesArray.map(
+          (image) => `${process.env.BASE_URL}/product/${image}`
+        );
+        doc.imagesArray = imageList;
+      }
+      
+    };
+    
 
+    // Set image URLs for each product
+    products.forEach(setImageURL);
     res.status(200).json({
       status: "true",
       results: products.length,
