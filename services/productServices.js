@@ -370,9 +370,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
         );
         doc.imagesArray = imageList;
       }
-      
     };
-    
 
     // Set image URLs for each product
     products.forEach(setImageURL);
@@ -577,6 +575,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     const [product, movements] = await Promise.all([
       productModel
         .findById(id)
+        .populate({ path: 'alternateProducts', select: 'name image' })
         .populate({ path: "category" })
         .populate({ path: "brand", select: "name _id" })
         .populate({ path: "variant", select: "variant _id" })
@@ -606,7 +605,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
       }
     };
 
-    setImageURL(product); 
+    setImageURL(product);
     res.status(200).json({ data: product, movements });
   } catch (error) {
     next(error);

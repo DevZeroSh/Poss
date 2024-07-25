@@ -7,7 +7,6 @@ const productSchema = new mongoose.Schema(
       require: true,
       minlength: [3, "Too short product name"],
       maxlength: [100, "Too long product name"],
-      
     },
     nameAR: {
       type: String,
@@ -202,7 +201,7 @@ const productSchema = new mongoose.Schema(
     },
     alternateProducts: [
       {
-        type: mongoose.Schema.ObjectId,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
       },
     ],
