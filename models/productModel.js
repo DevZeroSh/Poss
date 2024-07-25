@@ -7,16 +7,19 @@ const productSchema = new mongoose.Schema(
       require: true,
       minlength: [3, "Too short product name"],
       maxlength: [100, "Too long product name"],
+      
     },
     nameAR: {
       type: String,
       minlength: [3, "Too short product name"],
       maxlength: [30, "Too long product name"],
+      default: "name AR",
     },
     nameTR: {
       type: String,
       minlength: [3, "Too short product name"],
       maxlength: [30, "Too long product name"],
+      default: "name TR",
     },
     slug: {
       type: String,
@@ -30,38 +33,44 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: "Product short description",
       maxlength: [50, "Too long product English short description"],
+      default: " short Description AR",
     },
     shortDescriptionAR: {
       type: String,
       maxlength: [50, "Too long product Arabic short description"],
+      default: " short Description AR",
     },
     shortDescriptionTR: {
       type: String,
       maxlength: [50, "Too long product Turkish short description"],
+      default: " short Description TR",
     },
     description: {
       type: String,
       default: "Product description",
       maxlength: [500, "Too long product English long description"],
+      default: "Product description AR",
     },
     descriptionAR: {
       type: String,
       maxlength: [500, "Too long product Arabic long description"],
+      default: "Product description AR",
     },
     descriptionTR: {
       type: String,
       maxlength: [500, "Too long product Turkish long description"],
+      default: "Product description TR",
     },
     sold: {
       type: Number,
       default: 0,
     },
-    serialNumber: [
-      {
-        type: String,
-        default: "undefined",
-      },
-    ],
+    // serialNumber: [
+    //   {
+    //     type: String,
+    //     default: "undefined",
+    //   },
+    // ],
     quantity: { type: Number, default: 0 },
     price: {
       type: Number,
