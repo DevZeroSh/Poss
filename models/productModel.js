@@ -191,9 +191,13 @@ const productSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "ShippingCompany",
     },
-    alternateProducts: {
-      type: [mongoose.Schema.ObjectId],
-    },
+    alternateProducts: [
+      {
+        type: mongoose.Schema.ObjectId,
+        ref: "Product",
+      },
+    ],
+    groupID: { type: String },
   },
   {
     timestamps: true,
