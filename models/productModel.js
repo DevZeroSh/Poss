@@ -91,7 +91,7 @@ const productSchema = new mongoose.Schema(
 
     priceAftereDiscount: {
       type: Number,
-      default: null,
+      default: 0,
     },
     qr: {
       type: String,
