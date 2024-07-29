@@ -22,6 +22,7 @@ const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
 const stockSchema = require("../models/stockModel");
+const getAllChildCategories = require("../utils/CategoriesChild");
 
 // @desc Get list product
 // @route Get /api/product
@@ -142,7 +143,7 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
       .json({ status: "false", message: "Stock ID is required" });
   }
 
-  query['stocks.stockId'] = stockId;
+  query["stocks.stockId"] = stockId;
 
   if (req.query.label) {
     query.label = req.query.label;
@@ -165,7 +166,9 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
 
   const productsWithQuantity = products.map((product) => {
     const productObject = product.toObject();
-    const stockEntry = product.stocks.find(stock => stock.stockId.toString() === stockId);
+    const stockEntry = product.stocks.find(
+      (stock) => stock.stockId.toString() === stockId
+    );
     productObject.activeCount = stockEntry ? stockEntry.productQuantity : 0;
     return productObject;
   });
@@ -178,7 +181,6 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     data: productsWithQuantity,
   });
 });
-
 
 const multerOptions = () => {
   const multerStorage = multer.memoryStorage();
@@ -397,8 +399,6 @@ const updateStocks = async (
         );
         continue;
       }
-
-    
     }
   } catch (error) {
     throw new Error(`Error updating stocks: ${error.message}`);
@@ -418,7 +418,9 @@ const createProductHandler = async (dbName, productData) => {
     productData.slug = slugify(productData.name);
 
     // Filter out stocks with productQuantity equal to 0
-    productData.stocks = productData.stocks.filter(stock => stock.productQuantity > 0);
+    productData.stocks = productData.stocks.filter(
+      (stock) => stock.productQuantity > 0
+    );
 
     // Create the product in the database
     const product = await productModel.create(productData);
@@ -428,7 +430,6 @@ const createProductHandler = async (dbName, productData) => {
     throw new Error(`Error creating product: ${error.message}`);
   }
 };
-
 
 // @desc Create  product
 // @route Post /api/product
@@ -543,27 +544,55 @@ exports.updateEcommerceProducts = async (req, res, next) => {
 
   try {
     const productIds = req.body.productId;
+    const categoryId = req.body.categoryId;
+    const brandId = req.body.brandId;
 
-    // Update products matching the given productIds
-    const updatedProducts = await Promise.all(
-      productIds.map(async (productId) => {
-        const product = await productModel.findByIdAndUpdate(
-          productId,
-          { ecommerceActive: true },
-          { new: true }
-        );
+    let updatedProducts;
 
-        if (!product) {
-          throw new Error(`Product with productId ${productId} not found.`);
-        }
+    if (categoryId) {
+      // Fetch all child categories for the given categoryId
+      const allCategories = await getAllChildCategories(
+        categoryId,
+        db,
+        categorySchema
+      );
 
-        return product;
-      })
-    );
+      // Update products by category
+      updatedProducts = await productModel.updateMany(
+        { category: { $in: allCategories } },
+        { $set: { ecommerceActive: true } }
+      );
+
+      if (updatedProducts.matchedCount === 0) {
+        console.log("No products found for the given category ID.");
+      }
+    } else if (brandId) {
+      updatedProducts = await productModel.updateMany(
+        { brand: { $in: brandId } },
+        { $set: { ecommerceActive: true } }
+      );
+    } else {
+      // Update products matching the given productIds
+      updatedProducts = await Promise.all(
+        productIds.map(async (productId) => {
+          const product = await productModel.findByIdAndUpdate(
+            productId,
+            { ecommerceActive: true },
+            { new: true }
+          );
+
+          if (!product) {
+            throw new Error(`Product with productId ${productId} not found.`);
+          }
+
+          return product;
+        })
+      );
+    }
 
     res.status(200).json({ success: true, data: updatedProducts });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating ecommerce products:", error.message);
     res.status(500).json({ error: "Server Error" });
   }
 };
@@ -572,11 +601,11 @@ exports.updateEcommerceProducts = async (req, res, next) => {
 // @route put /api/ecommersproduct
 // @access private
 exports.setEcommerceProductPublish = async (req, res, next) => {
-  try {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
-    const productModel = db.model("Product", productSchema);
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
 
+  try {
     const id = req.body.id;
     const publish = req.body.publish;
 
@@ -865,7 +894,6 @@ exports.addProduct = asyncHandler(async (req, res) => {
         ordered: false,
       });
       console.log("Inserted Products:", insertedProducts);
-
     } catch (error) {
       if (error.code === 11000) {
         // Duplicate key error

@@ -8,34 +8,9 @@ const asyncHandler = require("express-async-handler");
 const multer = require("multer");
 const sharp = require("sharp");
 const { v4: uuidv4 } = require("uuid");
+const getAllChildCategories = require("../utils/CategoriesChild");
 // @desc find the categors and what have a subCategor
-async function getAllChildCategories(parentCategoryId, db, categorySchema) {
-  const Category = db.model("Category", categorySchema);
 
-  // Find the parent category and populate its children
-  const parentCategory = await Category.findById(parentCategoryId).populate(
-    "children"
-  );
-
-  if (!parentCategory) {
-    return [];
-  }
-
-  // Initialize a Set with the parent category ID
-  let allCategories = new Set([parentCategoryId]);
-
-  // Recursively add child categories
-  for (let child of parentCategory.children) {
-    const nestedChildCategories = await getAllChildCategories(
-      child,
-      db,
-      categorySchema
-    );
-    nestedChildCategories.forEach((catId) => allCategories.add(catId));
-  }
-
-  return Array.from(allCategories);
-}
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -402,8 +377,8 @@ exports.getOneOffer = async (req, res) => {
     if (!offer) {
       return res.status(404).send({ error: "Offer not found" });
     }
-    setImageURL(offer.imageAr);
-    setImageURL(offer.imageTr);
+    if (offer.imageAr) setImageURL(offer?.imageAr);
+    if (offer.imageTr) setImageURL(offer?.imageTr);
     res.status(200).json({ status: "success", data: offer });
   } catch (error) {
     res.status(500).send({ error: error.message });
