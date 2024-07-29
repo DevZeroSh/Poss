@@ -269,6 +269,10 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const order = await orderModel
     .findById(id)
     .populate({ path: "cartItems.product" })
+    .populate({
+      path: "customar",
+      select: "name email phone",
+    })
     .lean();
 
   res.status(200).json({ status: "success", data: order });

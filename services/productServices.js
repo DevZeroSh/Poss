@@ -120,7 +120,6 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const currencyModel = db.model("Currency", currencySchema);
   db.model("Tax", TaxSchema);
-  const StockModel = db.model("Stock", stockSchema);
 
   const pageSize = parseInt(req.query.limit, 10) || 25;
   const page = parseInt(req.query.page, 10) || 1;
@@ -135,28 +134,15 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     ];
   }
 
-  // Fetch the stock document
   const stockId = req.query.stockId;
-  const stock = await StockModel.findById(stockId);
 
-  let productQuantityMap = {};
-
-  // If stock document found, add productId filter to query
-  if (stock) {
-    const productIdsInStock = stock.products.map(
-      (product) => product.productId
-    );
-    query._id = { $in: productIdsInStock };
-
-    // Create a mapping from productId to productQuantity
-    stock.products.forEach((product) => {
-      productQuantityMap[product.productId] = product.productQuantity;
-    });
-  } else {
+  if (!stockId) {
     return res
-      .status(404)
-      .json({ status: "false", message: "Stock not found" });
+      .status(400)
+      .json({ status: "false", message: "Stock ID is required" });
   }
+
+  query['stocks.stockId'] = stockId;
 
   if (req.query.label) {
     query.label = req.query.label;
@@ -177,15 +163,14 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
       .populate({ path: "tax", select: "tax  _id" }),
   ]);
 
-  // Add productQuantity to each product
   const productsWithQuantity = products.map((product) => {
     const productObject = product.toObject();
-    productObject.activeCount = productQuantityMap[product._id] || 0;
+    const stockEntry = product.stocks.find(stock => stock.stockId.toString() === stockId);
+    productObject.activeCount = stockEntry ? stockEntry.productQuantity : 0;
     return productObject;
   });
 
   const totalPages = Math.ceil(totalItems / pageSize);
-  console.log(productsWithQuantity);
   res.status(200).json({
     status: "true",
     results: productsWithQuantity.length,
@@ -193,6 +178,7 @@ exports.getProductPos = asyncHandler(async (req, res, next) => {
     data: productsWithQuantity,
   });
 });
+
 
 const multerOptions = () => {
   const multerStorage = multer.memoryStorage();
@@ -310,7 +296,11 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
       ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1,
     };
   }
-
+  if (req.query.addToFavourites) {
+    sortQuery = {
+      addToFavourites: parseInt(req.query.addToFavourites) === 1 ? 1 : -1,
+    };
+  }
   try {
     // Aggregation pipeline for querying and population
     const aggregationPipeline = [
@@ -384,49 +374,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
-// @desc Add Stock product Quantity
-const addProductInStocks = async (dbName, productId, stocks, productName) => {
-  try {
-    // Connect to the appropriate database
-    const db = mongoose.connection.useDb(dbName);
 
-    // Define stock model
-    const stockModel = db.model("Stock", stockSchema);
-    // Update or create stock information for each stock provided
-    for (const stockInfo of stocks) {
-      const { stockId, stockName, productQuantity } = stockInfo;
-      // Update stock information
-      if (productQuantity > 0) {
-        await stockModel.findOneAndUpdate(
-          { _id: stockId },
-          {
-            $push: {
-              products: {
-                $each: [
-                  {
-                    productId: productId,
-                    productName: productName,
-                    productQuantity: productQuantity,
-                  },
-                ],
-                $position: 0,
-              },
-            },
-          },
-          {
-            new: true,
-            upsert: true,
-            strict: false,
-          }
-        );
-      }
-
-      // Log or handle the updatedStock as needed
-    }
-  } catch (error) {
-    throw new Error(`Error updating stocks: ${error.message}`);
-  }
-};
 // @desc update Stock product Quantity
 const updateStocks = async (
   dbName,
@@ -439,9 +387,6 @@ const updateStocks = async (
     // Connect to the appropriate database
     const db = mongoose.connection.useDb(dbName);
 
-    // Define stock model
-    const stockModel = db.model("Stock", stockSchema);
-
     // Update stock information for each stock provided
     for (const stockInfo of stocks) {
       const { stockId, stockName, productQuantity } = stockInfo;
@@ -453,30 +398,7 @@ const updateStocks = async (
         continue;
       }
 
-      // Check if the product exists in the stock's products array
-      const stock = await stockModel.findOne({
-        _id: stockId,
-        "products.productId": productId,
-      });
-
-      if (stock) {
-        await stockModel.findOneAndUpdate(
-          { _id: stockId, "products.productId": productId },
-          { $set: { "products.$.productQuantity": productQuantity } },
-          { new: true, strict: false }
-        );
-        console.log(`Updated product ${productId} in stock ${stockId}`);
-      } else if (productQuantity > 0) {
-        // If the product does not exist, add it to the products array
-        await stockModel.findOneAndUpdate(
-          { _id: stockId },
-          { $push: { products: { productId, productName, productQuantity } } },
-          { new: true, strict: false }
-        );
-        console.log(`Added product ${productId} to stock ${stockId}`);
-      } else {
-        console.log(`Not Added product ${productId} to stock ${stockId}`);
-      }
+    
     }
   } catch (error) {
     throw new Error(`Error updating stocks: ${error.message}`);
@@ -495,6 +417,9 @@ const createProductHandler = async (dbName, productData) => {
     // Create a slug for the product name
     productData.slug = slugify(productData.name);
 
+    // Filter out stocks with productQuantity equal to 0
+    productData.stocks = productData.stocks.filter(stock => stock.productQuantity > 0);
+
     // Create the product in the database
     const product = await productModel.create(productData);
 
@@ -503,6 +428,7 @@ const createProductHandler = async (dbName, productData) => {
     throw new Error(`Error creating product: ${error.message}`);
   }
 };
+
 
 // @desc Create  product
 // @route Post /api/product
@@ -516,12 +442,6 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const product = await createProductHandler(dbName, productData);
 
     // Update stocks with product ID
-    await addProductInStocks(
-      dbName,
-      product._id,
-      productData.stocks,
-      product.name
-    );
 
     await createProductMovement(
       product._id,
@@ -575,7 +495,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     const [product, movements] = await Promise.all([
       productModel
         .findById(id)
-        .populate({ path: 'alternateProducts', select: 'name image' })
+        .populate({ path: "alternateProducts", select: "name image" })
         .populate({ path: "category" })
         .populate({ path: "brand", select: "name _id" })
         .populate({ path: "variant", select: "variant _id" })
@@ -907,24 +827,45 @@ exports.addProduct = asyncHandler(async (req, res) => {
     } else {
       return res.status(400).json({ error: "Unsupported file type" });
     }
+
+    console.log("Parsed CSV Data:", csvData);
+
     for (const item of csvData) {
       try {
         const tax = await taxModel.findById(item.tax);
         const finalPrice = item.price * (1 + tax.tax / 100);
         item.taxPrice = finalPrice;
+        item.activeCount = item.quality;
+        // Extract stocks information from the item and add to the item
+        item.stocks = [];
+        if (item.stock && item.stockName && item.quantity) {
+          item.stocks.push({
+            stockId: item.stock,
+            stockName: item.stockName,
+            productQuantity: item.quantity,
+          });
+        }
+
+        // Log to verify stocks are being added correctly
+        console.log("Processed Item:", item);
       } catch (error) {
-        // Handle errors when finding currency
+        // Handle errors when finding tax
         console.error(
-          `Error finding currency for item with QR ${item.qr}: ${error.message}`
+          `Error finding tax for item with QR ${item.qr}: ${error.message}`
         );
       }
     }
+
     // Process your data and save to MongoDB using your mongoose model
     const duplicateQRs = [];
 
     // Use try-catch to catch duplicate key errors
     try {
-      await productModel.insertMany(csvData, { ordered: false });
+      const insertedProducts = await productModel.insertMany(csvData, {
+        ordered: false,
+      });
+      console.log("Inserted Products:", insertedProducts);
+
     } catch (error) {
       if (error.code === 11000) {
         // Duplicate key error

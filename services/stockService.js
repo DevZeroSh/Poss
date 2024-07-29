@@ -26,6 +26,7 @@ exports.getStocks = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
+
   const Stocks = await StockModel.find();
   res
     .status(200)
@@ -36,16 +37,28 @@ exports.getOneStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
-  db.model("Product", productSchema);
-  const Stock = await StockModel.findById(req.params.id);
+  const productModel = db.model("Product", productSchema);
+  
+  const stockId = req.params.id;
+  const Stock = await StockModel.findById(stockId);
+
   if (!Stock) {
-    return next(new ApiError(`No Stock found for id ${req.params.id}`, 404));
+    return next(new ApiError(`No Stock found for id ${stockId}`, 404));
   }
+
+  const products = await productModel.find({
+    "stocks.stockId": stockId,
+  });
+
   res.status(200).json({
     status: "success",
-    data: Stock,
+    data: {
+      stock: Stock,
+      products: products,
+    },
   });
 });
+
 
 exports.updateStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -90,19 +103,25 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
 
   const { fromStockId, toStockId, products } = req.body;
-  const stocks = await StockModel.find({ _id: { $in: [fromStockId, toStockId] } });
-  const fromStock = stocks.find(stock => stock._id.toString() === fromStockId);
-  const toStock = stocks.find(stock => stock._id.toString() === toStockId);
+  const stocks = await StockModel.find({
+    _id: { $in: [fromStockId, toStockId] },
+  });
+  const fromStock = stocks.find(
+    (stock) => stock._id.toString() === fromStockId
+  );
+  const toStock = stocks.find((stock) => stock._id.toString() === toStockId);
 
   if (!fromStock || !toStock) {
-    return res.status(404).json({ message: 'Stock not found' });
+    return res.status(404).json({ message: "Stock not found" });
   }
 
   // Validation: check if any product quantity is less than 0
   for (const product of products) {
     const quantity = parseInt(product.productQuantity, 10);
     if (quantity < 0) {
-      return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
+      return res
+        .status(400)
+        .json({ message: "Product quantity cannot be less than 0" });
     }
   }
 
@@ -113,7 +132,11 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
     const quantity = parseInt(productQuantity, 10);
 
     if (!productMap.has(productId)) {
-      productMap.set(productId, { fromQuantity: 0, toQuantity: 0, productName });
+      productMap.set(productId, {
+        fromQuantity: 0,
+        toQuantity: 0,
+        productName,
+      });
     }
 
     productMap.get(productId).fromQuantity -= quantity;
@@ -124,9 +147,13 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   for (const product of fromStock.products) {
     const { productId } = product;
     if (productMap.has(productId.toString())) {
-      product.productQuantity += productMap.get(productId.toString()).fromQuantity;
+      product.productQuantity += productMap.get(
+        productId.toString()
+      ).fromQuantity;
       if (product.productQuantity < 0) {
-        return res.status(400).json({ message: 'Product quantity cannot be less than 0' });
+        return res
+          .status(400)
+          .json({ message: "Product quantity cannot be less than 0" });
       }
     }
   }
@@ -135,35 +162,22 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   for (const product of toStock.products) {
     const { productId } = product;
     if (productMap.has(productId.toString())) {
-      product.productQuantity += productMap.get(productId.toString()).toQuantity;
+      product.productQuantity += productMap.get(
+        productId.toString()
+      ).toQuantity;
     }
   }
 
   // Add new products to toStock
   for (const [productId, quantities] of productMap.entries()) {
-    if (!toStock.products.some(p => p.productId.toString() === productId)) {
+    if (!toStock.products.some((p) => p.productId.toString() === productId)) {
       toStock.products.push({
         productId,
         productQuantity: quantities.toQuantity,
-        productName: quantities.productName
+        productName: quantities.productName,
       });
     }
   }
-
-  await StockModel.bulkWrite([
-    {
-      updateOne: {
-        filter: { _id: fromStockId },
-        update: { $set: { products: fromStock.products } }
-      }
-    },
-    {
-      updateOne: {
-        filter: { _id: toStockId },
-        update: { $set: { products: toStock.products } }
-      }
-    }
-  ]);
 
   // Update the stocks array in the product model
   const bulkOps = [];
@@ -172,28 +186,35 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
     bulkOps.push({
       updateOne: {
         filter: { _id: productId, "stocks.stockId": fromStockId },
-        update: { $inc: { "stocks.$.productQuantity": -productQuantity } }
-      }
+        update: { $inc: { "stocks.$.productQuantity": -productQuantity } },
+      },
     });
     bulkOps.push({
       updateOne: {
         filter: { _id: productId, "stocks.stockId": toStockId },
         update: {
           $inc: { "stocks.$.productQuantity": productQuantity },
-          $setOnInsert: { "stocks.$.stockId": toStockId, "stocks.$.stockName": toStock.stockName }
+          $setOnInsert: {
+            "stocks.$.stockId": toStockId,
+            "stocks.$.stockName": toStock.stockName,
+          },
         },
-        upsert: true
-      }
+        upsert: true,
+      },
     });
   }
 
   await productModel.bulkWrite(bulkOps);
 
   const transferStock = await stockTransferModel.create(req.body);
-  res.status(200).json({ status: "success", message: 'Transfer successful', data: transferStock });
+  res
+    .status(200)
+    .json({
+      status: "success",
+      message: "Transfer successful",
+      data: transferStock,
+    });
 });
-
-
 
 // @desc put list product
 // @route put /api/stock/transfer
@@ -219,11 +240,20 @@ exports.getTransferStock = asyncHandler(async (req, res, next) => {
 
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+  const transfer = await stockTransferModel
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
 
   res
     .status(200)
-    .json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+    .json({
+      statusbar: "success",
+      results: transfer.length,
+      Pages: totalPages,
+      data: transfer,
+    });
 });
 
 exports.getTransferForStock = asyncHandler(async (req, res, next) => {
@@ -236,10 +266,7 @@ exports.getTransferForStock = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   let query = {
-    $or: [
-      { toStockId: id },
-      { fromStockId: id }
-    ]
+    $or: [{ toStockId: id }, { fromStockId: id }],
   };
 
   if (req.query.keyword) {
@@ -251,9 +278,20 @@ exports.getTransferForStock = asyncHandler(async (req, res, next) => {
 
   const totalItems = await stockTransferModel.countDocuments(query);
   const totalPages = Math.ceil(totalItems / pageSize);
-  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+  const transfer = await stockTransferModel
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
 
-  res.status(200).json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+  res
+    .status(200)
+    .json({
+      statusbar: "success",
+      results: transfer.length,
+      Pages: totalPages,
+      data: transfer,
+    });
 });
 
 exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
@@ -263,7 +301,6 @@ exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
   const pageSize = req.query.limit || 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-
 
   let query = {};
 
@@ -276,9 +313,20 @@ exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
 
   const totalItems = await stockTransferModel.countDocuments(query);
   const totalPages = Math.ceil(totalItems / pageSize);
-  const transfer = await stockTransferModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize);
+  const transfer = await stockTransferModel
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
 
-  res.status(200).json({ statusbar: "success", results: transfer.length, Pages: totalPages, data: transfer });
+  res
+    .status(200)
+    .json({
+      statusbar: "success",
+      results: transfer.length,
+      Pages: totalPages,
+      data: transfer,
+    });
 });
 
 exports.getOneTransferStock = asyncHandler(async (req, res, next) => {
@@ -288,11 +336,5 @@ exports.getOneTransferStock = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const transfer = await stockTransferModel.findById(id);
 
-  res
-    .status(200)
-    .json({ statusbar: "success", data: transfer });
+  res.status(200).json({ statusbar: "success", data: transfer });
 });
-
-
-
-

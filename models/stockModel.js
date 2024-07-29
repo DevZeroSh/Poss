@@ -12,17 +12,7 @@ const stockSchema = new mongoose.Schema(
       default: "Stock description",
     },
     location: String,
-
-    products: [{
-      productId: {
-        type: mongoose.Schema.ObjectId,
-        ref: "Product",
-      },
-      productName: String,
-      productQuantity: Number,
-    }],
-    posStock: { type: Boolean, default: false }
-
+    posStock: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
