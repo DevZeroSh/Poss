@@ -7,6 +7,7 @@ const {
   createCashOrderMultipelFunds,
   findOneSalsePos,
   editPosOrder,
+  returnPosSales,
 } = require("../services/salesPosFishServices");
 
 const SalesPosRout = express.Router();
@@ -20,5 +21,7 @@ SalesPosRout.route("/").get(findAllSalsePos).post(createCashOrder);
 SalesPosRout.route("/funds").post(createCashOrderMultipelFunds);
 
 SalesPosRout.route("/:id").get(findOneSalsePos).put(editPosOrder);
-
+SalesPosRout.route("/return").post(returnPosSales);
+// SalesPosRout.route("/getReturnOrder").get(getReturnOrder);
+// SalesPosRout.route("/getReturnOrder/:id").get(getOneReturnOrder);
 module.exports = SalesPosRout;

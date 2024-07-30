@@ -620,7 +620,7 @@ exports.updateEcommerceProductDeActive = asyncHandler(
 
       const updatedProduct = await productModel.findOneAndUpdate(
         { _id: productId },
-        { ecommerceActive: false },
+        { ecommerceActive: false, publish: false },
         { new: true }
       );
 
