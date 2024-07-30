@@ -1,5 +1,10 @@
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
+const { Search } = require("../../utils/search");
+const bcrypt = require("bcrypt");
+const createToken = require("../../utils/createToken");
+const ApiError = require("../../utils/apiError");
 // Create New customer
 exports.createUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -59,7 +64,7 @@ exports.updateUser = asyncHandler(async (req, res, next) => {
   } else {
     const updatedUser = await UserModel.findByIdAndUpdate(id, req.body, {
       new: true,
-      runValidators: true, // Ensure the updated data is validated against the schema
+      runValidators: true,
     });
     res.status(200).json({
       success: true,
@@ -73,7 +78,7 @@ exports.updateUserPassword = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const UserModel = db.model("Users", E_user_Schema);
-  d;
+
   // Update user password based on user payload (req.user._id)
   const user = await UserModel.findByIdAndUpdate(
     req.user._id,
@@ -92,7 +97,7 @@ exports.updateUserPassword = asyncHandler(async (req, res, next) => {
 
   // Generate Token
   const token = createToken(user._id);
-
+  user.password = undefined;
   res.status(200).json({ data: user, token });
 });
 // Delete user
@@ -102,11 +107,7 @@ exports.deleteUser = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const UserModel = db.model("Users", E_user_Schema);
 
-  const user = await UserModel.findByIdAndUpdate(
-    id,
-    { archives: "true" },
-    { new: true }
-  );
+  const user = await UserModel.findByIdAndDelete(id);
 
   if (!user) {
     return next(new ApiError(`There is no user with this id ${id}`, 404));

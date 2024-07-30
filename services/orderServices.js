@@ -33,198 +33,6 @@ const orderFishSchema = require("../models/orderModelFish");
 const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
 
-// @desc    Create cash order from the POS page
-// @route   POST /api/orders/cartId
-// @access  privet/Pos Sales
-exports.createCashOrder = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-
-  const orderFishPosModel = db.model("orderFishPos", orderFishSchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
-  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
-  const productModel = db.model("Product", productSchema);
-  const expensesModel = db.model("Expenses", expensesSchema);
-  const ActiveProductsValue = db.model(
-    "ActiveProductsValue",
-    ActiveProductsValueModel
-  );
-  db.model("PaymentType", paymentTypesSchema);
-  db.model("Currency", currencySchema);
-  const cartItems = req.body.cartItems;
-
-  if (!cartItems || cartItems.length === 0) {
-    return next(new ApiError("The cart is empty", 400));
-  }
-
-  const {
-    totalOrderPrice,
-    financialFunds: financialFundsId,
-    exchangeRate,
-    couponCount,
-    totalPriceAfterDiscount,
-    priceExchangeRate,
-  } = req.body;
-
-  const financialFunds = await FinancialFundsModel.findById(
-    financialFundsId
-  ).populate({ path: "fundPaymentType" });
-  if (!financialFunds) {
-    return next(
-      new ApiError(
-        `There is no such financial fund with id ${financialFundsId}`,
-        404
-      )
-    );
-  }
-
-  const stockID = req.body.stock;
-
-  // Get next counter
-  const nextCounter = (await orderFishPosModel.countDocuments()) + 1;
-
-  // Create order
-  const order = await orderFishPosModel.create({
-    employee: req.user._id,
-    priceExchangeRate,
-    cartItems,
-    returnCartItem: cartItems,
-    currencyCode: req.body.currency,
-    totalOrderPrice,
-    totalPriceAfterDiscount,
-    taxs: req.body.taxs,
-    price: req.body.price,
-    taxRate: req.body.taxRate,
-    customarId: req.body.customarId,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customarAddress: req.body.customarAddress,
-    coupon: req.body.coupon,
-    couponCount: req.body.couponCount,
-    couponType: req.body.couponType,
-    type: req.body.type,
-    onefinancialFunds: financialFundsId,
-    paidAt: new Date().toISOString(),
-    counter: "pos-" + nextCounter,
-    exchangeRate,
-  });
-
-  // Update financial funds
-  financialFunds.fundBalance +=
-    couponCount > 0
-      ? totalPriceAfterDiscount / exchangeRate
-      : priceExchangeRate;
-
-  // Create ReportsFinancialFunds
-  const createReportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
-    date: new Date().toISOString(),
-    amount:
-      totalPriceAfterDiscount > 0 ? totalPriceAfterDiscount : totalOrderPrice,
-    totalPriceAfterDiscount: totalPriceAfterDiscount / exchangeRate,
-    order: order._id,
-    type: "sales",
-    financialFundId: financialFundsId,
-    financialFundRest: financialFunds.fundBalance,
-    exchangeRate,
-  });
-
-  // Product movements
-  const productMovementPromises = cartItems.map(async (item) => {
-    const product = await productModel.findOne({ qr: item.qr });
-    if (product && product.type !== "Service") {
-      const stockEntry = product.stocks.find(
-        (stock) => stock.stockId.toString() === stockID.toString()
-      );
-      if (stockEntry) {
-        stockEntry.productQuantity -= item.quantity;
-        product.sold += item.quantity;
-        await product.save();
-        createProductMovement(
-          item.product,
-          stockEntry.productQuantity,
-          item.quantity,
-          "out",
-          "sales",
-          dbName
-        );
-      }
-    }
-  });
-
-  // ActiveProductsValue updates
-  const activeProductsValueUpdates = cartItems.map(async (item) => {
-    const product = await productModel.findOne({ qr: item.qr });
-    if (product && product.type !== "Service") {
-      const existingRecord = await ActiveProductsValue.findOne({
-        currency: product.currency._id,
-      });
-      if (existingRecord) {
-        existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
-        existingRecord.activeProductsCount -= item.quantity;
-        await existingRecord.save();
-      } else {
-        await createActiveProductsValue(0, 0, product.currency._id, dbName);
-      }
-    }
-  });
-
-  // Create Expense
-  const createExpensePromise =
-    financialFunds.fundPaymentType.haveRatio === "true"
-      ? (async () => {
-          const nextExpenseCounter = (await expensesModel.countDocuments()) + 1;
-          const expenseQuantityAfterKdv =
-            (totalPriceAfterDiscount / exchangeRate) *
-              (financialFunds.bankRatio / 100) ||
-            priceExchangeRate * (financialFunds.bankRatio / 100);
-          financialFunds.fundBalance -= expenseQuantityAfterKdv;
-          const expense = await expensesModel.create({
-            ...req.body,
-            expenseQuantityAfterKdv,
-            expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
-            expenseCategory: financialFunds.fundPaymentType.expenseCategory,
-            counter: nextExpenseCounter,
-            expenseDate: new Date().toISOString(),
-            expenseFinancialFund: financialFunds.fundName,
-            expenseTax: "0",
-            type: "paid",
-          });
-
-          await ReportsFinancialFundsModel.create({
-            date: new Date().toISOString(),
-            amount: expenseQuantityAfterKdv,
-            order: expense._id,
-            type: "expense",
-            financialFundId: financialFundsId,
-            financialFundRest: financialFunds.fundBalance,
-            exchangeRate: expenseQuantityAfterKdv,
-          });
-        })()
-      : Promise.resolve();
-
-  // Wait for all promises to resolve
-  await Promise.all([
-    createReportsFinancialFundsPromise,
-    ...productMovementPromises,
-    createExpensePromise,
-    ...activeProductsValueUpdates,
-  ]);
-
-  // Save financial funds and respond
-  await financialFunds.save();
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
-  res.status(201).json({ status: "success", data: order, history });
-});
 
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
@@ -578,281 +386,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   res.status(201).json({ status: "success", data: order, history });
 });
 
-// @desc    create cash order for multiple funds
-// @route   POST /api/orders/cartId
-// @access  privet/User
-exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
 
-  const orderModel = db.model("Orders", orderSchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
-  const expensesModel = db.model("Expenses", expensesSchema);
-  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
-  const productModel = db.model("Product", productSchema);
-  db.model("PaymentType", paymentTypesSchema);
-  const orderFishPosModel = db.model("orderFishPosSchema", orderFishPosSchema);
-  const StockModel = db.model("Stock", stockSchema);
-  const stockID = req.body.stock;
-
-  db.model("Currency", currencySchema);
-  const padZero = (value) => (value < 10 ? `0${value}` : value);
-  const ts = Date.now();
-  const date_ob = new Date(ts);
-  const date = `${date_ob.getFullYear()}-${padZero(
-    date_ob.getMonth() + 1
-  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
-    date_ob.getMinutes()
-  )}:${padZero(date_ob.getSeconds())}`;
-  const timeIsoString = new Date().toISOString();
-
-  const { cartItems, financialFunds, ...orderData } = req.body;
-
-  if (!cartItems || cartItems.length === 0) {
-    return next(new ApiError("The cart is empty", 400));
-  }
-
-  const totalOrderCount = (await orderFishPosModel.countDocuments()) + 1;
-  const reportsOrderCount = (await ReportsSalesModel.countDocuments()) + 1;
-  const order = await orderModel.create({
-    ...orderData,
-    employee: req.user._id,
-    cartItems,
-    returnCartItem: cartItems,
-    totalOrderPrice: 0,
-    paidAt: date,
-    counter: "pos " + totalOrderCount,
-    financialFunds: financialFunds
-      .filter((fund) => fund.amount !== 0)
-      .map((fund) => ({
-        fundId: fund.fundId,
-        allocatedAmount: parseFloat(fund.amount),
-        exchangeRateIcon: fund.exchangeRateIcon,
-        exchangeRate: fund.exchangeRate,
-      })),
-  });
-
-  let totalAllocatedAmount = 0;
-  const bulkUpdates = [];
-  const bulkUpdates2 = [];
-  const financialFundsMap = {};
-  let expenseCounter = await expensesModel.countDocuments();
-
-  const fundsPromises = financialFunds
-    .filter((fund) => fund.amount !== 0)
-    .map(async ({ fundId, amount, exchangeRate }) => {
-      const financialFund = await FinancialFundsModel.findById(fundId).populate(
-        { path: "fundPaymentType" }
-      );
-
-      if (!financialFund) {
-        return next(new ApiError(`Financial fund ${fundId} not found`, 404));
-      }
-
-      const updatedFundBalance =
-        parseFloat(financialFund.fundBalance) + parseFloat(amount);
-      totalAllocatedAmount += parseFloat(amount) * exchangeRate;
-
-      bulkUpdates.push({
-        updateOne: {
-          filter: { _id: fundId },
-          update: { $inc: { fundBalance: parseFloat(amount) } },
-        },
-      });
-
-      await ReportsFinancialFundsModel.create({
-        date: timeIsoString,
-        amount: parseFloat(amount) * exchangeRate,
-        order: order._id,
-        type: "sales",
-        financialFundId: fundId,
-        financialFundRest: updatedFundBalance,
-        exchangeRate,
-      });
-
-      if (
-        financialFund.fundPaymentType &&
-        financialFund.fundPaymentType.haveRatio === "true"
-      ) {
-        const expenseQuantityAfterKdv =
-          parseFloat(amount) * (parseFloat(financialFund.bankRatio) / 100);
-        const finalFundBalance = updatedFundBalance - expenseQuantityAfterKdv;
-
-        const expensee = await expensesModel.create({
-          ...req.body,
-          expenseQuantityAfterKdv,
-          expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
-          expenseCategory: financialFund.fundPaymentType.expenseCategory,
-          counter: ++expenseCounter,
-          expenseDate: timeIsoString,
-          expenseFinancialFund: financialFund.fundName,
-          expenseTax: "0",
-          type: "paid",
-        });
-
-        await ReportsFinancialFundsModel.create({
-          date: timeIsoString,
-          amount: expenseQuantityAfterKdv,
-          order: expensee._id,
-          type: "expense",
-          financialFundId: fundId,
-          financialFundRest: finalFundBalance,
-          exchangeRate,
-        });
-
-        bulkUpdates2.push({
-          updateOne: {
-            filter: { _id: fundId },
-            update: { $set: { fundBalance: finalFundBalance } },
-          },
-        });
-      }
-
-      financialFundsMap[fundId] = financialFund;
-    });
-
-  await Promise.all(fundsPromises);
-
-  await Promise.all([
-    FinancialFundsModel.bulkWrite(bulkUpdates),
-    FinancialFundsModel.bulkWrite(bulkUpdates2),
-    orderModel.findByIdAndUpdate(order._id, {
-      taxPrice: parseFloat(totalAllocatedAmount),
-      totalOrderPrice: parseFloat(totalAllocatedAmount),
-    }),
-  ]);
-
-  if (totalAllocatedAmount === 0) {
-    return res.status(400).json({
-      status: "error",
-      message:
-        "Total allocated amount is zero. Please review your allocations.",
-    });
-  }
-
-  const bulkOption = cartItems
-    .filter((item) => item.type !== "Service")
-    .map((item) => ({
-      updateOne: {
-        filter: { _id: item._id },
-        update: {
-          $inc: {
-            quantity: -item.quantity,
-            sold: +item.quantity,
-            activeCount: -item.quantity,
-          },
-        },
-      },
-    }));
-
-  await productModel.bulkWrite(bulkOption, {});
-
-  await ReportsSalesModel.create({
-    customer: req.body.customarName,
-    orderId: order._id,
-    date: timeIsoString,
-    financialFunds: financialFunds
-      .filter((fund) => fund.amount !== 0)
-      .map((fund) => ({
-        fundId: fund.fundId,
-        allocatedAmount: fund.amount,
-        exchangeRateIcon: fund.exchangeRateIcon,
-        exchangeRate: fund.exchangeRate,
-      })),
-    amount: parseFloat(totalAllocatedAmount),
-    cartItems,
-    paymentType: "Multiple Funds",
-    employee: req.user._id,
-    counter: reportsOrderCount,
-    type: "pos",
-  });
-
-  await Promise.all(
-    cartItems.map(async (item) => {
-      const { quantity, type } = await productModel.findOne({ qr: item.qr });
-      if (type !== "Service") {
-        createProductMovement(
-          item.product,
-          quantity,
-          item.quantity,
-          "out",
-          "sales",
-          dbName
-        );
-        const stock = await StockModel.findOne({
-          _id: stockID,
-          "products.productId": item.product,
-        });
-
-        if (stock) {
-          // Product exists, update the quantity
-          await StockModel.findOneAndUpdate(
-            { _id: stockID, "products.productId": item.product },
-            { $inc: { "products.$.productQuantity": -item.quantity } }, // Decrease product quantity by item.quantity
-            { new: true, strict: false }
-          );
-        } else {
-          // Product does not exist in the stock, handle this case if needed
-          console.log(
-            `Product with ID ${item.product} not found in stock ${stockID}`
-          );
-        }
-      }
-    })
-  );
-
-  try {
-    const ActiveProductsValue = db.model(
-      "ActiveProductsValue",
-      ActiveProductsValueModel
-    );
-
-    await Promise.all(
-      cartItems.map(async (item) => {
-        const { type, currency: itemCurrency } = await productModel.findOne({
-          qr: item.qr,
-        });
-
-        if (type !== "Service") {
-          const totalValue = item.buyingPrice * item.quantity;
-          const existingRecord = await ActiveProductsValue.findOne({
-            currency: itemCurrency,
-          });
-
-          if (existingRecord) {
-            existingRecord.activeProductsCount -= item.quantity;
-            existingRecord.activeProductsValue -= totalValue;
-            await existingRecord.save();
-          } else {
-            await createActiveProductsValue(
-              item.quantity,
-              totalValue,
-              itemCurrency,
-              dbName
-            );
-          }
-        }
-      })
-    );
-  } catch (err) {
-    console.log("OrderServices 619");
-    console.log(err.message);
-  }
-
-  const history = createInvoiceHistory(
-    dbName,
-    order._id,
-    "create",
-    req.user._id
-  );
-  orderFishPosModel.create(fundsPromises);
-
-  res.status(201).json({ status: "success", data: order, history });
-});
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -934,64 +468,64 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get All order
-// @route   GET /api/orders/cartId
-// @access  privet/All
-exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
+// // @desc    Get All order
+// // @route   GET /api/orders/cartId
+// // @access  privet/All
+// exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
+//   const dbName = req.query.databaseName;
+//   const db = mongoose.connection.useDb(dbName);
 
-  const orderModel = db.model("Orders", orderSchema);
-  db.model("Employee", emoloyeeShcema);
-  db.model("Product", productSchema);
-  db.model("FinancialFunds", financialFundsSchema);
-  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+//   const orderModel = db.model("Orders", orderSchema);
+//   db.model("Employee", emoloyeeShcema);
+//   db.model("Product", productSchema);
+//   db.model("FinancialFunds", financialFundsSchema);
+//   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
-  const pageSize = 10;
-  const page = parseInt(req.query.page) || 1;
-  const skip = (page - 1) * pageSize;
+//   const pageSize = 10;
+//   const page = parseInt(req.query.page) || 1;
+//   const skip = (page - 1) * pageSize;
 
-  // Initialize the base query to exclude type "pos"
-  let query = { type: "pos" };
+//   // Initialize the base query to exclude type "pos"
+//   let query = { type: "pos" };
 
-  // Add keyword filter if provided
-  if (req.query.keyword) {
-    query = {
-      $and: [
-        query,
-        {
-          $or: [{ counter: req.query.keyword }],
-        },
-      ],
-    };
-  }
+//   // Add keyword filter if provided
+//   if (req.query.keyword) {
+//     query = {
+//       $and: [
+//         query,
+//         {
+//           $or: [{ counter: req.query.keyword }],
+//         },
+//       ],
+//     };
+//   }
 
-  let mongooseQuery = orderModel.find(query);
+//   let mongooseQuery = orderModel.find(query);
 
-  // Apply sorting
-  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+//   // Apply sorting
+//   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
-  // Count total items without pagination
-  const totalItems = await orderModel.countDocuments(query);
+//   // Count total items without pagination
+//   const totalItems = await orderModel.countDocuments(query);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(totalItems / pageSize);
+//   // Calculate total pages
+//   const totalPages = Math.ceil(totalItems / pageSize);
 
-  // Apply pagination
-  mongooseQuery = mongooseQuery
-    .skip(skip)
-    .limit(pageSize)
-    .populate({ path: "employee" });
+//   // Apply pagination
+//   mongooseQuery = mongooseQuery
+//     .skip(skip)
+//     .limit(pageSize)
+//     .populate({ path: "employee" });
 
-  const order = await mongooseQuery;
+//   const order = await mongooseQuery;
 
-  res.status(200).json({
-    status: "true",
-    Pages: totalPages,
-    results: order.length,
-    data: order,
-  });
-});
+//   res.status(200).json({
+//     status: "true",
+//     Pages: totalPages,
+//     results: order.length,
+//     data: order,
+//   });
+// });
 
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -1615,8 +1149,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   db.model("Product", productSchema);
   db.model("ReportsSales", ReportsSalesSchema);
   const orderModel = db.model("Orders", orderSchema);
-  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
-  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const salsePos = db.model("PosSales", orderFishSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -1646,7 +1179,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   const specificDateString = specificDate.toISOString().split("T")[0];
 
   // Find orders where paidAt matches the specified date and type is 'pos'
-  const orders = await orderModel.find({
+  const orders = await salsePos.find({
     paidAt: {
       $gte: specificDateString,
     },
@@ -1695,7 +1228,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   // Convert the map of financial funds to an array
   const aggregatedFunds = Array.from(financialFundsMap.values());
 
-  const nextCounter = (await orderFishModel.countDocuments()) + 1;
+  const nextCounter = (await orderModel.countDocuments()) + 1;
 
   const newOrderData = {
     cartItems: cartItems,
@@ -1711,8 +1244,6 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   };
 
   const newOrders = await orderModel.insertMany(newOrderData);
-
-  await orderFishModel.create(newOrderData);
 });
 
 const fetchAllSubscriberDatabases = async () => {

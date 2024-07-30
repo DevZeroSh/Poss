@@ -597,6 +597,44 @@ exports.updateEcommerceProducts = async (req, res, next) => {
   }
 };
 
+exports.updateEcommerceProductDeActive = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const { productId } = req.body;
+    
+    // Log the request body for debugging
+    console.log("Request body:", req.body);
+
+    // Ensure productId is a string
+    if (typeof productId !== 'string') {
+      return res.status(400).json({ error: "Invalid productId format" });
+    }
+
+    // Check if productId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ error: "Invalid productId" });
+    }
+
+    const updatedProduct = await productModel.findOneAndUpdate(
+      { _id: productId },
+      { ecommerceActive: false },
+      { new: true }
+    );
+
+    if (!updatedProduct) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    res.status(200).json({ success: true, data: updatedProduct });
+  } catch (error) {
+    console.error("Error updating ecommerce products:", error.message);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 // @desc Update the product to go in Ecommers
 // @route put /api/ecommersproduct
 // @access private

@@ -46,6 +46,7 @@ const paytrRouter = require("./ecommerce/paytrRoute");
 const devicesRout = require("./devicesRout");
 const quotationRouter = require("./quotationRoute");
 const E_userRoute = require("./ecommerce/E_usersRoutes");
+const SalesPosRout = require("./salesPosRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -86,6 +87,7 @@ const mountRoutes = (app) => {
   app.use("/api/offers", offersRouter);
   app.use("/api/device", devicesRout);
   app.use("/api/quotation", quotationRouter);
+  app.use("/api/sales-pos", SalesPosRout);
 
   //Ecommerce routes
   app.use("/api/users", E_userRoute);

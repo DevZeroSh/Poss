@@ -10,12 +10,8 @@ const emoloyeeShcema = require("../models/employeeModel");
 const rolesShcema = require("../models/roleModel");
 const customarSchema = require("../models/customarModel");
 const sendEmail = require("../utils/sendEmail");
-const { OAuth2Client } = require('google-auth-library');
-
-
-
-
-
+const { OAuth2Client } = require("google-auth-library");
+const E_user_Schema = require("../models/ecommerce/E_user_Modal");
 
 // @desc      Login
 // @route     POST /api/auth/login
@@ -35,7 +31,10 @@ exports.login = asyncHandler(async (req, res, next) => {
     }
 
     // Check password
-    const passwordMatch = await bcrypt.compare(req.body.password, user.password);
+    const passwordMatch = await bcrypt.compare(
+      req.body.password,
+      user.password
+    );
     if (!passwordMatch) {
       return next(new ApiError("Incorrect Password", 401));
     }
@@ -54,7 +53,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 
     const [dashRoleName, posRoleName] = await Promise.all([
       getDashboardRoles(roles.rolesDashboard, db),
-      getPosRoles(roles.rolesPos, db)
+      getPosRoles(roles.rolesPos, db),
     ]);
 
     const token = createToken(user._id);
@@ -183,7 +182,9 @@ exports.verifyPasswordResetCodePos = asyncHandler(async (req, res, next) => {
 
   const { resetCode } = req.body;
 
-  const user = await employeeModel.find({ passwordResetExpires: { $gt: Date.now() } })
+  const user = await employeeModel.find({
+    passwordResetExpires: { $gt: Date.now() },
+  });
   if (!user) {
     return next(new ApiError("Reset code is invalid or has expired", 400));
   }
@@ -192,7 +193,7 @@ exports.verifyPasswordResetCodePos = asyncHandler(async (req, res, next) => {
     resetCode,
     user.passwordResetCode
   );
-  console.log(resetCode)
+  console.log(resetCode);
   if (!isResetCodeValid) {
     return next(new ApiError("Reset code is invalid or has expired", 400));
   }
@@ -203,8 +204,7 @@ exports.verifyPasswordResetCodePos = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     status: "Success",
   });
-
-})
+});
 
 // @desc      Reset password
 // @route     POST /api/auth/resetpasswordpos
@@ -248,15 +248,15 @@ exports.resetPasswordPos = asyncHandler(async (req, res, next) => {
 exports.signup = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
+
   const hashedResetCode = await bcrypt.hash(req.body.password, 10);
-  const user = await customersModel.create({
+  const user = await UserModel.create({
     name: req.body.name,
     slug: req.body.slug,
     email: req.body.email,
     phone: req.body.phone,
     password: hashedResetCode,
-    customarType: "ecommerce",
   });
 
   const token = createToken(user._id);
@@ -275,23 +275,23 @@ async function verifyGoogleToken(token) {
   return ticket.getPayload();
 }
 
-
-
 exports.googleSignin = asyncHandler(async (req, res, next) => {
-
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customer", customarSchema);
+  const UserModel = db.model("Customer", customarSchema);
 
   const { name, email } = req.body;
   try {
-    const user = await customersModel.findOne({ email })
+    const user = await UserModel.findOne({ email });
     if (user) {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY);
       const { password, ...rest } = user._doc;
-      res.status(200).cookie("access_token", token, {
-        httpOnly: true,
-      }).json(rest);
+      res
+        .status(200)
+        .cookie("access_token", token, {
+          httpOnly: true,
+        })
+        .json(rest);
     } else {
       const generatedPassword =
         Math.round().toString(36).slice(-8) +
@@ -299,19 +299,20 @@ exports.googleSignin = asyncHandler(async (req, res, next) => {
 
       const hashePassword = bcrypt.hashSync(generatedPassword, 10);
 
-      const newUser = new customersModel({
+      const newUser = new UserModel({
         name: name.toLowerCase().Math.round().toString(9).slice(-4),
         email,
-        password: hashePassword
-
-      })
+        password: hashePassword,
+      });
       await newUser.save();
       const token = createToken(user._id);
       const { password, ...rest } = newUser._doc;
 
-      res.status(200).cookie("access_token", token, { httpOnly: true }).json(rest)
+      res
+        .status(200)
+        .cookie("access_token", token, { httpOnly: true })
+        .json(rest);
     }
-
   } catch (error) {
     console.error("Error during Google Sign-In:", error);
     next(new Error("Google Sign-In failed"));
@@ -323,9 +324,9 @@ exports.googleSignin = asyncHandler(async (req, res, next) => {
 exports.EcommerceLogin = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
 
-  const user = await customersModel.findOne({ email: req.body.email });
+  const user = await UserModel.findOne({ email: req.body.email });
 
   if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
     return next(new ApiError("Incorrect email or password", 401));
@@ -344,7 +345,7 @@ exports.ecommerceProtect = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
 
   // 1) Check if token exist, if exist get
   let token;
@@ -367,7 +368,7 @@ exports.ecommerceProtect = asyncHandler(async (req, res, next) => {
   const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
   // 3) Check if user exists
-  const currentUser = await customersModel.findById(decoded.userId);
+  const currentUser = await UserModel.findById(decoded.userId);
   if (!currentUser) {
     return next(
       new ApiError(
@@ -404,13 +405,15 @@ exports.ecommerceProtect = asyncHandler(async (req, res, next) => {
 exports.forgotPassword = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
 
   // 1) Get user by email
   const { email } = req.body;
-  const user = await customersModel.findOne({ email });
+  const user = await UserModel.findOne({ email });
   if (!user) {
-    return next(new ApiError(`There is no user with this email address ${email}`, 404));
+    return next(
+      new ApiError(`There is no user with this email address ${email}`, 404)
+    );
   }
 
   // 2) Generate a reset token
@@ -424,16 +427,19 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
       }
 
       // Encode the hashed token to Base64 URL-safe format
-      let resetToken = Buffer.from(hashedEmail).toString('base64');
-      resetToken = resetToken.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      let resetToken = Buffer.from(hashedEmail).toString("base64");
+      resetToken = resetToken
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
 
       // Save the hashed token to the database
       user.passwordResetToken = resetToken;
       // Token expires in 10 minutes
       user.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-      console.log(user.passwordResetToken)
+      console.log(user.passwordResetToken);
       await user.save();
-      console.log(user.passwordResetToken)
+      console.log(user.passwordResetToken);
       // 3) Send password reset email with the link containing the token
       const resetURL = `http://localhost:3000/resetPassword/${resetToken}`;
       const message = `Forgot your password? Click on the link below to reset your password:\n${resetURL}\nIf you didn't forget your password, please ignore this email!`;
@@ -451,12 +457,16 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
         });
       } catch (err) {
         console.error(err);
-        return next(new ApiError("There was an error sending the email. Try again later!", 500));
+        return next(
+          new ApiError(
+            "There was an error sending the email. Try again later!",
+            500
+          )
+        );
       }
     });
   });
 });
-
 
 // @desc      Verify reset password code
 // @route     POST /api/auth/verifyResetCode
@@ -464,13 +474,13 @@ exports.forgotPassword = asyncHandler(async (req, res, next) => {
 exports.verifyPasswordResetCode = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
 
   // 1) Get user based on reset code
   const { resetCode } = req.body; // Assuming resetCode is a string
 
   // 2) Get user from database
-  const user = await customersModel.findOne({
+  const user = await UserModel.findOne({
     passwordResetExpires: { $gt: Date.now() },
   });
 
@@ -497,25 +507,23 @@ exports.verifyPasswordResetCode = asyncHandler(async (req, res, next) => {
   });
 });
 
-
-
 // @desc      Reset password
 // @route     POST /api/auth/resetPassword
 // @access    Public
 exports.resetPassword = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
 
   // Get the reset token from the request parameters
   const resetToken = req.query.token;
 
   // Find a user with the matching reset token and valid expiration time
-  const user = await customersModel.findOne({
+  const user = await UserModel.findOne({
     passwordResetToken: resetToken,
     passwordResetExpires: { $gt: Date.now() },
   });
-  console.log(req.query.token)
+  console.log(req.query.token);
 
   if (!user) {
     return next(new ApiError("Reset token is invalid or has expired", 400));
@@ -539,8 +547,6 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     message: "Password reset successful",
   });
 });
-
-
 
 //Permissions
 //Verify user permissions
