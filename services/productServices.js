@@ -21,7 +21,6 @@ const ProductMovementSchema = require("../models/productMovementModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
-const stockSchema = require("../models/stockModel");
 const getAllChildCategories = require("../utils/CategoriesChild");
 
 // @desc Get list product
@@ -597,43 +596,45 @@ exports.updateEcommerceProducts = async (req, res, next) => {
   }
 };
 
-exports.updateEcommerceProductDeActive = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const productModel = db.model("Product", productSchema);
+exports.updateEcommerceProductDeActive = asyncHandler(
+  async (req, res, next) => {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const productModel = db.model("Product", productSchema);
 
-  try {
-    const { productId } = req.body;
-    
-    // Log the request body for debugging
-    console.log("Request body:", req.body);
+    try {
+      const { productId } = req.body;
 
-    // Ensure productId is a string
-    if (typeof productId !== 'string') {
-      return res.status(400).json({ error: "Invalid productId format" });
+      // Log the request body for debugging
+      console.log("Request body:", req.body);
+
+      // Ensure productId is a string
+      if (typeof productId !== "string") {
+        return res.status(400).json({ error: "Invalid productId format" });
+      }
+
+      // Check if productId is a valid ObjectId
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ error: "Invalid productId" });
+      }
+
+      const updatedProduct = await productModel.findOneAndUpdate(
+        { _id: productId },
+        { ecommerceActive: false },
+        { new: true }
+      );
+
+      if (!updatedProduct) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+
+      res.status(200).json({ success: true, data: updatedProduct });
+    } catch (error) {
+      console.error("Error updating ecommerce products:", error.message);
+      res.status(500).json({ error: "Server Error" });
     }
-
-    // Check if productId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ error: "Invalid productId" });
-    }
-
-    const updatedProduct = await productModel.findOneAndUpdate(
-      { _id: productId },
-      { ecommerceActive: false },
-      { new: true }
-    );
-
-    if (!updatedProduct) {
-      return res.status(404).json({ error: "Product not found" });
-    }
-
-    res.status(200).json({ success: true, data: updatedProduct });
-  } catch (error) {
-    console.error("Error updating ecommerce products:", error.message);
-    res.status(500).json({ error: "Server Error" });
   }
-});
+);
 
 // @desc Update the product to go in Ecommers
 // @route put /api/ecommersproduct
@@ -1050,4 +1051,45 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
       500
     );
   }
+});
+
+// @desc Get Ecommerc Active Product
+// @route get /api/product/ecommerce-active-product
+// @access private
+
+exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+  db.model("Category", categorySchema);
+
+  const pageSize = req.query.limit || 15;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  let query = { ecommerceActive: true };
+
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+  const totalItems = await productModel.countDocuments(query);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const product = await productModel
+    .find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize)
+    .populate({ path: "category" });
+
+  res.status(200).json({
+    status: "true",
+    results: product.length,
+    Pages: totalPages,
+    data: product,
+  });
 });

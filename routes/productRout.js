@@ -14,6 +14,7 @@ const {
   updateEcommerceProducts,
   setEcommerceProductPublish,
   updateEcommerceProductDeActive,
+  ecommerceActiveProudct,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -21,7 +22,7 @@ const {
 ``;
 const multer = require("multer");
 
-const storage = multer.memoryStorage(); 
+const storage = multer.memoryStorage();
 
 const uploads = multer({ storage: storage });
 
@@ -30,8 +31,6 @@ const authService = require("../services/authService");
 const productRout = express.Router();
 
 productRout.post("/add", uploads.single("file"), addProduct);
-
-
 
 productRout
   .route("/")
@@ -42,14 +41,14 @@ productRout.route("/productLazy").get(getLezyProduct);
 productRout.route("/productpos").get(getProductPos);
 
 productRout
-.route("/ecommerceproductdeactive")
-.put(authService.protect, updateEcommerceProductDeActive);
+  .route("/ecommerceproductdeactive")
+  .put(authService.protect, updateEcommerceProductDeActive);
 
 productRout
   .route("/ecommersproduct")
   .put(authService.protect, updateEcommerceProducts);
 
-
+productRout.route("/ecommerce-active-product").get(ecommerceActiveProudct);
 
 productRout
   .route("/deactive/:id")
