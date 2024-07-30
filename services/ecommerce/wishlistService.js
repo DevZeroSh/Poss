@@ -14,43 +14,91 @@ const currencySchema = require("../../models/currencyModel");
 // @route   POST /api/wishlist
 // @access  Protected/User
 exports.addProductToWishlist = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
-  const user = await customersModel.findByIdAndUpdate(
-    req.user._id,
-    { $addToSet: { wishlist: req.body.productId } },
-    { new: true }
-  );
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const customersModel = db.model("Customar", customarSchema);
+    const productModel = db.model("Product", productSchema);
 
-  res.status(200).json({
-    status: "success",
-    message: "Product added successfully to your wishlist.",
-    data: user.wishlist,
-  });
+    const product = await productModel.findById(req.body.productId);
+    if (!product) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Product not found.",
+      });
+    }
+
+    product.addToFavourites = (product.addToFavourites || 0) + 1;
+    await product.save();
+
+    const user = await customersModel.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { wishlist: req.body.productId } },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found.",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Product added successfully to your wishlist.",
+      data: user.wishlist,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // @desc    Remove product from wishlist
 // @route   DELETE /api/wishlist/:productId
 // @access  Protected/User
 exports.removeProductFromWishlist = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
-  // $pull => remove productId from wishlist array if productId exist
-  const user = await customersModel.findByIdAndUpdate(
-    req.user._id,
-    {
-      $pull: { wishlist: req.params.productId },
-    },
-    { new: true }
-  );
+  try {
+    const dbName = req.query.databaseName;
+    const db = mongoose.connection.useDb(dbName);
+    const customersModel = db.model("Customar", customarSchema);
+    const productModel = db.model("Product", productSchema);
 
-  res.status(200).json({
-    status: "success",
-    message: "Product removed successfully from your wishlist.",
-    data: user.wishlist,
-  });
+    const product = await productModel.findById(req.params.productId);
+    if (!product) {
+      return res.status(404).json({
+        status: "fail",
+        message: "Product not found.",
+      });
+    }
+
+    // Decrease the addToFavourites field by one
+    product.addToFavourites = Math.max((product.addToFavourites || 0) - 1, 0);
+    await product.save();
+
+    const user = await customersModel.findByIdAndUpdate(
+      req.user._id,
+      {
+        $pull: { wishlist: req.params.productId },
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: "fail",
+        message: "User not found.",
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      message: "Product removed successfully from your wishlist.",
+      data: user.wishlist,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // @desc    Get logged user wishlist
