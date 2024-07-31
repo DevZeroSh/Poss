@@ -10,6 +10,7 @@ const TaxSchema = require("../../models/taxModel");
 const UnitSchema = require("../../models/UnitsModel");
 const variantSchema = require("../../models/variantsModel");
 const currencySchema = require("../../models/currencyModel");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 
 //@desc Get list of reviews
 //@route GEt /api/review
@@ -19,8 +20,7 @@ exports.getReviews = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const reviewModel = db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
-
+  db.model("Users", E_user_Schema);
   const review = await reviewModel.find();
   res
     .status(200)
@@ -35,8 +35,7 @@ exports.getOneReview = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const reviewModel = db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
-
+  db.model("Users", E_user_Schema);
   const { id } = req.params;
   const review = await reviewModel.findById(id);
   if (!id) {
@@ -54,10 +53,10 @@ exports.getOneReview = asyncHandler(async (req, res, next) => {
 exports.createReview = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  
+
   const reviewModel = db.model("Review", reviewSchema);
   const Product = db.model("Product", productSchema);
-  db.model("Customar", customarSchema);
+  db.model("Users", E_user_Schema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
@@ -80,7 +79,10 @@ exports.createReview = asyncHandler(async (req, res, next) => {
     ]);
 
     const updateData = result
-      ? { ratingsAverage: result.avgRatings, ratingsQuantity: result.ratingsQuantity }
+      ? {
+          ratingsAverage: result.avgRatings,
+          ratingsQuantity: result.ratingsQuantity,
+        }
       : { ratingsAverage: 0, ratingsQuantity: 0 };
 
     await Product.findByIdAndUpdate(req.body.product, updateData);
@@ -91,9 +93,6 @@ exports.createReview = asyncHandler(async (req, res, next) => {
   }
 });
 
-
-
-
 //@desc Put list of review
 //@route Put /api/review/:id
 //@accsess public
@@ -102,8 +101,7 @@ exports.updateReview = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const reviewModel = db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
-
+  db.model("Users", E_user_Schema);
   const review = await reviewModel.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
@@ -122,8 +120,7 @@ exports.deleteReview = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const reviewModel = db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
-
+  db.model("Users", E_user_Schema);
   const { id } = req.params;
 
   const review = await reviewModel.findByIdAndDelete(id);

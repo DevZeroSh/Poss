@@ -427,7 +427,7 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
 
   // Initialize the base query to exclude type "pos"
   let query = {
-    $and: [{ type: { $ne: "pos" } }, { type: { $ne: "openBalance" } }],
+    $and: [{ type: { $ne: "openBalance" } }],
   };
   // Add keyword filter if provided
   if (req.query.keyword) {

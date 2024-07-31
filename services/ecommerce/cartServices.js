@@ -11,7 +11,7 @@ const { default: mongoose } = require("mongoose");
 const brandSchema = require("../../models/brandModel");
 const labelsSchema = require("../../models/labelsModel");
 const UnitSchema = require("../../models/UnitsModel");
-const customarSchema = require("../../models/customarModel");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 
 const calclatTotalCartPrice = (cart) => {
   // Calculate Total cart Price
@@ -48,7 +48,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
   const CartModel = db.model("Cart", cartSchema);
   const productModel = db.model("Product", productSchema);
   db.model("Category", categorySchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
   db.model("Tax", TaxSchema);
@@ -138,7 +138,7 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
 
   const cart = await CartModel.findOne({ customar: req.user._id });
 
@@ -157,7 +157,7 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   const cart = await CartModel.findOneAndUpdate(
     { customar: req.user._id },
     { $pull: { cartItems: { _id: req.params.itemId } } },
@@ -182,7 +182,7 @@ exports.clearCart = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   await CartModel.findOneAndDelete({ customar: req.user._id });
 
   res.status(200).send();
@@ -195,7 +195,7 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   const { quantity } = req.body;
   const cart = await CartModel.findOne({ customar: req.user._id });
   if (!cart) {

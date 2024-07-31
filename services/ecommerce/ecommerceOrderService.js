@@ -16,6 +16,7 @@ const reviewSchema = require("../../models/ecommerce/reviewModel");
 const { PaymentService } = require("./paymentService");
 const { getIP } = require("../../utils/getIP");
 const { stringify } = require("flatted");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 // const orderSchema = require("../../models/orderModel");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
@@ -203,7 +204,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Product", productSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
@@ -254,7 +255,7 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   db.model("Product", productSchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
@@ -282,7 +283,7 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-  db.model("customar", customarSchema);
+  db.model("Users", E_user_Schema);
   const { id } = req.params;
 
   const order = await orderModel.findById(id);
@@ -310,7 +311,7 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
     const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-    db.model("customar", customarSchema);
+    db.model("Users", E_user_Schema);
 
     const { id } = req.params;
     const updates = req.body; // Array of objects with _id and new orderStatus

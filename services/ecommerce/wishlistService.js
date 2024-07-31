@@ -17,7 +17,7 @@ exports.addProductToWishlist = asyncHandler(async (req, res, next) => {
   try {
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
-    const customersModel = db.model("Customar", customarSchema);
+    const UserModel = db.model("Users", E_user_Schema);
     const productModel = db.model("Product", productSchema);
 
     const product = await productModel.findById(req.body.productId);
@@ -31,7 +31,7 @@ exports.addProductToWishlist = asyncHandler(async (req, res, next) => {
     product.addToFavourites = (product.addToFavourites || 0) + 1;
     await product.save();
 
-    const user = await customersModel.findByIdAndUpdate(
+    const user = await UserModel.findByIdAndUpdate(
       req.user._id,
       { $addToSet: { wishlist: req.body.productId } },
       { new: true }
@@ -61,7 +61,7 @@ exports.removeProductFromWishlist = asyncHandler(async (req, res, next) => {
   try {
     const dbName = req.query.databaseName;
     const db = mongoose.connection.useDb(dbName);
-    const customersModel = db.model("Customar", customarSchema);
+    const UserModel = db.model("Users", E_user_Schema);
     const productModel = db.model("Product", productSchema);
 
     const product = await productModel.findById(req.params.productId);
@@ -76,7 +76,7 @@ exports.removeProductFromWishlist = asyncHandler(async (req, res, next) => {
     product.addToFavourites = Math.max((product.addToFavourites || 0) - 1, 0);
     await product.save();
 
-    const user = await customersModel.findByIdAndUpdate(
+    const user = await UserModel.findByIdAndUpdate(
       req.user._id,
       {
         $pull: { wishlist: req.params.productId },
@@ -107,7 +107,7 @@ exports.removeProductFromWishlist = asyncHandler(async (req, res, next) => {
 exports.getLoggedUserWishlist = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customersModel = db.model("Customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
   db.model("Product", productSchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
@@ -117,7 +117,7 @@ exports.getLoggedUserWishlist = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
 
-  const user = await customersModel.findById(req.user._id).populate("wishlist");
+  const user = await UserModel.findById(req.user._id).populate("wishlist");
 
   res.status(200).json({
     status: "success",

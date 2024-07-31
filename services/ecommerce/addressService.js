@@ -4,15 +4,15 @@ const asyncHandler = require("express-async-handler");
 // @route   POST /api/addresses
 
 const { default: mongoose } = require("mongoose");
-const customarSchema = require("../../models/customarModel");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 
 // @access  Protected/User
 exports.addAddress = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customerModel = db.model("customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
   // $addToSet => add address object to user addresses  array if address not exist
-  const user = await customerModel.findByIdAndUpdate(
+  const user = await UserModel.findByIdAndUpdate(
     req.user._id,
     {
       $addToSet: { addresses: req.body },
@@ -33,9 +33,9 @@ exports.addAddress = asyncHandler(async (req, res, next) => {
 exports.removeAddress = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customerModel = db.model("customar", customarSchema);
+  const UserModel = db.model("Users", E_user_Schema);
   // $pull => remove address object from user addresses array if addressId exist
-  const user = await customerModel.findByIdAndUpdate(
+  const user = await UserModel.findByIdAndUpdate(
     req.user._id,
     {
       $pull: { addresses: { _id: req.params.addressId } },
@@ -56,8 +56,8 @@ exports.removeAddress = asyncHandler(async (req, res, next) => {
 exports.getLoggedUserAddresses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customerModel = db.model("customar", customarSchema);
-  const user = await customerModel.findById(req.user._id).populate("addresses");
+    const UserModel = db.model("Users", E_user_Schema);
+  const user = await UserModel.findById(req.user._id).populate("addresses");
 
   res.status(200).json({
     status: "success",
@@ -72,9 +72,9 @@ exports.getLoggedUserAddresses = asyncHandler(async (req, res, next) => {
 exports.updateAddress = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customerModel = db.model("customar", customarSchema);
+    const UserModel = db.model("Users", E_user_Schema);
 
-  const user = await customerModel.findOneAndUpdate(
+  const user = await UserModel.findOneAndUpdate(
     { _id: req.user._id, "addresses._id": req.params.addressId },
     {
       $set: { "addresses.$": req.body },
@@ -102,9 +102,9 @@ exports.updateAddress = asyncHandler(async (req, res, next) => {
 exports.getAddressById = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const customerModel = db.model("customar", customarSchema);
+    const UserModel = db.model("Users", E_user_Schema);
 
-  const user = await customerModel.findOne(
+  const user = await UserModel.findOne(
     { _id: req.user._id, "addresses._id": req.params.addressId },
     { "addresses.$": 1 }
   );
