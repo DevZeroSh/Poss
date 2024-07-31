@@ -1,5 +1,5 @@
 const asyncHandler = require("express-async-handler");
-const customarSchema = require("../../models/customarModel");
+const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 const { default: mongoose } = require("mongoose");
 const productSchema = require("../../models/productModel");
 const categorySchema = require("../../models/CategoryModel");
