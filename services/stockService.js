@@ -37,28 +37,60 @@ exports.getOneStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const StockModel = db.model("Stock", StockSchema);
-  const productModel = db.model("Product", productSchema);
-  
-  const stockId = req.params.id;
-  const Stock = await StockModel.findById(stockId);
+  const ProductModel = db.model("Product", productSchema);
 
-  if (!Stock) {
-    return next(new ApiError(`No Stock found for id ${stockId}`, 404));
+  const stockId = req.params.id;
+  const stock = await StockModel.findById(stockId);
+
+  if (!stock) {
+    return next(new ApiError(`No stock found for id ${stockId}`, 404));
   }
 
-  const products = await productModel.find({
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  let query = {
     "stocks.stockId": stockId,
-  });
+  };
+
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+  const totalProducts = await ProductModel.countDocuments(query);
+  const totalPages = Math.ceil(totalProducts / limit);
+  const products = await ProductModel.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const filteredProducts = products
+    .map((product) => {
+      const filteredStocks = product.stocks.filter(
+        (stock) => stock.stockId.toString() === stockId
+      );
+      return {
+        ...product._doc,
+        stocks: filteredStocks,
+      };
+    })
+    .filter((product) => product.stocks.length > 0);
 
   res.status(200).json({
     status: "success",
+    results: filteredProducts.length,
+    totalProducts,
+    pages: totalPages,
     data: {
-      stock: Stock,
-      products: products,
+      stock: stock,
+      products: filteredProducts,
     },
   });
 });
-
 
 exports.updateStock = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -207,13 +239,11 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOps);
 
   const transferStock = await stockTransferModel.create(req.body);
-  res
-    .status(200)
-    .json({
-      status: "success",
-      message: "Transfer successful",
-      data: transferStock,
-    });
+  res.status(200).json({
+    status: "success",
+    message: "Transfer successful",
+    data: transferStock,
+  });
 });
 
 // @desc put list product
@@ -246,14 +276,12 @@ exports.getTransferStock = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(pageSize);
 
-  res
-    .status(200)
-    .json({
-      statusbar: "success",
-      results: transfer.length,
-      Pages: totalPages,
-      data: transfer,
-    });
+  res.status(200).json({
+    statusbar: "success",
+    results: transfer.length,
+    Pages: totalPages,
+    data: transfer,
+  });
 });
 
 exports.getTransferForStock = asyncHandler(async (req, res, next) => {
@@ -284,14 +312,12 @@ exports.getTransferForStock = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(pageSize);
 
-  res
-    .status(200)
-    .json({
-      statusbar: "success",
-      results: transfer.length,
-      Pages: totalPages,
-      data: transfer,
-    });
+  res.status(200).json({
+    statusbar: "success",
+    results: transfer.length,
+    Pages: totalPages,
+    data: transfer,
+  });
 });
 
 exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
@@ -319,14 +345,12 @@ exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(pageSize);
 
-  res
-    .status(200)
-    .json({
-      statusbar: "success",
-      results: transfer.length,
-      Pages: totalPages,
-      data: transfer,
-    });
+  res.status(200).json({
+    statusbar: "success",
+    results: transfer.length,
+    Pages: totalPages,
+    data: transfer,
+  });
 });
 
 exports.getOneTransferStock = asyncHandler(async (req, res, next) => {

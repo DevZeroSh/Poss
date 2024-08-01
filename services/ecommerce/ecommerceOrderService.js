@@ -205,6 +205,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Product", productSchema);
   db.model("Users", E_user_Schema);
+  db.model("Customar", customarSchema);
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
