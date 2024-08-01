@@ -266,6 +266,7 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
   db.model("Review", reviewSchema);
+  db.model("Customar", customarSchema);
   const { id } = req.params;
 
   const order = await orderModel
@@ -285,6 +286,7 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Users", E_user_Schema);
+  db.model("Customar", customarSchema);
   const { id } = req.params;
 
   const order = await orderModel.findById(id);
@@ -313,7 +315,7 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
     const db = mongoose.connection.useDb(dbName);
     const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
     db.model("Users", E_user_Schema);
-
+    db.model("Customar", customarSchema);
     const { id } = req.params;
     const updates = req.body; // Array of objects with _id and new orderStatus
 
