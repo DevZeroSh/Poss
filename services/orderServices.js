@@ -33,7 +33,6 @@ const orderFishSchema = require("../models/orderModelFish");
 const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
 
-
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
 // @access  privet
@@ -385,8 +384,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({ status: "success", data: order, history });
 });
-
-
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -1273,7 +1270,7 @@ cron.schedule("59 23 * * *", async () => {
   // Fetch all subscriber databases
   const subscriberDatabases = await fetchAllSubscriberDatabases();
   // for (const dbName of subscriberDatabases) {
-  margeOrderFish("muhammedshahrour");
+  margeOrderFish("noontek_gaziantep");
   // }
 });
 
