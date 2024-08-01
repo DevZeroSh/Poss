@@ -50,14 +50,15 @@ const E_user_Schema = new mongoose.Schema(
       {
         id: { type: mongoose.Schema.Types.ObjectId },
         alias: String,
-        details: String,
+        name: String,
         phone: String,
         city: String,
         postalCode: String,
-        firstName: String,
-        lastName: String,
+        details: String,
       },
     ],
+    country: String,
+    isCustomer: Boolean,
     cards: [
       {
         id: { type: mongoose.Schema.Types.ObjectId },

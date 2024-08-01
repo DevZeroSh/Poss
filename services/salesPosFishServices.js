@@ -656,7 +656,7 @@ exports.editPosOrder = asyncHandler(async (req, res, next) => {
       date: timeIsoString,
       amount: order.totalOrderPrice,
       order: order._id,
-      type: "order",
+      type: "sales",
       financialFundId: order.onefinancialFunds._id,
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: req.body.exchangeRate,
@@ -764,7 +764,7 @@ exports.editPosOrder = asyncHandler(async (req, res, next) => {
 exports.returnPosSales = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  
+
   // Define models
   const models = {
     Employee: db.model("Employee", emoloyeeShcema),
@@ -779,8 +779,14 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
     OrderFishPos: db.model("orderFishPos", orderFishSchema),
     FinancialFunds: db.model("FinancialFunds", financialFundsSchema),
     ReturnOrder: db.model("returnOrder", returnOrderSchema),
-    ReportsFinancialFunds: db.model("ReportsFinancialFunds", reportsFinancialFundsSchema),
-    ActiveProductsValue: db.model("ActiveProductsValue", ActiveProductsValueModel)
+    ReportsFinancialFunds: db.model(
+      "ReportsFinancialFunds",
+      reportsFinancialFundsSchema
+    ),
+    ActiveProductsValue: db.model(
+      "ActiveProductsValue",
+      ActiveProductsValueModel
+    ),
   };
 
   const financialFundsId = req.body.onefinancialFunds;
@@ -793,7 +799,13 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
   const padZero = (value) => (value < 10 ? `0${value}` : value);
 
   const currentDateTime = new Date();
-  const formattedDate = `${currentDateTime.getFullYear()}-${padZero(currentDateTime.getMonth() + 1)}-${padZero(currentDateTime.getDate())} ${padZero(currentDateTime.getHours())}:${padZero(currentDateTime.getMinutes())}:${padZero(currentDateTime.getSeconds())}`;
+  const formattedDate = `${currentDateTime.getFullYear()}-${padZero(
+    currentDateTime.getMonth() + 1
+  )}-${padZero(currentDateTime.getDate())} ${padZero(
+    currentDateTime.getHours()
+  )}:${padZero(currentDateTime.getMinutes())}:${padZero(
+    currentDateTime.getSeconds()
+  )}`;
 
   req.body.paidAt = formattedDate;
   req.body.employee = req.user._id;
@@ -801,33 +813,42 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
   try {
     const order = await models.ReturnOrder.create(req.body);
 
-    const bulkUpdateOptions = req.body.cartItems.map(item => ({
+    const bulkUpdateOptions = req.body.cartItems.map((item) => ({
       updateOne: {
         filter: { _id: item._id },
         update: { $inc: { quantity: +item.quantity } },
-      }
+      },
     }));
 
     await models.Product.bulkWrite(bulkUpdateOptions);
     await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
 
-    await Promise.all(req.body.cartItems.map(async item => {
-      const product = await models.Product.findOne({ qr: item.qr });
-      if (product) {
-        const { currency: itemCurrency } = product;
-        const existingRecord = await models.ActiveProductsValue.findOne({ currency: itemCurrency });
-        
-        const itemValue = item.buyingPrice * item.quantity;
-        
-        if (existingRecord) {
-          existingRecord.activeProductsCount += item.quantity;
-          existingRecord.activeProductsValue += itemValue;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(item.quantity, itemValue, itemCurrency, dbName);
+    await Promise.all(
+      req.body.cartItems.map(async (item) => {
+        const product = await models.Product.findOne({ qr: item.qr });
+        if (product) {
+          const { currency: itemCurrency } = product;
+          const existingRecord = await models.ActiveProductsValue.findOne({
+            currency: itemCurrency,
+          });
+
+          const itemValue = item.buyingPrice * item.quantity;
+
+          if (existingRecord) {
+            existingRecord.activeProductsCount += item.quantity;
+            existingRecord.activeProductsValue += itemValue;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(
+              item.quantity,
+              itemValue,
+              itemCurrency,
+              dbName
+            );
+          }
         }
-      }
-    }));
+      })
+    );
 
     financialFunds.fundBalance -= req.body.priceExchangeRate;
     await financialFunds.save();
@@ -839,59 +860,208 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
       type: "refund-sales",
       financialFundId: financialFundsId,
       financialFundRest: financialFunds.fundBalance,
-      exchangeRate: req.body.priceExchangeRate
+      exchangeRate: req.body.priceExchangeRate,
     });
 
-    const returnCartItemUpdates = req.body.cartItems.map(incomingItem => {
-      const matchingIndex = orders.returnCartItem.findIndex(item => item.qr === incomingItem.qr);
+    const returnCartItemUpdates = req.body.cartItems
+      .map((incomingItem) => {
+        const matchingIndex = orders.returnCartItem.findIndex(
+          (item) => item.qr === incomingItem.qr
+        );
 
-      if (matchingIndex !== -1) {
-        const newQuantity = orders.returnCartItem[matchingIndex].quantity - incomingItem.quantity;
+        if (matchingIndex !== -1) {
+          const newQuantity =
+            orders.returnCartItem[matchingIndex].quantity -
+            incomingItem.quantity;
 
-        return {
-          updateOne: {
-            filter: { _id: orderId },
-            update: { $set: { [`returnCartItem.${matchingIndex}.quantity`]: newQuantity } }
-          }
-        };
-      }
+          return {
+            updateOne: {
+              filter: { _id: orderId },
+              update: {
+                $set: {
+                  [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                },
+              },
+            },
+          };
+        }
 
-      return null;
-    }).filter(Boolean);
+        return null;
+      })
+      .filter(Boolean);
 
     await models.OrderFishPos.bulkWrite(returnCartItemUpdates);
 
-    await Promise.all(req.body.cartItems.map(async item => {
-      const product = await models.Product.findOne({ qr: item.qr });
-      if (product && product.type !== "Service") {
-        const stockEntry = product.stocks.find(stock => stock.stockId.toString() === StockId.toString());
-        if (stockEntry) {
-          stockEntry.productQuantity += item.quantity;
-          await product.save();
-          createProductMovement(item._id, stockEntry.productQuantity, item.quantity, "in", "returnSales", dbName);
+    await Promise.all(
+      req.body.cartItems.map(async (item) => {
+        const product = await models.Product.findOne({ qr: item.qr });
+        if (product && product.type !== "Service") {
+          const stockEntry = product.stocks.find(
+            (stock) => stock.stockId.toString() === StockId.toString()
+          );
+          if (stockEntry) {
+            stockEntry.productQuantity += item.quantity;
+            await product.save();
+            createProductMovement(
+              item._id,
+              stockEntry.productQuantity,
+              item.quantity,
+              "in",
+              "returnSales",
+              dbName
+            );
+          }
         }
-      }
-    }));
+      })
+    );
 
-    const history = createInvoiceHistory(dbName, orderId, "return", req.user._id);
+    const history = createInvoiceHistory(
+      dbName,
+      orderId,
+      "return",
+      req.user._id
+    );
 
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
       data: order,
-      history
+      history,
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
-      const nextCounter = (await models.ReturnOrder.countDocuments({ counter: new RegExp(`^${req.body.counter}-`) })) + 1;
-      req.body.counter = `${req.body.counter}-${nextCounter}`;
-      return returnPosSales(req, res, next);
-    }
+      const counterPrefix = req.body.counter.slice(0, 7); 
+      
+      const nextCounter =
+        (await models.ReturnOrder.countDocuments({
+          counter: new RegExp(`^${counterPrefix}-`),
+        })) + 1;
 
-    next(error);
+      console.log(nextCounter);
+      req.body.counter = `${req.body.counter}-${nextCounter}`;
+      const order = await models.ReturnOrder.create(req.body);
+
+      const bulkUpdateOptions = req.body.cartItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item._id },
+          update: { $inc: { quantity: +item.quantity } },
+        },
+      }));
+
+      await models.Product.bulkWrite(bulkUpdateOptions);
+      await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
+
+      await Promise.all(
+        req.body.cartItems.map(async (item) => {
+          const product = await models.Product.findOne({ qr: item.qr });
+          if (product) {
+            const { currency: itemCurrency } = product;
+            const existingRecord = await models.ActiveProductsValue.findOne({
+              currency: itemCurrency,
+            });
+
+            const itemValue = item.buyingPrice * item.quantity;
+
+            if (existingRecord) {
+              existingRecord.activeProductsCount += item.quantity;
+              existingRecord.activeProductsValue += itemValue;
+              await existingRecord.save();
+            } else {
+              await createActiveProductsValue(
+                item.quantity,
+                itemValue,
+                itemCurrency,
+                dbName
+              );
+            }
+          }
+        })
+      );
+
+      financialFunds.fundBalance -= req.body.priceExchangeRate;
+      await financialFunds.save();
+
+      await models.ReportsFinancialFunds.create({
+        date: currentDateTime.toISOString(),
+        amount: req.body.totalOrderPrice,
+        order: order._id,
+        type: "refund-sales",
+        financialFundId: financialFundsId,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.priceExchangeRate,
+      });
+
+      const returnCartItemUpdates = req.body.cartItems
+        .map((incomingItem) => {
+          const matchingIndex = orders.returnCartItem.findIndex(
+            (item) => item.qr === incomingItem.qr
+          );
+
+          if (matchingIndex !== -1) {
+            const newQuantity =
+              orders.returnCartItem[matchingIndex].quantity -
+              incomingItem.quantity;
+
+            return {
+              updateOne: {
+                filter: { _id: orderId },
+                update: {
+                  $set: {
+                    [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                  },
+                },
+              },
+            };
+          }
+
+          return null;
+        })
+        .filter(Boolean);
+
+      await models.OrderFishPos.bulkWrite(returnCartItemUpdates);
+
+      await Promise.all(
+        req.body.cartItems.map(async (item) => {
+          const product = await models.Product.findOne({ qr: item.qr });
+          if (product && product.type !== "Service") {
+            const stockEntry = product.stocks.find(
+              (stock) => stock.stockId.toString() === StockId.toString()
+            );
+            if (stockEntry) {
+              stockEntry.productQuantity += item.quantity;
+              await product.save();
+              createProductMovement(
+                item._id,
+                stockEntry.productQuantity,
+                item.quantity,
+                "in",
+                "returnSales",
+                dbName
+              );
+            }
+          }
+        })
+      );
+
+      const history = createInvoiceHistory(
+        dbName,
+        orderId,
+        "return",
+        req.user._id
+      );
+
+      res.status(200).json({
+        status: "success",
+        message: "The product has been returned",
+        data: order,
+        history,
+      });
+    } else {
+      // Other errors, pass them to the error handler middleware
+      next(error);
+    }
   }
 });
-
 
 // @desc    Get All order
 // @route   GET /api/getReturnOrder

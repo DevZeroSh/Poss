@@ -903,7 +903,7 @@ exports.addProduct = asyncHandler(async (req, res) => {
         const tax = await taxModel.findById(item.tax);
         const finalPrice = item.price * (1 + tax.tax / 100);
         item.taxPrice = finalPrice;
-        item.activeCount = item.quality;
+        item.activeCount = item.quantity;
         // Extract stocks information from the item and add to the item
         item.stocks = [];
         if (item.stock && item.stockName && item.quantity) {
