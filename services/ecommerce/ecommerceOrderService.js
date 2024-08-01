@@ -107,7 +107,7 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   // const orderInvoiceModel = db.model("Orders", orderSchema);
-  // const customersModel = db.model("Customar", customarSchema);
+  const customersModel = db.model("Customar", customarSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -204,8 +204,8 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Product", productSchema);
-  db.model("Users", E_user_Schema);
   db.model("Customar", customarSchema);
+
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
@@ -231,7 +231,6 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
     })
     .populate({
       path: "customar",
-      select: "name email phone",
     });
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
