@@ -82,7 +82,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 
   // Get next counter
   const nextCounter = (await orderFishPosModel.countDocuments()) + 1;
-
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
   // Create order
   const order = await orderFishPosModel.create({
     employee: req.user._id,
@@ -202,12 +202,26 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
           });
         })()
       : Promise.resolve();
+      const reportsSalesPromise = ReportsSalesModel.create({
+        customer: req.body.customarName,
+        orderId: order._id,
+        date: new Date().toISOString(),
+        fund: financialFundsId,
+        amount: totalOrderPrice,
+        cartItems: cartItems,
+        type:"pos",
+        counter: nextCounterReports,
+        paymentType: "Single Fund",
+        employee: req.user._id,
+      });
+    
 
   // Wait for all promises to resolve
   await Promise.all([
     createReportsFinancialFundsPromise,
     ...productMovementPromises,
     createExpensePromise,
+    reportsSalesPromise,
     ...activeProductsValueUpdates,
   ]);
 
@@ -930,8 +944,8 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
-      const counterPrefix = req.body.counter.slice(0, 7); 
-      
+      const counterPrefix = req.body.counter.slice(0, 7);
+
       const nextCounter =
         (await models.ReturnOrder.countDocuments({
           counter: new RegExp(`^${counterPrefix}-`),

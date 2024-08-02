@@ -200,18 +200,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     }));
     await productModel.bulkWrite(bulkOption, {});
 
-    const bulkOptionst = stocks.map(item => ({
-      updateOne: {
-        filter: { _id: item.stockId, 'products.productId': item.product },
-        update: {
-          $inc: {
-            'products.$.productQuantity': +item.stockQuantity,
-          },
-        },
-      },
-    }));
-
-   await stockModel.bulkWrite(bulkOptionst);
+  
     const supplier = await suppl.findById(suppliersId);
 
     // Loop through each item in the invoiceItems array

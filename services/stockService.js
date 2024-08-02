@@ -135,109 +135,81 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
 
   const { fromStockId, toStockId, products } = req.body;
+  
+  // Fetch the stocks
   const stocks = await StockModel.find({
     _id: { $in: [fromStockId, toStockId] },
   });
-  const fromStock = stocks.find(
-    (stock) => stock._id.toString() === fromStockId
-  );
+  const fromStock = stocks.find((stock) => stock._id.toString() === fromStockId);
   const toStock = stocks.find((stock) => stock._id.toString() === toStockId);
 
   if (!fromStock || !toStock) {
     return res.status(404).json({ message: "Stock not found" });
   }
 
-  // Validation: check if any product quantity is less than 0
+  // Validate product quantities
   for (const product of products) {
     const quantity = parseInt(product.productQuantity, 10);
     if (quantity < 0) {
-      return res
-        .status(400)
-        .json({ message: "Product quantity cannot be less than 0" });
+      return res.status(400).json({ message: "Product quantity cannot be less than 0" });
     }
   }
-
-  const productMap = new Map();
-  for (const product of products) {
-    console.log(products);
-    const { productId, productName, productQuantity } = product;
-    const quantity = parseInt(productQuantity, 10);
-
-    if (!productMap.has(productId)) {
-      productMap.set(productId, {
-        fromQuantity: 0,
-        toQuantity: 0,
-        productName,
-      });
-    }
-
-    productMap.get(productId).fromQuantity -= quantity;
-    productMap.get(productId).toQuantity += quantity;
-  }
-
-  // Update fromStock products
-  for (const product of fromStock.products) {
-    const { productId } = product;
-    if (productMap.has(productId.toString())) {
-      product.productQuantity += productMap.get(
-        productId.toString()
-      ).fromQuantity;
-      if (product.productQuantity < 0) {
-        return res
-          .status(400)
-          .json({ message: "Product quantity cannot be less than 0" });
-      }
-    }
-  }
-
-  // Update toStock products
-  for (const product of toStock.products) {
-    const { productId } = product;
-    if (productMap.has(productId.toString())) {
-      product.productQuantity += productMap.get(
-        productId.toString()
-      ).toQuantity;
-    }
-  }
-
-  // Add new products to toStock
-  for (const [productId, quantities] of productMap.entries()) {
-    if (!toStock.products.some((p) => p.productId.toString() === productId)) {
-      toStock.products.push({
-        productId,
-        productQuantity: quantities.toQuantity,
-        productName: quantities.productName,
-      });
-    }
-  }
-
-  // Update the stocks array in the product model
+  // Update stock quantities in product model
   const bulkOps = [];
   for (const product of products) {
     const { productId, productQuantity } = product;
-    bulkOps.push({
-      updateOne: {
-        filter: { _id: productId, "stocks.stockId": fromStockId },
-        update: { $inc: { "stocks.$.productQuantity": -productQuantity } },
-      },
-    });
-    bulkOps.push({
-      updateOne: {
-        filter: { _id: productId, "stocks.stockId": toStockId },
-        update: {
-          $inc: { "stocks.$.productQuantity": productQuantity },
-          $setOnInsert: {
-            "stocks.$.stockId": toStockId,
-            "stocks.$.stockName": toStock.stockName,
+    const quantity = parseInt(productQuantity, 10);
+
+    // Find the product and check if the stocks already contain fromStockId and toStockId
+    const productDoc = await productModel.findById(productId);
+    console.log(productDoc)
+    console.log(productId)
+    const fromStockExists = productDoc.stocks.some(stock => stock.stockId.toString() === fromStockId);
+    const toStockExists = productDoc.stocks.some(stock => stock.stockId.toString() === toStockId);
+
+    if (fromStockExists) {
+      // Decrease quantity from the fromStock
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: productId, "stocks.stockId": fromStockId },
+          update: { $inc: { "stocks.$.productQuantity": -quantity } },
+        },
+      });
+    } else {
+      return res.status(400).json({ message: `Stock ID ${fromStockId} not found in product ${productId}` });
+    }
+
+    if (toStockExists) {
+      // Increase quantity to the toStock
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: productId, "stocks.stockId": toStockId },
+          update: { $inc: { "stocks.$.productQuantity": quantity } },
+        },
+      });
+    } else {
+      // If the toStockId does not exist in stocks array, add it
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: productId },
+          update: {
+            $push: {
+              stocks: {
+                stockId: toStockId,
+                stockName: toStock.stockName,
+                productQuantity: quantity,
+              },
+            },
           },
         },
-        upsert: true,
-      },
-    });
+      });
+    }
   }
 
+  // Execute bulk update operations
   await productModel.bulkWrite(bulkOps);
-
+  console.log(req.body)
+  // Log the stock transfer
   const transferStock = await stockTransferModel.create(req.body);
   res.status(200).json({
     status: "success",
@@ -245,6 +217,7 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
     data: transferStock,
   });
 });
+
 
 // @desc put list product
 // @route put /api/stock/transfer

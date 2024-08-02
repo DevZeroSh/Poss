@@ -870,7 +870,6 @@ exports.addProduct = asyncHandler(async (req, res) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
-
   try {
     const { buffer } = req.file;
 
@@ -913,7 +912,14 @@ exports.addProduct = asyncHandler(async (req, res) => {
             productQuantity: item.quantity,
           });
         }
-
+        await createProductMovement(
+          item._id,
+          item.quantity,
+          item.quantity,
+          "in",
+          "create",
+          dbName
+        );
         // Log to verify stocks are being added correctly
         console.log("Processed Item:", item);
       } catch (error) {
