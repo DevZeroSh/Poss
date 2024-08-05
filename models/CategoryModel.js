@@ -1,7 +1,21 @@
 const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema({
-  name: { type: String },
+  name: {
+    type: String,
+    require: true,
+    unique: [true, "Category must be unique"],
+  },
+  nameAR: {
+    type: String,
+    require: true,
+    unique: [true, "Category must be unique"],
+  },
+  nameTR: {
+    type: String,
+    require: true,
+    unique: [true, "Category must be unique"],
+  },
   parentCategory: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
   image: String,
   children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
@@ -14,7 +28,7 @@ const setImageURL = (doc) => {
   }
 };
 categorySchema.pre(/^find/, function (next) {
-  this?.populate({ path: "children" })
+  this?.populate({ path: "children" });
   next();
 });
 categorySchema.post("init", function (doc) {
@@ -29,7 +43,6 @@ categorySchema.post("find", function (docs) {
 });
 //Create
 categorySchema.post("save", (doc) => {
-  
   setImageURL(doc);
 });
 

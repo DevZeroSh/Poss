@@ -6,6 +6,16 @@ const brandSchema = new mongoose.Schema({
     require: true,
     unique: [true, "brand must be unique"],
   },
+  nameAR: {
+    type: String,
+    require: true,
+    unique: [true, "brand must be unique"],
+  },
+  nameTR: {
+    type: String,
+    require: true,
+    unique: [true, "brand must be unique"],
+  },
   slug: {
     type: String,
     lowercase: true,
