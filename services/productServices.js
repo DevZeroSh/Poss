@@ -22,6 +22,7 @@ const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const customarSchema = require("../models/customarModel");
 const getAllChildCategories = require("../utils/CategoriesChild");
+const stockSchema = require("../models/stockModel");
 
 // @desc Get list product
 // @route Get /api/product
@@ -191,7 +192,7 @@ const multerOptions = () => {
       cb(new ApiError("Only images Allowed", 400), false);
     }
   };
-
+  console.log("194");
   const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 
   return upload;
@@ -208,6 +209,8 @@ exports.uploadProductImage = uploadMixOfImages([
 exports.resizerImage = asyncHandler(async (req, res, next) => {
   if (req.files.image) {
     const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
+    console.log("211");
+
     await sharp(req.files.image[0].buffer)
       .toFormat("png")
       .png({ quality: 70 })
@@ -232,7 +235,9 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
       })
     );
   }
+
   next();
+  console.log("239");
 });
 
 //
@@ -759,13 +764,15 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
       console.error(e.message);
     }
     console.log(productData);
-    await updateStocks(
-      dbName,
-      id,
-      productData.stocks,
-      productData.quantity,
-      productData.name
-    );
+    if (productData.stocks) {
+      await updateStocks(
+        dbName,
+        id,
+        productData.stocks,
+        productData.quantity,
+        productData.name
+      );
+    }
     res.status(200).json({
       status: "true",
       message: "Product updated",

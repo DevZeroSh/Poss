@@ -1146,7 +1146,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   db.model("Product", productSchema);
   db.model("ReportsSales", ReportsSalesSchema);
   const orderModel = db.model("Orders", orderSchema);
-  const salsePos = db.model("PosSales", orderFishSchema);
+  const salsePos = db.model("orderFishPos", orderFishSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
