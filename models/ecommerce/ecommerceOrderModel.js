@@ -19,6 +19,11 @@ const ecommerceOrderSchema = new mongoose.Schema(
           type: Number,
           default: 0,
         },
+        name: String,
+        qr: String,
+        taxRate: Number,
+        totalPriceAfterDiscount: Number,
+        taxs: Number,
         orderStatus: {
           type: String,
           enum: [
