@@ -9,6 +9,7 @@ const {
   UpdateEcommersOrder,
   customarChangeOrderStatus,
   createOrderDashboard,
+  convertEcommersOrderToInvoice,
 } = require("../../services/ecommerce/ecommerceOrderService");
 
 const ecommerceOrderRouter = express.Router();
@@ -28,6 +29,10 @@ ecommerceOrderRouter
   .route("/:id")
   .get(authService.ecommerceProtect, filterOneOrderForLoggedUser)
   .post(authService.ecommerceProtect, createCashOrder);
+
+ecommerceOrderRouter
+  .route("/convert-ecommers-order/:id")
+  .put(convertEcommersOrderToInvoice);
 
 ecommerceOrderRouter
   .route("/ecommerceOrder/:id")

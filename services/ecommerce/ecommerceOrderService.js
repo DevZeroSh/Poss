@@ -17,6 +17,7 @@ const { PaymentService } = require("./paymentService");
 const { getIP } = require("../../utils/getIP");
 const { stringify } = require("flatted");
 const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
+const orderSchema = require("../../models/orderModel");
 // const orderSchema = require("../../models/orderModel");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
@@ -350,4 +351,22 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+});
+
+exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const EcommerceOrderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  const { id } = req.params;
+
+  const ecommerceOrder = await EcommerceOrderModel.findById(id);
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+  req.body.orderNumber = nextCounter;
+  console.log(ecommerceOrder);
+  req.body.cartItems = ecommerceOrder.cartItems;
+  req.body.paid = "paid";
+  const createOrder = await orderModel.create(req.body);
+
+  res.status(201).json({ status: "success", data: createOrder });
 });

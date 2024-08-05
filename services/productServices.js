@@ -192,7 +192,7 @@ const multerOptions = () => {
       cb(new ApiError("Only images Allowed", 400), false);
     }
   };
-  console.log("194");
+
   const upload = multer({ storage: multerStorage, fileFilter: multerFilter });
 
   return upload;
@@ -209,7 +209,6 @@ exports.uploadProductImage = uploadMixOfImages([
 exports.resizerImage = asyncHandler(async (req, res, next) => {
   if (req.files.image) {
     const imageCoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
-    console.log("211");
 
     await sharp(req.files.image[0].buffer)
       .toFormat("png")
@@ -237,7 +236,6 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
   }
 
   next();
-  console.log("239");
 });
 
 //
@@ -249,7 +247,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   db.model("Category", categorySchema);
   db.model("Brand", brandSchema);
   db.model("Variant", variantSchema);
-
+  db.model("Tax", TaxSchema);
   const limit = parseInt(req.query.limit) || 20;
   const skip = parseInt(req.query.skip) || 0;
   let query = {
@@ -322,6 +320,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           as: "category",
         },
       },
+
       {
         $unwind: "$category",
       },
@@ -347,6 +346,14 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           localField: "variant",
           foreignField: "_id",
           as: "variant",
+        },
+      },
+      {
+        $lookup: {
+          from: "taxes",           
+          localField: "tax",
+          foreignField: "_id",
+          as: "tax",
         },
       },
     ];
