@@ -79,6 +79,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    ecommercePriceBeforeTax: {
+      type: Number,
+      default: 0,
+    },
     ecommercePriceAftereDiscount: {
       type: Number,
       default: 0,
