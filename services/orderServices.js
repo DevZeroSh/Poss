@@ -32,6 +32,7 @@ const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
+const refundPosSalesSchema = require("../models/refundPosSales");
 
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
@@ -1180,9 +1181,8 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
     paidAt: {
       $gte: specificDateString,
     },
-    type: "pos",
   });
-
+  console.log(orders);
   const cartItems = [];
   const fish = [];
   let totalOrderPrice = 0;
@@ -1264,13 +1264,119 @@ const fetchAllSubscriberDatabases = async () => {
   }
 };
 
+const margeOrderRefundFish = asyncHandler(async (databaseName) => {
+  const db = mongoose.connection.useDb(databaseName);
+  db.model("Employee", emoloyeeShcema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  db.model("Product", productSchema);
+  db.model("ReportsSales", ReportsSalesSchema);
+  const orderModel = db.model("returnOrder", returnOrderSchema);
+  const salsePos = db.model("RefundPosSales", refundPosSalesSchema);
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
+  const specificDate = new Date();
+  const specificDateString = specificDate.toISOString().split("T")[0];
+
+  // Find orders where paidAt matches the specified date and type is 'pos'
+  const orders = await salsePos.find({
+    paidAt: {
+      $gte: specificDateString,
+    },
+  });
+  console.log(orders);
+  const cartItems = [];
+  const fish = [];
+  let totalOrderPrice = 0;
+
+  const financialFundsMap = new Map();
+
+  for (const order of orders) {
+    order.cartItems.forEach((item) => {
+      cartItems.push(item);
+      fish.push(order.counter);
+      totalOrderPrice += item.taxPrice * item.quantity;
+    });
+    await order.financialFunds?.forEach((fund) => {
+      const fundId = fund.fundId.toString();
+
+      if (financialFundsMap.has(fundId)) {
+        financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
+      } else {
+        financialFundsMap.set(fundId, {
+          fundId: fund.fundId,
+          allocatedAmount: fund.allocatedAmount || 0,
+          exchangeRateIcon: fund.exchangeRateIcon,
+        });
+      }
+    });
+
+    if (order.onefinancialFunds) {
+      const fundId = order.onefinancialFunds.toString();
+      if (financialFundsMap.has(fundId)) {
+        financialFundsMap.get(fundId).allocatedAmount +=
+          order.priceExchangeRate;
+      } else {
+        financialFundsMap.set(fundId, {
+          fundId: fundId,
+          allocatedAmount: order.priceExchangeRate || 0,
+        });
+      }
+    }
+  }
+  // Convert the map of financial funds to an array
+  const aggregatedFunds = Array.from(financialFundsMap.values());
+
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+
+  const newOrderData = {
+    cartItems: cartItems,
+    priceExchangeRate: totalOrderPrice,
+    paidAt: formattedDate,
+    type: "bills",
+    totalOrderPrice: totalOrderPrice,
+    counter: "ref " + nextCounter,
+    paid: "paid",
+    exchangeRate: 1,
+    fish: fish,
+    financialFunds: aggregatedFunds,
+  };
+
+  const newOrders = await orderModel.insertMany(newOrderData);
+});
+
 cron.schedule("59 23 * * *", async () => {
-  console.log("Running offer status update task for all databases...");
+  console.log("Running Marge order task for all databases...");
 
   // Fetch all subscriber databases
   const subscriberDatabases = await fetchAllSubscriberDatabases();
   // for (const dbName of subscriberDatabases) {
+  margeOrderRefundFish("noontek_gaziantep");
   margeOrderFish("noontek_gaziantep");
+
   // }
 });
 

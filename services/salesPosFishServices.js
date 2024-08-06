@@ -28,6 +28,8 @@ const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
+const returnPosSalesSchema = require("../models/refundPosSales");
+const refundPosSalesSchema = require("../models/refundPosSales");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/salse-pos
@@ -792,7 +794,7 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
     Variant: db.model("Variant", variantSchema),
     OrderFishPos: db.model("orderFishPos", orderFishSchema),
     FinancialFunds: db.model("FinancialFunds", financialFundsSchema),
-    ReturnOrder: db.model("returnOrder", returnOrderSchema),
+    ReturnOrder: db.model("RefundPosSales", refundPosSalesSchema),
     ReportsFinancialFunds: db.model(
       "ReportsFinancialFunds",
       reportsFinancialFundsSchema
