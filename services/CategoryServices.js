@@ -24,9 +24,8 @@ exports.resizerCategoryImage = asyncHandler(async (req, res, next) => {
 
   if (req.file) {
     await sharp(req.file.buffer)
-      .resize(600, 600)
       .toFormat("png")
-      .png({ quality: 70 })
+      .png({ quality: 60 })
       .toFile(`uploads/category/${filename}`);
 
     //save image into our db

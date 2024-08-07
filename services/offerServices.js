@@ -33,7 +33,6 @@ exports.resizeOfferImages = asyncHandler(async (req, res, next) => {
     if (req.files.imageAr) {
       const filenameAr = `offer-${uuidv4()}-${Date.now()}-ar.png`;
       await sharp(req.files.imageAr[0].buffer)
-        .resize(600, 600)
         .toFormat("png")
         .png({ quality: 70 })
         .toFile(`uploads/offers/${filenameAr}`);
@@ -44,7 +43,6 @@ exports.resizeOfferImages = asyncHandler(async (req, res, next) => {
     if (req.files.imageTr) {
       const filenameTr = `offer-${uuidv4()}-${Date.now()}-tr.png`;
       await sharp(req.files.imageTr[0].buffer)
-        .resize(600, 600)
         .toFormat("png")
         .png({ quality: 70 })
         .toFile(`uploads/offers/${filenameTr}`);

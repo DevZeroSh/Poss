@@ -47,6 +47,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
         "refund-purchase",
         "payment-sup",
         "payment-cut",
+        "cancel"
       ],
     },
     financialFundId: {

@@ -37,7 +37,6 @@ exports.resizeSliderImages = asyncHandler(async (req, res, next) => {
       req.files.images.map(async (img, index) => {
         const imagesName = `slider-${uuidv4()}-${Date.now()}-${index + 1}.png`;
         await sharp(img.buffer)
-          .resize(900, 400)
           .toFormat("png")
           .png({ quality: 70 })
           .toFile(`uploads/sldier/${imagesName}`);

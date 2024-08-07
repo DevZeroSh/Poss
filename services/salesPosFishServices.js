@@ -101,14 +101,14 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     customarName: req.body.customarName,
     customarEmail: req.body.customarEmail,
     customarPhone: req.body.customarPhone,
-    customarAddress: req.body.customarAddress,
+    customaraddres: req.body.customaraddres,
     coupon: req.body.coupon,
     couponCount: req.body.couponCount,
     couponType: req.body.couponType,
     type: req.body.type,
     onefinancialFunds: financialFundsId,
     paidAt: new Date().toISOString(),
-    counter: "pos-" + nextCounter,
+    counter: nextCounter,
     exchangeRate,
   });
 
@@ -204,19 +204,18 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
           });
         })()
       : Promise.resolve();
-      const reportsSalesPromise = ReportsSalesModel.create({
-        customer: req.body.customarName,
-        orderId: order._id,
-        date: new Date().toISOString(),
-        fund: financialFundsId,
-        amount: totalOrderPrice,
-        cartItems: cartItems,
-        type:"pos",
-        counter: nextCounterReports,
-        paymentType: "Single Fund",
-        employee: req.user._id,
-      });
-    
+  const reportsSalesPromise = ReportsSalesModel.create({
+    customer: req.body.customarName,
+    orderId: order._id,
+    date: new Date().toISOString(),
+    fund: financialFundsId,
+    amount: totalOrderPrice,
+    cartItems: cartItems,
+    type: "pos",
+    counter: nextCounterReports,
+    paymentType: "Single Fund",
+    employee: req.user._id,
+  });
 
   // Wait for all promises to resolve
   await Promise.all([
@@ -283,7 +282,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     returnCartItem: cartItems,
     totalOrderPrice: 0,
     paidAt: date,
-    counter: "pos " + totalOrderCount,
+    counter: totalOrderCount,
     financialFunds: financialFunds
       .filter((fund) => fund.amount !== 0)
       .map((fund) => ({
@@ -1089,7 +1088,7 @@ exports.getReturnPosSales = asyncHandler(async (req, res, next) => {
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   db.model("Product", productSchema);
-  const returnOrderModel = db.model("returnOrder", returnOrderSchema);
+  const returnOrderModel = db.model("RefundPosSales", refundPosSalesSchema);
   db.model("ReportsSales", ReportsSalesSchema);
 
   const { totalPages, mongooseQuery } = await Search(returnOrderModel, req);
@@ -1113,7 +1112,7 @@ exports.getOneReturnPosSales = asyncHandler(async (req, res, next) => {
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
   db.model("Product", productSchema);
-  const returnOrderModel = db.model("returnOrder", returnOrderSchema);
+  const returnOrderModel = db.model("RefundPosSales", refundPosSalesSchema);
   db.model("ReportsSales", ReportsSalesSchema);
 
   const { id } = req.params;
@@ -1122,4 +1121,117 @@ exports.getOneReturnPosSales = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No order for this id ${id}`, 404));
   }
   res.status(200).json({ status: "true", data: order });
+});
+
+exports.canceledPosSales = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderFishModel = db.model("orderFishPos", orderFishSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const productModel = db.model("Product", productSchema);
+
+  const padZero = (value) => (value < 10 ? `0${value}` : value);
+
+  const currentDateTime = new Date();
+  const formattedDate = `${currentDateTime.getFullYear()}-${padZero(
+    currentDateTime.getMonth() + 1
+  )}-${padZero(currentDateTime.getDate())} ${padZero(
+    currentDateTime.getHours()
+  )}:${padZero(currentDateTime.getMinutes())}:${padZero(
+    currentDateTime.getSeconds()
+  )}`;
+
+  const { id } = req.params;
+  const { stockId } = req.body;
+  const canceled = await orderFishModel.findById(id);
+
+  if (canceled.financialFunds) {
+    for (const fundId of canceled.financialFunds) {
+      console.log(fundId);
+      const financialFund = await FinancialFundsModel.findById({
+        _id: fundId.fundId,
+      });
+      financialFund.fundBalance -= fundId.allocatedAmount;
+      await financialFund.save();
+
+      await ReportsFinancialFundsModel.create({
+        date: currentDateTime.toISOString(),
+        amount: canceled.totalOrderPrice,
+        order: canceled._id,
+        type: "cancel",
+        financialFundId: financialFund._id,
+        financialFundRest: financialFund.fundBalance,
+        exchangeRate: canceled.priceExchangeRate,
+      });
+    }
+  } else {
+    const financialFund = await FinancialFundsModel.findById({
+      _id: canceled.onefinancialFunds,
+    });
+    financialFund.fundBalance -= fundId.allocatedAmount;
+    await financialFund.save();
+
+    await ReportsFinancialFundsModel.create({
+      date: currentDateTime.toISOString(),
+      amount: canceled.totalOrderPrice,
+      order: canceled._id,
+      type: "cancel",
+      financialFundId: financialFund._id,
+      financialFundRest: financialFund.fundBalance,
+      exchangeRate: canceled.priceExchangeRate,
+    });
+  }
+
+  const productMovementPromises = canceled.cartItems.map(async (item) => {
+    const product = await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      const stockEntry = product.stocks.find(
+        (stock) => stock.stockId.toString() === stockId.toString()
+      );
+      if (stockEntry) {
+        stockEntry.productQuantity += item.quantity;
+        product.sold -= item.quantity;
+        await product.save();
+        createProductMovement(
+          item.product,
+          stockEntry.productQuantity,
+          item.quantity,
+          "in",
+          "cancel",
+          dbName
+        );
+      }
+    }
+  });
+
+  const order = await orderFishModel.create({
+    employee: req.user._id,
+    priceExchangeRate: canceled.priceExchangeRate,
+    cartItems: canceled.cartItems,
+    returnCartItem: canceled.cartItems,
+    currencyCode: canceled.currency,
+    totalOrderPrice: canceled.totalOrderPrice,
+    totalPriceAfterDiscount: canceled.totalPriceAfterDiscount,
+    taxs: canceled.taxs,
+    price: canceled.price,
+    taxRate: canceled.taxRate,
+    customarId: canceled.customarId,
+    customarName: canceled.customarName,
+    customarEmail: canceled.customarEmail,
+    customarPhone: canceled.customarPhone,
+    customaraddres: canceled.customaraddres,
+    coupon: canceled.coupon,
+    couponCount: canceled.couponCount,
+    couponType: canceled.couponType,
+    type: canceled.type,
+    paidAt: currentDateTime.toISOString(),
+    counter: "cancel " + canceled.counter,
+    exchangeRate: canceled.exchangeRate,
+  });
+
+  res.status(200).json({ success: true, data: order });
 });

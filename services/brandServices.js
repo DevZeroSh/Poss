@@ -25,9 +25,8 @@ exports.resizerBrandImage = asyncHandler(async (req, res, next) => {
 
   if (req.file) {
     await sharp(req.file.buffer)
-      .resize(600, 600)
       .toFormat("png")
-      .png({ quality: 70 })
+      .png({ quality: 50 })
       .toFile(`uploads/brand/${filename}`);
 
     //save image into our db
