@@ -268,7 +268,7 @@ exports.signup = asyncHandler(async (req, res, next) => {
 const client = new OAuth2Client(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  "http://localhost:3000/"
+  "https://store.noontek.com"
 );
 
 // Function to verify Google ID token
