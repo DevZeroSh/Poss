@@ -1148,16 +1148,32 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { stockId } = req.body;
   const canceled = await orderFishModel.findById(id);
+  if (canceled.type !== "cancel") {
+    if (canceled.financialFunds && canceled.financialFunds.length > 0) {
+      for (const fundId of canceled.financialFunds) {
+        console.log(fundId);
+        const financialFund = await FinancialFundsModel.findById({
+          _id: fundId.fundId,
+        });
+        financialFund.fundBalance -= fundId.allocatedAmount;
+        await financialFund.save();
 
-  if (canceled.financialFunds) {
-    for (const fundId of canceled.financialFunds) {
-      console.log(fundId);
+        await ReportsFinancialFundsModel.create({
+          date: currentDateTime.toISOString(),
+          amount: canceled.totalOrderPrice,
+          order: canceled._id,
+          type: "cancel",
+          financialFundId: financialFund._id,
+          financialFundRest: financialFund.fundBalance,
+          exchangeRate: canceled.priceExchangeRate,
+        });
+      }
+    } else {
       const financialFund = await FinancialFundsModel.findById({
-        _id: fundId.fundId,
+        _id: canceled.onefinancialFunds,
       });
-      financialFund.fundBalance -= fundId.allocatedAmount;
+      financialFund.fundBalance -= canceled.priceExchangeRate;
       await financialFund.save();
-
       await ReportsFinancialFundsModel.create({
         date: currentDateTime.toISOString(),
         amount: canceled.totalOrderPrice,
@@ -1168,70 +1184,48 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
         exchangeRate: canceled.priceExchangeRate,
       });
     }
-  } else {
-    const financialFund = await FinancialFundsModel.findById({
-      _id: canceled.onefinancialFunds,
-    });
-    financialFund.fundBalance -= fundId.allocatedAmount;
-    await financialFund.save();
 
-    await ReportsFinancialFundsModel.create({
-      date: currentDateTime.toISOString(),
-      amount: canceled.totalOrderPrice,
-      order: canceled._id,
-      type: "cancel",
-      financialFundId: financialFund._id,
-      financialFundRest: financialFund.fundBalance,
-      exchangeRate: canceled.priceExchangeRate,
+    const productMovementPromises = canceled.cartItems.map(async (item) => {
+      const product = await productModel.findOne({ qr: item.qr });
+      if (product && product.type !== "Service") {
+        const stockEntry = product.stocks.find(
+          (stock) => stock.stockId.toString() === stockId.toString()
+        );
+        if (stockEntry) {
+          stockEntry.productQuantity += item.quantity;
+          product.sold -= item.quantity;
+          await product.save();
+          createProductMovement(
+            item.product,
+            stockEntry.productQuantity,
+            item.quantity,
+            "in",
+            "cancel",
+            dbName
+          );
+        }
+      }
+    });
+
+    const order = await orderFishModel.updateOne(
+      { _id: id },
+      {
+        type: "cancel",
+        paidAt: currentDateTime.toISOString(),
+        counter: "cancel " + canceled.counter,
+      },
+      { new: true }
+    );
+    createInvoiceHistory(dbName, id, "cancel", req.user._id);
+    res.status(200).json({
+      status: "success",
+      message: "The order has been canceled",
+      data: order,
+    });
+  } else {
+    res.status(200).json({
+      status: "faild",
+      message: "The type is cancel",
     });
   }
-
-  const productMovementPromises = canceled.cartItems.map(async (item) => {
-    const product = await productModel.findOne({ qr: item.qr });
-    if (product && product.type !== "Service") {
-      const stockEntry = product.stocks.find(
-        (stock) => stock.stockId.toString() === stockId.toString()
-      );
-      if (stockEntry) {
-        stockEntry.productQuantity += item.quantity;
-        product.sold -= item.quantity;
-        await product.save();
-        createProductMovement(
-          item.product,
-          stockEntry.productQuantity,
-          item.quantity,
-          "in",
-          "cancel",
-          dbName
-        );
-      }
-    }
-  });
-
-  const order = await orderFishModel.create({
-    employee: req.user._id,
-    priceExchangeRate: canceled.priceExchangeRate,
-    cartItems: canceled.cartItems,
-    returnCartItem: canceled.cartItems,
-    currencyCode: canceled.currency,
-    totalOrderPrice: canceled.totalOrderPrice,
-    totalPriceAfterDiscount: canceled.totalPriceAfterDiscount,
-    taxs: canceled.taxs,
-    price: canceled.price,
-    taxRate: canceled.taxRate,
-    customarId: canceled.customarId,
-    customarName: canceled.customarName,
-    customarEmail: canceled.customarEmail,
-    customarPhone: canceled.customarPhone,
-    customaraddres: canceled.customaraddres,
-    coupon: canceled.coupon,
-    couponCount: canceled.couponCount,
-    couponType: canceled.couponType,
-    type: canceled.type,
-    paidAt: currentDateTime.toISOString(),
-    counter: "cancel " + canceled.counter,
-    exchangeRate: canceled.exchangeRate,
-  });
-
-  res.status(200).json({ success: true, data: order });
 });

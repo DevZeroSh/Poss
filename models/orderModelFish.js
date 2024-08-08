@@ -44,7 +44,7 @@ const orderFishSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
-     returnCartItem: [
+    returnCartItem: [
       {
         product: {
           type: mongoose.Schema.ObjectId,
@@ -90,11 +90,10 @@ const orderFishSchema = new mongoose.Schema(
     customaraddres: String,
     date: String,
     description: String,
+    type: { type: String, default: "pos" },
   },
 
   { timestamps: true }
 );
-
-
 
 module.exports = orderFishSchema;

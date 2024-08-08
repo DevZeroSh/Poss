@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const { ObjectId } = require("mongodb");
+const ApiError = require("../utils/apiError");
 
 // Create a new invoice history entry
 // exports.createInvoiceHistory = asyncHandler(async (req, res) => {
