@@ -8,13 +8,13 @@ const categorySchema = new mongoose.Schema({
   },
   nameAR: {
     type: String,
-    require: true,
-    unique: [true, "Category must be unique"],
+    // require: true,
+    // unique: [true, "Category must be unique"],
   },
   nameTR: {
     type: String,
-    require: true,
-    unique: [true, "Category must be unique"],
+    // require: true,
+    // unique: [true, "Category must be unique"],
   },
   parentCategory: { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
   image: String,

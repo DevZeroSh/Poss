@@ -2,13 +2,10 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const mongoose = require("mongoose");
 const productSchema = require("../models/productModel");
-const roleModel = require("../models/roleModel");
-const { getDashboardRoles } = require("./roleDashboardServices");
 const financialFundsSchema = require("../models/financialFundsModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const emoloyeeShcema = require("../models/employeeModel");
 const ReportsSalesSchema = require("../models/reportsSalesModel");
-const returnOrderSchema = require("../models/returnOrderModel");
 const { Search } = require("../utils/search");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
 const { createProductMovement } = require("../utils/productMovement");
@@ -22,13 +19,9 @@ const variantSchema = require("../models/variantsModel");
 const customarSchema = require("../models/customarModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const { createActiveProductsValue } = require("../utils/activeProductsValue");
-const { createPaymentHistory } = require("./paymentHistoryService");
 const paymentTypesSchema = require("../models/paymentTypesModel");
 const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
-const { default: axios } = require("axios");
-const stockSchema = require("../models/stockModel");
-const returnPosSalesSchema = require("../models/refundPosSales");
 const refundPosSalesSchema = require("../models/refundPosSales");
 
 // @desc    Create cash order from the POS page
@@ -1132,6 +1125,8 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  db.model("Employee", emoloyeeShcema);
   const productModel = db.model("Product", productSchema);
 
   const padZero = (value) => (value < 10 ? `0${value}` : value);
@@ -1216,6 +1211,7 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
       },
       { new: true }
     );
+    await ReportsSalesModel.findOneAndDelete({ orderId: id });
     createInvoiceHistory(dbName, id, "cancel", req.user._id);
     res.status(200).json({
       status: "success",
@@ -1223,7 +1219,7 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
       data: order,
     });
   } else {
-    res.status(200).json({
+    res.status(400).json({
       status: "faild",
       message: "The type is cancel",
     });
