@@ -264,13 +264,17 @@ exports.signup = asyncHandler(async (req, res, next) => {
   res.status(201).json({ data: user, token });
 });
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const client = new OAuth2Client(
+  process.env.CLIENT_ID,
+  process.env.CLIENT_SECRET,
+  "http://localhost:3000/"
+);
 
 // Function to verify Google ID token
 async function verifyGoogleToken(token) {
   const ticket = await client.verifyIdToken({
     idToken: token,
-    audience: process.env.GOOGLE_CLIENT_ID,
+    audience: process.env.CLIENT_ID,
   });
   return ticket.getPayload();
 }
@@ -546,6 +550,31 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
     status: "Success",
     message: "Password reset successful",
   });
+});
+
+exports.googleLogin = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const UserModel = db.model("Users", E_user_Schema);
+  const { tokenId } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: tokenId,
+      audience:
+        "58741021625-php6on8j0si0qvpi59fqtu2aj5vigbd2.apps.googleusercontent.com",
+    });
+    const { email, name } = ticket.getPayload();
+
+    let user = await UserModel.findOne({ email });
+    if (!user) {
+      await UserModel.create({ email, name });
+    }
+    const token = createToken(user._id);
+    res.status(200).json({ message: "login success", user, token: token });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: "login failed" });
+  }
 });
 
 //Permissions
