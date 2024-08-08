@@ -12,6 +12,7 @@ const customarSchema = require("../models/customarModel");
 const sendEmail = require("../utils/sendEmail");
 const { OAuth2Client } = require("google-auth-library");
 const E_user_Schema = require("../models/ecommerce/E_user_Modal");
+const { default: axios } = require("axios");
 
 // @desc      Login
 // @route     POST /api/auth/login
@@ -577,6 +578,42 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.facebookLogin = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const UserModel = db.model("Users", E_user_Schema);
+  const { accessToken, userID } = req.body;
+  console.log("req.body");
+  console.log(req.body);
+
+  try {
+    const response = await axios.get(
+      `https://graph.facebook.com/v13.0/${userID}`,
+      {
+        params: {
+          access_token: accessToken,
+          fields: "email, name",
+        },
+      }
+    );
+
+    console.log(response);
+
+    const { email, name } = response.data;
+
+    let user = await UserModel.findOne({ email });
+
+    if (!user) {
+      user = await UserModel.create({ email, name });
+    }
+
+    const token = createToken(user._id);
+    res.status(200).json({ message: "login success", user, token });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: "login failed" });
+  }
+});
 //Permissions
 //Verify user permissions
 // exports.allowedTo = (role) =>
