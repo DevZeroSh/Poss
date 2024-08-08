@@ -24,7 +24,7 @@ const PaymentService = async (order, body) => {
     no_installment: 1,
     max_installment: 0,
     currency: "TL",
-    test_mode: 1,
+    test_mode: 0,
     merchant_ok_url: "https://store.noontek.com/my-orders",
     merchant_fail_url: "https://store.noontek.com/error404",
     user_name: body.userInfo.name,
