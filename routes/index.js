@@ -47,6 +47,7 @@ const devicesRout = require("./devicesRout");
 const quotationRouter = require("./quotationRoute");
 const E_userRoute = require("./ecommerce/E_usersRoutes");
 const SalesPosRout = require("./salesPosRoute");
+const thirdPartyRoute = require("./ecommerce/thirdPartyAuthRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -99,6 +100,7 @@ const mountRoutes = (app) => {
   app.use("/api/slider", sliderRout);
   app.use("/api/page", pagesRout);
   app.use("/api/footer", footerRout);
+  app.use("/api/thirdPartyAuth", thirdPartyRoute);
 
   //Hr
   app.use("/api/finger-print", fingerPrintRout);

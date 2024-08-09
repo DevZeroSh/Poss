@@ -10,6 +10,7 @@ const rolePosSchema = require("../models/rolePosModel");
 const roleDashboardSchema = require("../models/roleDashboardModel");
 const rolesShcema = require("../models/roleModel");
 const stockSchema = require("../models/stockModel");
+const thirdPartyAuthSchema = require("../models/ecommerce/thirdPartyAuthModel");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -51,6 +52,10 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const rolesModel = db.model("Roles", rolesShcema);
     const currencyModel = db.model("Currency", currencySchema);
     const StockModel = db.model("Stock", stockSchema);
+    const thirdPartyAuthModel = db.model(
+      "thirdPartyAuth",
+      thirdPartyAuthSchema
+    );
 
     //await createConnection(req.body.databaseName);
     //1-craet a company
@@ -290,6 +295,12 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       currencyName: req.body.currencyName,
       exchangeRate: "1",
       is_primary: "true",
+    });
+
+    await thirdPartyAuthModel.create({
+      googleAuthClientID: "",
+      googleAuthClientSecret: "",
+      facebookAuthAppID: "",
     });
 
     //make res
