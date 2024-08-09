@@ -145,7 +145,7 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
 
     // Create order with default paymentMethodType EFT
     const order = await orderModel.create({
-      customar: customerId,
+      customar: req.user._id,
       cartItems: cartItems,
       shippingAddress: shippingAddress,
       billingAddress: billingAddress,
@@ -205,7 +205,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Product", productSchema);
-  db.model("Customar", customarSchema);
+  db.model("Users", E_user_Schema);
 
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
@@ -256,8 +256,8 @@ exports.filterOneOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  const productModel = db.model("Product", productSchema);
   db.model("Users", E_user_Schema);
-  db.model("Product", productSchema);
   db.model("Category", categorySchema);
   db.model("brand", brandSchema);
   db.model("Labels", labelsSchema);
@@ -358,15 +358,52 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const EcommerceOrderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   const orderModel = db.model("Orders", orderSchema);
+  const productModel = db.model("Product", productSchema);
+  const { stocks } = req.body;
   const { id } = req.params;
-
+console.log(stocks)
+  // Fetch the ecommerce order by ID
   const ecommerceOrder = await EcommerceOrderModel.findById(id);
+  if (!ecommerceOrder) {
+    return next(new Error("Order not found"));
+  }
+
+  // Generate the next order number
   const nextCounter = (await orderModel.countDocuments()) + 1;
   req.body.orderNumber = nextCounter;
-  console.log(ecommerceOrder);
-  req.body.cartItems = ecommerceOrder.cartItems;
   req.body.paid = "paid";
+
+  // Create the new order
   const createOrder = await orderModel.create(req.body);
 
+  // Prepare bulk write operations for updating stock quantities
+  const bulkOptionst2 = [];
+  
+  for (const item of req.body.cartItems) {
+    if (item.product && item.quantity) {
+      const product = await productModel.findById(item.product);
+      if (product) {
+        for (const stock of stocks) {
+          if (stock.product === item.product) {
+            bulkOptionst2.push({
+              updateOne: {
+                filter: { _id: product._id, "stocks.stockId": stock.stockId },
+                update: {
+                  $inc: { "stocks.$.productQuantity": -item.quantity },
+                },
+              },
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Perform bulk update on products
+  if (bulkOptionst2.length > 0) {
+    await productModel.bulkWrite(bulkOptionst2);
+  }
+
+  // Respond with success
   res.status(201).json({ status: "success", data: createOrder });
 });

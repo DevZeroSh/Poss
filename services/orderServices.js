@@ -56,8 +56,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   );
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("PaymentType", paymentTypesSchema);
-  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
-  const stockModel = db.model("Stock", stockSchema);
+  db.model("Stock", stockSchema);
 
   const cartItems = req.body.cartItems;
   const stocks = req.body.stocks;
@@ -90,7 +89,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const timeIsoString = new Date().toISOString();
 
   const customarsPromise = customersModel.findById(customarId);
-  const nextCounterPromise = orderFishModel
+  const nextCounterOrder = orderModel
     .countDocuments()
     .then((count) => count + 1);
   const nextCounterReports = ReportsSalesModel.countDocuments().then(
@@ -115,7 +114,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const [customars, nextCounter, reportCounter] = await Promise.all([
     customarsPromise,
-    nextCounterPromise,
+    nextCounterOrder,
     nextCounterReports,
   ]);
 
@@ -272,16 +271,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const bulkWritePromise = await productModel.bulkWrite(bulkOption);
 
-  const bulkOptionst = stocks.map((item) => ({
-    updateOne: {
-      filter: { _id: item.stockId, "products.productId": item.product },
-      update: {
-        $inc: {
-          "products.$.productQuantity": -item.stockQuantity,
-        },
-      },
-    },
-  }));
+  console.log(stocks);
 
   const bulkOptionst2 = await Promise.all(
     cartItems
@@ -311,8 +301,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   if (bulkOptionst2Flat.length > 0) {
     await productModel.bulkWrite(bulkOptionst2Flat);
   }
-
-  const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
 
   const reportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
@@ -359,7 +347,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   await Promise.all([
     bulkWritePromise,
-    bulkWritePromisest,
     reportsSalesPromise,
     ...productMovementPromises,
     ...activeProductsValueUpdates,
@@ -381,7 +368,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     "in-" + nextCounter,
     dbName
   );
-  orderFishModel.create(reportsSalesPromise);
 
   res.status(201).json({ status: "success", data: order, history });
 });

@@ -4,7 +4,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
   {
     customar: {
       type: mongoose.Schema.ObjectId,
-      ref: "Customar",
+      ref: "Users",
       required: [true, "Order must be belong to user"],
     },
     cartItems: [

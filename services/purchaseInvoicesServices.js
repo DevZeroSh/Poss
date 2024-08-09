@@ -48,7 +48,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     PurchaseInvoicesSchema
   );
   const stockModel = db.model("Stock", stockSchema);
-
+  const stocks = req.body.stocks;
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -95,9 +95,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     paid,
     finalPriceMainCurrency,
     invoiceCurrencyExchangeRate,
-    description
+    description,
   } = req.body;
-  const stocks = req.body.stocks;
 
   const invoiceFinancialFund = req.body.invoiceFinancialFund;
 
@@ -145,7 +144,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalTax: totalTax,
       totalPrice: totalPrice,
       profitRatio: profitRatio,
-
     };
     invoiceItems.push(invoiceItem);
   }
@@ -159,6 +157,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     // Create a new purchase invoice with all the invoice items
     const newPurchaseInvoice = new PurchaseInvoicesModel({
       invoices: invoiceItems,
+      stocks: stocks,
       paidAt: formattedDate,
       suppliers: suppliersId,
       supplier: sup,
@@ -200,8 +199,34 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     }));
     await productModel.bulkWrite(bulkOption, {});
 
-  
     const supplier = await suppl.findById(suppliersId);
+
+    await Promise.all(
+      invoiceItems
+        .filter((item) => item.product && item.quantity)
+        .map(async (item) => {
+          const product = await productModel.findById(item.product);
+          if (product) {
+            const updateOperations = stocks
+              .filter((stock) => stock.product === item.product)
+              .map((stock) => ({
+                updateOne: {
+                  filter: { _id: product._id, "stocks.stockId": stock.stockId },
+                  update: {
+                    $inc: {
+                      "stocks.$.productQuantity": +item.quantity,
+                    },
+                  },
+                },
+              }));
+
+            // Execute the bulk write operation for each product
+            if (updateOperations.length > 0) {
+              await productModel.bulkWrite(updateOperations);
+            }
+          }
+        })
+    );
 
     // Loop through each item in the invoiceItems array
     invoiceItems.forEach((newInvoiceItem) => {
@@ -337,25 +362,21 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       const t = total + supplier.TotalUnpaid;
       if (t > 0) {
         total = t;
-        supplier.TotalUnpaid = t
-        console.log(">")
-      }
-      else if (t < 0) {
         supplier.TotalUnpaid = t;
-        req.body.paid = "paid"
-        console.log("<")
-      }
-      else {
+        console.log(">");
+      } else if (t < 0) {
+        supplier.TotalUnpaid = t;
+        req.body.paid = "paid";
+        console.log("<");
+      } else {
         total = 0;
         supplier.TotalUnpaid = 0;
         req.body.paid = "paid";
         console.log("=");
       }
-    }
-    else {
+    } else {
       supplier.TotalUnpaid += total;
     }
-
 
     const newPurchaseInvoice = new PurchaseInvoicesModel({
       invoices: invoiceItems,
@@ -380,7 +401,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       totalRemainderMainCurrency: finalPriceMainCurrency,
       counter: nextCounter,
       invoiceCurrencyExchangeRate,
-      paid: req.body.paid
+      paid: req.body.paid,
     });
     bulkOption = invoiceItems.map((item) => ({
       updateOne: {
@@ -432,20 +453,36 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
 
     try {
-      const bulkOptionst = stocks.map(item => ({
-        updateOne: {
-          filter: { _id: item.stockId, 'products.productId': item.product },
-          update: {
-            $inc: {
-              'products.$.productQuantity': +item.stockQuantity,
-            },
-          },
-        },
-      }));
+      await Promise.all(
+        invoiceItems
+          .filter((item) => item.product && item.quantity)
+          .map(async (item) => {
+            const product = await productModel.findById(item.product);
+            if (product) {
+              const updateOperations = stocks
+                .filter((stock) => stock.product === item.product)
+                .map((stock) => ({
+                  updateOne: {
+                    filter: {
+                      _id: product._id,
+                      "stocks.stockId": stock.stockId,
+                    },
+                    update: {
+                      $inc: {
+                        "stocks.$.productQuantity": +item.quantity,
+                      },
+                    },
+                  },
+                }));
 
-      const bulkWritePromisest = await stockModel.bulkWrite(bulkOptionst);
+              // Execute the bulk write operation for each product
+              if (updateOperations.length > 0) {
+                await productModel.bulkWrite(updateOperations);
+              }
+            }
+          })
+      );
 
-      await productModel.bulkWrite(bulkOption, {});
       const savedInvoice = await newPurchaseInvoice.save();
 
       invoiceItems.map(async (item) => {
