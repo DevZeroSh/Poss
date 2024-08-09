@@ -139,8 +139,19 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
   db.model("Users", E_user_Schema);
-
+  
   const cart = await CartModel.findOne({ customar: req.user._id });
+  const setImageURL = (doc) => {
+    if (doc.image) {
+      const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+      doc.image = imageUrl;
+    }
+  
+  };
+  console.log(cart)
+  if (cart && cart.cartItems) {
+    cart.cartItems.forEach(setImageURL);
+  }
 
   res.status(200).json({
     status: "success",
