@@ -4,9 +4,9 @@ const nodeBase64 = require("nodejs-base64-converter");
 const axios = require("axios");
 const paytrRouter = express.Router();
 
-const merchant_id = 471531;
-const merchant_key = "77ZNHe2byM2unZCU";
-const merchant_salt = "zkAHcxfG7XnJNqWk";
+const merchant_id = 144154;
+const merchant_key = "Tx47amrPYZ9TaP45";
+const merchant_salt = "Rh9wztuu3D8W2buc";
 
 paytrRouter.post("/paytr-token", async (req, res) => {
   const {
