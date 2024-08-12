@@ -15,14 +15,12 @@ const currencySchema = require("../../models/currencyModel");
 const reviewSchema = require("../../models/ecommerce/reviewModel");
 const { PaymentService } = require("./paymentService");
 const { getIP } = require("../../utils/getIP");
-const { stringify } = require("flatted");
 const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 const orderSchema = require("../../models/orderModel");
 const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
 const financialFundsSchema = require("../../models/financialFundsModel");
 const ReportsSalesSchema = require("../../models/reportsSalesModel");
 const { createProductMovement } = require("../../utils/productMovement");
-// const orderSchema = require("../../models/orderModel");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -368,6 +366,9 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const UserModel = db.model("Users", E_user_Schema);
+  const customersModel = db.model("Customar", customarSchema);
+
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const financialFunds = await FinancialFundsModel.findById({
     _id: req.body.financialFunds,
@@ -377,6 +378,21 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
+  }
+  let createCustomer;
+  const user = await UserModel.findById({ _id: req.body.customarId });
+  if (user.isCustomer === false) {
+    createCustomer = await customersModel.create({
+      name: req.body.customarName,
+      phoneNumber: req.body.customarPhone,
+      email: req.body.customarEmail,
+      uesrid: req.body.customarId,
+    });
+    user.isCustomer = true;
+  } else {
+    createCustomer = await customersModel.findOne({
+      uesrid: req.body.customarId,
+    });
   }
 
   const ts = Date.now();
@@ -411,11 +427,10 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
     taxs: req.body.taxs,
     price: req.body.price,
     taxRate: req.body.taxRate,
-    customarId: req.body.customarId,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customarAddress: req.body.customarAddress,
+    customarId: createCustomer._id,
+    customarName: createCustomer.name,
+    customarEmail: createCustomer.email,
+    customarPhone: createCustomer.phone,
     coupon: req.body.coupon,
     couponCount: req.body.couponCount,
     couponType: req.body.couponType,
@@ -500,6 +515,7 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
       }
     }
   }
+  console.log(req.body);
 
   // Perform bulk update on products
   if (bulkOptionst2.length > 0) {

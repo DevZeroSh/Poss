@@ -58,7 +58,7 @@ const E_user_Schema = new mongoose.Schema(
       },
     ],
     country: String,
-    isCustomer: Boolean,
+    isCustomer: { type: Boolean, default: false },
     cards: [
       {
         id: { type: mongoose.Schema.Types.ObjectId },

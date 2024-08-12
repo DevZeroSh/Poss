@@ -38,7 +38,7 @@ const customarSchema = new mongoose.Schema(
     country: String,
     city: String,
     address: String,
-    nickName:String,
+    nickName: String,
     customarType: {
       type: String,
       enum: ["individual", "corporate", "ecommerce"],
@@ -77,8 +77,8 @@ const customarSchema = new mongoose.Schema(
         firstName: String,
         lastName: String,
       },
-    ],
-    facebookId: String,
+    ],   
+    uesrid: String,
   },
   { timestamps: true }
 );
