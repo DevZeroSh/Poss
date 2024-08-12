@@ -11,13 +11,13 @@ const productSchema = new mongoose.Schema(
     nameAR: {
       type: String,
       minlength: [3, "Too short product name"],
-      maxlength: [30, "Too long product name"],
+      maxlength: [100, "Too long product name"],
       default: "name AR",
     },
     nameTR: {
       type: String,
       minlength: [3, "Too short product name"],
-      maxlength: [30, "Too long product name"],
+      maxlength: [100, "Too long product name"],
       default: "name TR",
     },
     slug: {
@@ -31,17 +31,17 @@ const productSchema = new mongoose.Schema(
     shortDescription: {
       type: String,
       default: "Product short description",
-      maxlength: [50, "Too long product English short description"],
+      maxlength: [200, "Too long product English short description"],
       default: " short Description AR",
     },
     shortDescriptionAR: {
       type: String,
-      maxlength: [50, "Too long product Arabic short description"],
+      maxlength: [200, "Too long product Arabic short description"],
       default: " short Description AR",
     },
     shortDescriptionTR: {
       type: String,
-      maxlength: [50, "Too long product Turkish short description"],
+      maxlength: [200, "Too long product Turkish short description"],
       default: " short Description TR",
     },
     description: {

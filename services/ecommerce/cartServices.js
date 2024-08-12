@@ -20,7 +20,6 @@ const calclatTotalCartPrice = (cart) => {
   cart.cartItems.forEach((item) => {
     totalPrice += item.quantity * item.taxPrice;
   });
-  console.log(totalPrice);
   cart.totalCartPrice = totalPrice;
   return totalPrice;
 };
@@ -34,8 +33,6 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
     ).toFixed(2);
   } else {
     totalPriceAfterDiscount = (totalPrice - coupon.quantity).toFixed(2);
-
-    console.log(totalPriceAfterDiscount);
   }
   cart.totalPriceAfterDiscount = totalPriceAfterDiscount;
 };
@@ -55,7 +52,8 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
-  const { qr, quantity, taxRate, taxs, price, taxPrice } = req.body; // Get the QR code from the request body
+  const { qr, quantity, taxRate } = req.body;
+
   // Find the product associated with the provided QR code
   const product = await productModel.findOne({ qr: qr });
   if (!product) {
@@ -64,6 +62,10 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       message: "Product not found with the provided QR code.",
     });
   }
+  const taxPrice =
+    product.ecommercePriceAftereDiscount > 0
+      ? product.ecommercePriceAftereDiscount
+      : product.ecommercePrice;
   // 1) Get Cart for the logged-in user
   let cart = await CartModel.findOne({ customar: req.user._id });
   if (!cart) {
@@ -73,13 +75,12 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       cartItems: [
         {
           product: product,
-          taxPrice: taxPrice,
+          taxPrice,
           name: product.name,
           qr: product.qr,
           quantity: quantity,
           taxRate: taxRate,
-          taxs: taxs,
-          price: price,
+          price: product.ecommercePriceBeforeTax,
           image: product.image,
           maxQuantity: product.activeCount,
         },
@@ -101,13 +102,12 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       // Product does not exist in the cart, so add it
       cart.cartItems.push({
         product: product,
-        taxPrice: taxPrice,
+        taxPrice,
         name: product.name,
         qr: product.qr,
         quantity: quantity,
         taxRate: taxRate,
-        taxs: taxs,
-        price: price,
+        price: product.ecommercePriceBeforeTax,
         image: product.image,
         maxQuantity: product.activeCount,
       });
@@ -139,16 +139,15 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
   db.model("Users", E_user_Schema);
-  
+
   const cart = await CartModel.findOne({ customar: req.user._id });
   const setImageURL = (doc) => {
     if (doc.image) {
       const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
       doc.image = imageUrl;
     }
-  
   };
-  console.log(cart)
+
   if (cart && cart.cartItems) {
     cart.cartItems.forEach(setImageURL);
   }
@@ -229,7 +228,6 @@ exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
     );
   }
 
-  console.log(req.body);
   if (cart.coupon !== "" && cart.coupon !== undefined) {
     calclatTotalCartPrice(cart);
     const coupon = await CouponModel.findOne({ discountName: cart.coupon });

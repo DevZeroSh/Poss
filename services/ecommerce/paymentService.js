@@ -14,6 +14,10 @@ const PaymentService = async (order, body) => {
     ])
   );
 
+  const currency = "TL";
+  const payment_type = "card";
+  const test_mode = 0;
+
   const data = {
     merchant_id: merchant_id,
     user_ip: body.ipAddress,
@@ -23,8 +27,8 @@ const PaymentService = async (order, body) => {
     user_basket: user_basket,
     no_installment: 1,
     max_installment: 0,
-    currency: "TL",
-    test_mode: 0,
+    currency,
+    test_mode,
     merchant_ok_url: "https://store.noontek.com/my-orders",
     merchant_fail_url: "https://store.noontek.com/error404",
     user_name: body.userInfo.name,
@@ -32,7 +36,7 @@ const PaymentService = async (order, body) => {
     user_phone: body.userInfo.phoneNumber,
     debug_on: true,
     client_lang: "en",
-    payment_type: "card",
+    payment_type,
     non_3d: "0",
     card_type: "",
     installment_count: "0",
@@ -41,7 +45,7 @@ const PaymentService = async (order, body) => {
 
   const hash_str = `${merchant_id}${body.ipAddress}${order._id.toString()}${
     body.userInfo.email
-  }${order.totalOrderPrice * 100}card0TL10`;
+  }${order.totalOrderPrice * 100}${payment_type}0${currency}1${test_mode}`;
 
   const paytr_token = hash_str + merchant_salt;
   const token = crypto

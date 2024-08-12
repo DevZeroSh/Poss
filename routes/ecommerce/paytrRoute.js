@@ -75,6 +75,7 @@ paytrRouter.post("/paytr-token", async (req, res) => {
     debug_on,
     lang,
     paytr_token: token,
+    payment_type: "card",
   };
 
   try {
@@ -100,12 +101,6 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 
 paytrRouter.post("/callback", (req, res) => {
   const callback = req.body;
-  console.log("\n-------callback-------");
-  console.log(callback);
-  console.log("-------callback end-------\n");
-  console.log("\n-------res-------");
-  console.log(res);
-  console.log("\n-------res end-------");
   // Construct the hash
   const paytr_token =
     callback.merchant_oid +
@@ -127,7 +122,7 @@ paytrRouter.post("/callback", (req, res) => {
   if (callback.status === "success") {
     // Payment successful
     console.log("Payment successful for order:", callback.merchant_oid);
-    // Update your order status in the database
+    //TODO: Update your order status in the database
   } else {
     // Payment failed
     console.log("Payment failed for order:", callback.merchant_oid);
