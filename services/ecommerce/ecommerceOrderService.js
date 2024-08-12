@@ -18,6 +18,10 @@ const { getIP } = require("../../utils/getIP");
 const { stringify } = require("flatted");
 const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
 const orderSchema = require("../../models/orderModel");
+const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
+const financialFundsSchema = require("../../models/financialFundsModel");
+const ReportsSalesSchema = require("../../models/reportsSalesModel");
+const { createProductMovement } = require("../../utils/productMovement");
 // const orderSchema = require("../../models/orderModel");
 
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
@@ -359,9 +363,31 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
   const EcommerceOrderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   const orderModel = db.model("Orders", orderSchema);
   const productModel = db.model("Product", productSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const financialFunds = await FinancialFundsModel.findById({
+    _id: req.body.financialFunds,
+  });
   const { stocks } = req.body;
   const { id } = req.params;
-console.log(stocks)
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+
+  const timeIsoString = formattedDate;
   // Fetch the ecommerce order by ID
   const ecommerceOrder = await EcommerceOrderModel.findById(id);
   if (!ecommerceOrder) {
@@ -370,15 +396,81 @@ console.log(stocks)
 
   // Generate the next order number
   const nextCounter = (await orderModel.countDocuments()) + 1;
-  req.body.orderNumber = nextCounter;
-  req.body.paid = "paid";
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
 
   // Create the new order
-  const createOrder = await orderModel.create(req.body);
+  const createOrder = await orderModel.create({
+    employee: req.user._id,
+    priceExchangeRate: req.body.priceExchangeRate,
+    cartItems: req.body.cartItems,
+    stocks: stocks,
+    returnCartItem: req.body.cartItems,
+    currencyCode: req.body.currency,
+    totalOrderPrice: req.body.totalOrderPrice,
+    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+    taxs: req.body.taxs,
+    price: req.body.price,
+    taxRate: req.body.taxRate,
+    customarId: req.body.customarId,
+    customarName: req.body.customarName,
+    customarEmail: req.body.customarEmail,
+    customarPhone: req.body.customarPhone,
+    customarAddress: req.body.customarAddress,
+    coupon: req.body.coupon,
+    couponCount: req.body.couponCount,
+    couponType: req.body.couponType,
+    type: req.body.type,
+    onefinancialFunds: req.body.financialFunds,
+    paidAt: timeIsoString,
+    counter: "in-" + nextCounter,
+    exchangeRate: req.body.exchangeRate,
+    paid: "paid",
+  });
 
+  const bulkOption = req.body.cartItems
+    .filter((item) => item.type !== "Service")
+    .map((item) => ({
+      updateOne: {
+        filter: { _id: item._id || item.product },
+        update: {
+          $inc: {
+            quantity: -item.quantity,
+            sold: +item.quantity,
+            activeCount: -item.quantity,
+          },
+        },
+      },
+    }));
+
+  await productModel.bulkWrite(bulkOption);
+
+  const reportsSalesPromise = await ReportsSalesModel.create({
+    customer: req.body.customarName,
+    orderId: createOrder._id,
+    date: timeIsoString,
+    fund: req.body.financialFunds,
+    amount: req.body.totalOrderPrice,
+    cartItems: req.body.cartItems,
+    counter: nextCounterReports,
+    paymentType: "Single Fund",
+    employee: req.user._id,
+  });
+
+  financialFunds.fundBalance += req.body.totalOrderPrice;
+  await financialFunds.save();
+  const reportsFinancialFundsPromise = await ReportsFinancialFundsModel.create({
+    date: timeIsoString,
+    amount: req.body.totalOrderPrice,
+    totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+    order: createOrder._id,
+    type: "sales",
+    financialFundId: req.body.financialFunds,
+    financialFundRest: financialFunds.fundBalance,
+    exchangeRate: req.body.exchangeRate,
+  });
   // Prepare bulk write operations for updating stock quantities
   const bulkOptionst2 = [];
-  
+
   for (const item of req.body.cartItems) {
     if (item.product && item.quantity) {
       const product = await productModel.findById(item.product);
@@ -393,6 +485,16 @@ console.log(stocks)
                 },
               },
             });
+            console.log(product);
+
+            await createProductMovement(
+              item.product,
+              product.quantity,
+              item.quantity,
+              "out",
+              "sales",
+              dbName
+            );
           }
         }
       }

@@ -32,7 +32,7 @@ ecommerceOrderRouter
 
 ecommerceOrderRouter
   .route("/convert-ecommers-order/:id")
-  .put(convertEcommersOrderToInvoice);
+  .put(authService.protect, convertEcommersOrderToInvoice);
 
 ecommerceOrderRouter
   .route("/ecommerceOrder/:id")
