@@ -500,7 +500,6 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
                 },
               },
             });
-            console.log(product);
 
             await createProductMovement(
               item.product,

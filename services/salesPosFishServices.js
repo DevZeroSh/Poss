@@ -796,6 +796,7 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
       ActiveProductsValueModel
     ),
   };
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
 
   const financialFundsId = req.body.onefinancialFunds;
   const financialFunds = await models.FinancialFunds.findById(financialFundsId);
@@ -817,7 +818,7 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
 
   req.body.paidAt = formattedDate;
   req.body.employee = req.user._id;
-
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
   try {
     const order = await models.ReturnOrder.create(req.body);
 
@@ -930,6 +931,18 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
       req.user._id
     );
 
+    await ReportsSalesModel.create({
+      customer: req.body.customarName,
+      orderId: order._id,
+      date: new Date().toISOString(),
+      fund: financialFundsId,
+      amount: req.body.totalOrderPrice,
+      cartItems: req.body.cartItems,
+      type: "refund-pos",
+      counter: nextCounterReports,
+      paymentType: "Single Fund",
+      employee: req.user._id,
+    });
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
@@ -1057,7 +1070,18 @@ exports.returnPosSales = asyncHandler(async (req, res, next) => {
         "return",
         req.user._id
       );
-
+      await ReportsSalesModel.create({
+        customer: req.body.customarName,
+        orderId: order._id,
+        date: new Date().toISOString(),
+        fund: financialFundsId,
+        amount: req.body.totalOrderPrice,
+        cartItems: req.body.cartItems,
+        type: "refund-pos",
+        counter: nextCounterReports,
+        paymentType: "Single Fund",
+        employee: req.user._id,
+      });
       res.status(200).json({
         status: "success",
         message: "The product has been returned",
@@ -1211,7 +1235,14 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
       },
       { new: true }
     );
-    await ReportsSalesModel.findOneAndDelete({ orderId: id });
+    await ReportsSalesModel.findOneAndUpdate(
+      { orderId: id },
+      {
+        counter: "Cancel " + canceled.counter,
+        type: "cancel",
+      },
+      { new: true }
+    );
     createInvoiceHistory(dbName, id, "cancel", req.user._id);
     res.status(200).json({
       status: "success",
