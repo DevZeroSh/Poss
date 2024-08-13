@@ -20,9 +20,8 @@ const { createActiveProductsValue } = require("../utils/activeProductsValue");
 const ProductMovementSchema = require("../models/productMovementModel");
 const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
-const customarSchema = require("../models/customarModel");
 const getAllChildCategories = require("../utils/CategoriesChild");
-const stockSchema = require("../models/stockModel");
+const E_user_Schema = require("../models/ecommerce/E_user_Modal");
 
 // @desc Get list product
 // @route Get /api/product
@@ -40,7 +39,7 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
   db.model("Review", reviewSchema);
-  db.model("Customar", customarSchema);
+  db.model("Users", E_user_Schema);
   const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
@@ -499,7 +498,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     db.model("Variant", variantSchema);
     db.model("Currency", currencySchema);
     db.model("Review", reviewSchema);
-    db.model("Customar", customarSchema);
+    db.model("Users", E_user_Schema);
 
     const { id } = req.params;
 

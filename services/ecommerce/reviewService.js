@@ -11,6 +11,7 @@ const UnitSchema = require("../../models/UnitsModel");
 const variantSchema = require("../../models/variantsModel");
 const currencySchema = require("../../models/currencyModel");
 const E_user_Schema = require("../../models/ecommerce/E_user_Modal");
+const ApiError = require("../../utils/apiError");
 
 //@desc Get list of reviews
 //@route GEt /api/review
@@ -128,4 +129,45 @@ exports.deleteReview = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No Brand found for id ${req.params.id}`, 404));
   }
   res.status(200).json({ status: "success", message: "review Deleted" });
+});
+
+exports.getReviewsByProduct = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const reviewModel = db.model("Review", reviewSchema);
+  db.model("Users", E_user_Schema);
+
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = parseInt(req.query.skip) || 0;
+  const { id } = req.params;
+
+  // Fetch the total number of reviews for this product
+  const totalItems = await reviewModel.countDocuments({ product: id });
+
+  // Calculate the total number of pages
+  const totalPages = Math.ceil(totalItems / limit);
+
+  // Fetch the reviews with pagination
+  const reviews = await reviewModel
+    .find({ product: id })
+    .skip(skip)
+    .limit(limit);
+
+  if (!reviews || reviews.length === 0) {
+    return next(ApiError(`No reviews found for product ID ${id}`, 404));
+  }
+
+  // Return the paginated results along with pagination info
+  res.status(200).json({
+    status: "success",
+    results: reviews.length,
+    data: reviews,
+    pagination: {
+      currentPage: Math.floor(skip / limit) + 1,
+      totalPages,
+      totalItems,
+      limit,
+    },
+  });
 });
