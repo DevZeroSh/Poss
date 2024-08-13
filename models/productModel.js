@@ -31,33 +31,33 @@ const productSchema = new mongoose.Schema(
     shortDescription: {
       type: String,
       default: "Product short description",
-      maxlength: [200, "Too long product English short description"],
+      maxlength: [500, "Too long product English short description"],
       default: " short Description AR",
     },
     shortDescriptionAR: {
       type: String,
-      maxlength: [200, "Too long product Arabic short description"],
+      maxlength: [500, "Too long product Arabic short description"],
       default: " short Description AR",
     },
     shortDescriptionTR: {
       type: String,
-      maxlength: [200, "Too long product Turkish short description"],
+      maxlength: [500, "Too long product Turkish short description"],
       default: " short Description TR",
     },
     description: {
       type: String,
       default: "Product description",
-      maxlength: [500, "Too long product English long description"],
+      maxlength: [5000, "Too long product English long description"],
       default: "Product description AR",
     },
     descriptionAR: {
       type: String,
-      maxlength: [500, "Too long product Arabic long description"],
+      maxlength: [5000, "Too long product Arabic long description"],
       default: "Product description AR",
     },
     descriptionTR: {
       type: String,
-      maxlength: [500, "Too long product Turkish long description"],
+      maxlength: [5000, "Too long product Turkish long description"],
       default: "Product description TR",
     },
     sold: {
