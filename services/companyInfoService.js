@@ -283,8 +283,8 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const dashboardRoleIds = mainDashboardRoles.map((role) => role._id);
     const posRoleIds = mainPosRoles.map((role) => role._id);
     const insertMainRole = await rolesModel.create({
-      name: "The owner", // Replace with the actual role name
-      description: "Role Description", // Replace with the actual role description
+      name: "The owner", 
+      description: "Role Description",
       rolesDashboard: dashboardRoleIds,
       rolesPos: posRoleIds,
     });

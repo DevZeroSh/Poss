@@ -5,9 +5,12 @@ const customarSchema = require("../models/customarModel");
 const { Search } = require("../utils/search");
 const bcrypt = require("bcrypt");
 const createToken = require("../utils/createToken");
-const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
+const {
+  createPaymentHistory,
+  editPaymentHistory,
+} = require("./paymentHistoryService");
 const orderSchema = require("../models/orderModel");
-const orderFishSchema = require("../models/orderModelFish");
+
 //Create New Customar
 //@rol: Who has rol can create
 exports.createCustomar = asyncHandler(async (req, res, next) => {
@@ -15,11 +18,9 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
   const orderModel = db.model("Orders", orderSchema);
-  const orderFishModel = db.model("OrdersNumber", orderFishSchema);
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
-
   let ts = Date.now();
   let date_ob = new Date(ts);
   let date = padZero(date_ob.getDate());
@@ -50,6 +51,8 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
     req.body.email = `email@email.email${nextCounter}`;
   }
   req.body.openingBalance = req.body.TotalUnpaid;
+  req.body.code = 112000;
+  req.body.code += nextCounter;
   const customar = await customersModel.create(req.body);
 
   const openingBalance = await createPaymentHistory(
@@ -64,11 +67,10 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   );
   customar.openingBalanceId = openingBalance._id;
 
+
   if (openingBalance.rest !== 0) {
+    const nextCounterPromise = (await orderModel.countDocuments()) + 1;
 
-
-    const nextCounterPromise = (await orderModel.countDocuments()) + 1
-    console.log(nextCounterPromise)
     await orderModel.create({
       employee: req.user._id,
       totalOrderPrice: req.body.TotalUnpaid,
@@ -87,8 +89,7 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
       paid: "unpaid",
       openingBalanceId: customar.openingBalanceId,
       date,
-    })
-
+    });
   }
   await customar.save();
   res
@@ -139,35 +140,52 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
 
   const customar = await customersModel.findById(id);
 
-
   if (!customar) {
     return next(new ApiError(`There is no customar with this id ${id}`, 404));
   } else {
-    const amountBalance = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    const amountBalance =
+      parseFloat(customar.total) +
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
     await editPaymentHistory(
       dbName,
       customar.openingBalanceId,
       req.body.openingBalance,
       req.body.date,
       amountBalance
-    )
+    );
 
-    req.body.TotalUnpaid = parseFloat(customar.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
-    req.body.total = parseFloat(customar.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
-    const updatedCustomar = await customersModel.findByIdAndUpdate(id, req.body, {
-      new: true,
+    req.body.TotalUnpaid =
+      parseFloat(customar.TotalUnpaid) +
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
+    req.body.total =
+      parseFloat(customar.total) +
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
+    const updatedCustomar = await customersModel.findByIdAndUpdate(
+      id,
+      req.body,
+      {
+        new: true,
+      }
+    );
+    const order = await orderModel.findOne({
+      openingBalanceId: customar.openingBalanceId,
     });
-    const order = await orderModel.findOne({ openingBalanceId: customar.openingBalanceId });
-    const amountBalance2 = parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
+    const amountBalance2 =
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
     order.totalRemainderMainCurrency += amountBalance2;
     order.priceExchangeRate += amountBalance2;
     order.totalOrderPrice += amountBalance2;
     order.totalRemainder += amountBalance2;
-    await order.save()
-    res
-      .status(200)
-      .json({ status: "true", message: "Customar updated", data: updatedCustomar });
-
+    await order.save();
+    res.status(200).json({
+      status: "true",
+      message: "Customar updated",
+      data: updatedCustomar,
+    });
   }
 });
 

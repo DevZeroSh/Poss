@@ -77,8 +77,13 @@ const customarSchema = new mongoose.Schema(
         firstName: String,
         lastName: String,
       },
-    ],   
+    ],
     uesrid: String,
+    parentAccountCode: {
+      type: String,
+      default: 112,
+    },
+    code: { type: String, unique: true, require: true },
   },
   { timestamps: true }
 );

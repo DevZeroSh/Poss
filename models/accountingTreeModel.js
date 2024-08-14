@@ -1,0 +1,16 @@
+const mongoose = require("mongoose");
+
+const AccountingTreeSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  code: { type: String, required: true, unique: true },
+
+  parentCode: {
+    type: String,
+    default: null,
+  },
+});
+
+module.exports = AccountingTreeSchema;
