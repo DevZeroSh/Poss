@@ -349,7 +349,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
       },
       {
         $lookup: {
-          from: "taxes",           
+          from: "taxes",
           localField: "tax",
           foreignField: "_id",
           as: "tax",
@@ -506,7 +506,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     const [product, movements] = await Promise.all([
       productModel
         .findById(id)
-        .populate({ path: "alternateProducts", select: "name image" })
+        .populate({ path: "alternateProducts" })
         .populate({ path: "category" })
         .populate({ path: "brand", select: "name _id" })
         .populate({ path: "variant", select: "variant _id" })
