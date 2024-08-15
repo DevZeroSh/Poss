@@ -1167,7 +1167,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
     paidAt: {
       $gte: specificDateString,
     },
-    type: 'cancel'
+    type: 'pos'
   });
   console.log(orders);
   const cartItems = [];
