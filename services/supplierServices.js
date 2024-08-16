@@ -10,7 +10,10 @@ const TaxSchema = require("../models/taxModel");
 const UnitSchema = require("../models/UnitsModel");
 const variantSchema = require("../models/variantsModel");
 const currencySchema = require("../models/currencyModel");
-const { createPaymentHistory, editPaymentHistory } = require("./paymentHistoryService");
+const {
+  createPaymentHistory,
+  editPaymentHistory,
+} = require("./paymentHistoryService");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
 
 //Create New Supplier
@@ -49,8 +52,11 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  req.body.openingBalance = req.body.TotalUnpaid;
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
 
+  req.body.code = 211000;
+  req.body.code += nextCounter;
+  req.body.openingBalance = req.body.TotalUnpaid;
   const supplier = await supplierModel.create(req.body);
   const openingBalance = await createPaymentHistory(
     "Opening balance",
@@ -61,11 +67,10 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     supplier.id,
     "",
     dbName
-    
   );
-  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
 
   supplier.openingBalanceId = openingBalance._id;
+
   await PurchaseInvoicesModel.create({
     paidAt: formattedDate,
     suppliers: supplier.id,
@@ -84,8 +89,8 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     totalRemainder: req.body.TotalUnpaid,
     totalRemainderMainCurrency: req.body.TotalUnpaid,
     paid: "unpaid",
-  })
-  supplier.save()
+  });
+  supplier.save();
   res
     .status(201)
     .json({ status: "true", message: "Supplier Inserted", data: supplier });
@@ -129,7 +134,6 @@ exports.getSupplier = asyncHandler(async (req, res, next) => {
   }
 
   res.status(200).json({ status: "true", data: supplier });
-
 });
 
 //Update one Supplier
@@ -140,25 +144,36 @@ exports.updataSupplier = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
 
-  const supplier = await supplierModel.findById(id,);
+  const supplier = await supplierModel.findById(id);
   if (!supplier) {
     return next(new ApiError(`There is no supplier with this id ${id}`, 404));
   } else {
-
     await editPaymentHistory(
       dbName,
       supplier.openingBalanceId,
       req.body.openingBalance,
       req.body.date
-    )
-    req.body.TotalUnpaid = parseFloat(supplier.TotalUnpaid) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
-    req.body.total = parseFloat(supplier.total) + parseFloat(req.body.openingBalance) - parseFloat(req.body.openingBalanceBefor);
-    const updatedSupplier = await supplierModel.findByIdAndUpdate(id, req.body, {
-      new: true,
+    );
+    req.body.TotalUnpaid =
+      parseFloat(supplier.TotalUnpaid) +
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
+    req.body.total =
+      parseFloat(supplier.total) +
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
+    const updatedSupplier = await supplierModel.findByIdAndUpdate(
+      id,
+      req.body,
+      {
+        new: true,
+      }
+    );
+    res.status(200).json({
+      status: "true",
+      message: "Supplier updated",
+      data: updatedSupplier,
     });
-    res
-      .status(200)
-      .json({ status: "true", message: "Supplier updated", data: updatedSupplier });
   }
 });
 

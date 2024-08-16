@@ -5,8 +5,11 @@ const assetsSchema = new mongoose.Schema({
   code: { type: String, require: true },
   parentAccountCode: {
     type: String,
-    default: 121,
+    default: 1210,
   },
+  type: { type: String, enum: ["building", "furniture", "cars"] },
+  code: { type: String, unique: true, require: true },
+
 });
 
 module.exports = assetsSchema;
