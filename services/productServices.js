@@ -1112,3 +1112,160 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
     data: product,
   });
 });
+
+// @desc Update the product to be featured
+// @route PUT /api/featureProduct
+// @access private
+exports.setEcommerceProductFeatured = async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const { productIds, categoryId, brandId, featured = true } = req.body;
+    console.log(productIds);
+
+    let updatedProducts;
+
+    if (categoryId) {
+      // Fetch all child categories for the given categoryId
+      const allCategories = await getAllChildCategories(
+        categoryId,
+        db,
+        categorySchema
+      );
+
+      // Update products by category
+      updatedProducts = await productModel.updateMany(
+        { category: { $in: allCategories } },
+        { $set: { featured } }
+      );
+
+      if (updatedProducts.matchedCount === 0) {
+        console.log("No products found for the given category ID.");
+      }
+    } else if (brandId) {
+      updatedProducts = await productModel.updateMany(
+        { brand: { $in: brandId } },
+        { $set: { featured } }
+      );
+    } else {
+      // Update products matching the given productIds
+      updatedProducts = await Promise.all(
+        productIds.map(async (productId) => {
+          const product = await productModel.findByIdAndUpdate(
+            productId,
+            { featured },
+            { new: true }
+          );
+
+          if (!product) {
+            throw new Error(`Product with productId ${productId} not found.`);
+          }
+
+          return product;
+        })
+      );
+    }
+
+    res.status(200).json({ success: true, data: updatedProducts });
+  } catch (error) {
+    console.error("Error featuring product:", error.message);
+    res.status(500).json({ error });
+  }
+};
+
+// @desc Update the product to be featured
+// @route GET /api/getFeatureProduct
+// @access private
+exports.getEcommerceProductFeatured = async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const product = await productModel.find({ featured: true });
+
+    res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc Update the product to be sponsored
+// @route PUT /api/sponsorProduct
+// @access private
+exports.setEcommerceProductSponsored = async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const { productIds, brandId, categoryId, sponsored = true } = req.body;
+    let updatedProducts;
+    console.log(productIds);
+
+    if (categoryId) {
+      // Fetch all child categories for the given categoryId
+      const allCategories = await getAllChildCategories(
+        categoryId,
+        db,
+        categorySchema
+      );
+
+      // Update products by category
+      updatedProducts = await productModel.updateMany(
+        { category: { $in: allCategories } },
+        { $set: { sponsored } }
+      );
+
+      if (updatedProducts.matchedCount === 0) {
+        console.log("No products found for the given category ID.");
+      }
+    } else if (brandId) {
+      updatedProducts = await productModel.updateMany(
+        { brand: { $in: brandId } },
+        { $set: { sponsored } }
+      );
+    } else {
+      // Update products matching the given productIds
+      updatedProducts = await Promise.all(
+        productIds.map(async (productId) => {
+          const product = await productModel.findByIdAndUpdate(
+            productId,
+            { sponsored },
+            { new: true }
+          );
+
+          if (!product) {
+            throw new Error(`Product with productId ${productId} not found.`);
+          }
+
+          return product;
+        })
+      );
+    }
+
+    res.status(200).json({ success: true, data: updatedProducts });
+  } catch (error) {
+    console.error("Error sponsoring product:", error.message);
+    res.status(500).json({ error });
+  }
+};
+
+// @desc Update the product to be sponsored
+// @route GET /api/sponsorProduct
+// @access private
+exports.getEcommerceProductSponsored = async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const product = await productModel.find({ sponsored: true });
+
+    res.status(200).json({ success: true, data: product });
+  } catch (error) {
+    next(error);
+  }
+};

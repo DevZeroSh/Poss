@@ -15,6 +15,10 @@ const {
   setEcommerceProductPublish,
   updateEcommerceProductDeActive,
   ecommerceActiveProudct,
+  setEcommerceProductFeatured,
+  setEcommerceProductSponsored,
+  getEcommerceProductSponsored,
+  getEcommerceProductFeatured,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -57,6 +61,16 @@ productRout
 productRout
   .route("/publish")
   .put(authService.protect, setEcommerceProductPublish);
+
+productRout
+  .route("/featureProduct")
+  .put(authService.protect, setEcommerceProductFeatured)
+  .get(getEcommerceProductFeatured);
+
+productRout
+  .route("/sponsorProduct")
+  .put(authService.protect, setEcommerceProductSponsored)
+  .get(getEcommerceProductSponsored);
 
 productRout
   .route("/:id")

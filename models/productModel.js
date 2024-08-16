@@ -182,6 +182,8 @@ const productSchema = new mongoose.Schema(
     ],
     ecommerceActive: { type: Boolean, default: false },
     publish: { type: Boolean, default: false },
+    featured: { type: Boolean, default: false },
+    sponsored: { type: Boolean, default: false },
     height: {
       type: Number,
       default: 0,
