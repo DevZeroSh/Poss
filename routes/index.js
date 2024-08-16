@@ -92,8 +92,8 @@ const mountRoutes = (app) => {
   app.use("/api/quotation", quotationRouter);
   app.use("/api/sales-pos", SalesPosRout);
   app.use("/api/sales-pos", SalesPosRout);
-  app.use("/api/accounting-tree", accountingTreeRout);
-  app.use("/api/assets", assetsRout);
+  // app.use("/api/accounting-tree", accountingTreeRout);
+  // app.use("/api/assets", assetsRout);
 
   //Ecommerce routes
   app.use("/api/users", E_userRoute);
