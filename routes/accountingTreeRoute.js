@@ -2,7 +2,7 @@ const express = require("express");
 const {
   getAccountingTree,
   createAccountingTree,
-} = require("../services/AccountingTreeServices");
+} = require("../services/accountingTreeServices");
 
 const accountingTreeRout = express.Router();
 
