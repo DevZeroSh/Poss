@@ -53,9 +53,10 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     PurchaseInvoicesSchema
   );
   const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
+  const supplierNextCounter = (await supplierModel.countDocuments()) + 1;
 
   req.body.code = 211000;
-  req.body.code += nextCounter;
+  req.body.code += supplierNextCounter;
   req.body.openingBalance = req.body.TotalUnpaid;
   const supplier = await supplierModel.create(req.body);
   const openingBalance = await createPaymentHistory(

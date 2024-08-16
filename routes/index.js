@@ -50,6 +50,7 @@ const SalesPosRout = require("./salesPosRoute");
 const thirdPartyRoute = require("./ecommerce/thirdPartyAuthRoute");
 const accountingTreeRout = require("./accountingTreeRoute");
 const assetsRout = require("./assetsRoute");
+const purchaseOrderRouter = require("./purchaseOrderRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -94,6 +95,7 @@ const mountRoutes = (app) => {
   app.use("/api/sales-pos", SalesPosRout);
   app.use("/api/accounting-tree", accountingTreeRout);
   app.use("/api/assets", assetsRout);
+  app.use("/api/purchaseorder", purchaseOrderRouter);
 
   //Ecommerce routes
   app.use("/api/users", E_userRoute);
