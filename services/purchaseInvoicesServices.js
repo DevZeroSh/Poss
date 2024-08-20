@@ -223,7 +223,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
         createProductMovement(
           product._id,
-          product.quantity + item.quantity,
+          product.quantity ,
           item.quantity,
           "in",
           "purchase",
@@ -285,17 +285,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     // Respond with the created invoice
     await financialFund.save();
 
-    invoiceItems.map(async (item) => {
-      const { quantity } = await productModel.findOne({ qr: item.qr });
-      createProductMovement(
-        item.product,
-        quantity,
-        item.quantity,
-        "in",
-        "purchase",
-        dbName
-      );
-    });
+
 
     try {
       const ActiveProductsValue = db.model(
