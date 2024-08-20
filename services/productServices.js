@@ -274,6 +274,33 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
       return next(new Error("Invalid brand ID format"));
     }
   }
+  if (req.body.id) {
+    let brandIds;
+
+    // Check if brandId is an array or a string
+    if (Array.isArray(req.body.id)) {
+      brandIds = req.body.id.map((id) => new mongoose.Types.ObjectId(id));
+    } else if (typeof req.body.id === "string") {
+      brandIds = req.body.idj
+        .split(",")
+        .map((id) => new mongoose.Types.ObjectId(id));
+    } else {
+      return next(new Error("Invalid brand ID format"));
+    }
+
+    query.brand = { $in: brandIds };
+  }
+  if (req.body.minAvg || req.body.maxAvg) {
+    query.ratingsAverage = {};
+
+    if (req.body.minAvg) {
+      query.ratingsAverage.$gte = parseFloat(req.body.minAvg);
+    }
+
+    if (req.body.maxAvg) {
+      query.ratingsAverage.$lte = parseFloat(req.body.maxAvg);
+    }
+  }
 
   // Tax price range filtering
   if (req.query.taxPriceMin || req.query.taxPriceMax) {
@@ -420,7 +447,12 @@ const createProductHandler = async (dbName, productData) => {
   try {
     // Connect to the appropriate database
     const db = mongoose.connection.useDb(dbName);
+    const currencyModel = db.model("Currency", currencySchema);
 
+    const ActiveProductsValue = db.model(
+      "ActiveProductsValue",
+      ActiveProductsValueModel
+    );
     // Define product model
     const productModel = db.model("Product", productSchema);
 
@@ -434,6 +466,18 @@ const createProductHandler = async (dbName, productData) => {
 
     // Create the product in the database
     const product = await productModel.create(productData);
+    const productValue = product.activeCount * product.buyingprice;
+    const currency = await currencyModel.findById(product.currency);
+    createActiveProductsValue(
+      product.activeCount,
+      productValue,
+      currency._id,
+      dbName
+    )
+      .then((savedData) => {})
+      .catch((error) => {
+        console.log(error);
+      });
 
     return product;
   } catch (error) {
