@@ -10,8 +10,8 @@ const purchaseOrderRouter = express.Router();
 // Create a new purchaseOrder / Get all purchaseOrders
 purchaseOrderRouter
   .route("/")
-  .post(getAllPurchaseOrder)
-  .get(createCashPurchaseOrder);
+  .post(createCashPurchaseOrder)
+  .get(getAllPurchaseOrder);
 
 // Get / update / delete a specific purchaseOrder by ID
 purchaseOrderRouter.route("/:id").get(getPurchaseOrderById);

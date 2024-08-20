@@ -47,7 +47,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const stockModel = db.model("Stock", stockSchema);
+  db.model("Stock", stockSchema);
   const stocks = req.body.stocks;
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -184,11 +184,11 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     bulkOption = invoiceItems.map((item) => ({
       updateOne: {
-        filter: { _id: item.product },
+        filter: { qr: item.qr },
         update: {
           $inc: { quantity: +item.quantity, activeCount: +item.quantity },
           $set: {
-            serialNumber: item.serialNumber,
+            // serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,
             tax: item.taxId,
             price: item.price,
@@ -199,35 +199,41 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     }));
     await productModel.bulkWrite(bulkOption, {});
 
-    const supplier = await suppl.findById(suppliersId);
+    const invoiceProcessingPromises = invoiceItems.map(async (item) => {
+      const product = await productModel.findOne({ qr: item.qr });
 
-    await Promise.all(
-      invoiceItems
-        .filter((item) => item.product && item.quantity)
-        .map(async (item) => {
-          const product = await productModel.findById(item.product);
-          if (product) {
-            const updateOperations = stocks
-              .filter((stock) => stock.product === item.product)
-              .map((stock) => ({
-                updateOne: {
-                  filter: { _id: product._id, "stocks.stockId": stock.stockId },
-                  update: {
-                    $inc: {
-                      "stocks.$.productQuantity": +item.quantity,
-                    },
-                  },
+      if (product) {
+        const updateOperations = stocks
+          .filter((stock) => stock.product === item.product)
+          .map((stock) => ({
+            updateOne: {
+              filter: { _id: product._id, "stocks.stockId": stock.stockId },
+              update: {
+                $inc: {
+                  "stocks.$.productQuantity": +item.quantity,
                 },
-              }));
+              },
+            },
+          }));
 
-            // Execute the bulk write operation for each product
-            if (updateOperations.length > 0) {
-              await productModel.bulkWrite(updateOperations);
-            }
-          }
-        })
-    );
+        // Execute the bulk write operation for each product
+        if (updateOperations.length > 0) {
+          await productModel.bulkWrite(updateOperations);
+        }
 
+        createProductMovement(
+          product._id,
+          product.quantity + item.quantity,
+          item.quantity,
+          "in",
+          "purchase",
+          dbName
+        );
+      }
+    });
+
+    await Promise.all(invoiceProcessingPromises);
+    const supplier = await suppl.findById(suppliersId);
     // Loop through each item in the invoiceItems array
     invoiceItems.forEach((newInvoiceItem) => {
       const existingProductIndex = supplier.products.findIndex(
@@ -308,7 +314,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
               currencyTotals[currencyId] = { totalCount: 0, totalValue: 0 };
             }
             currencyTotals[currencyId].totalValue +=
-              item.buyingpriceOringal * item.quantity;
+              item.buyingpriceOringal || item.buyingprice * item.quantity;
             currencyTotals[currencyId].totalCount += item.quantity;
           } else {
             console.warn(`Product with QR ${item.qr} not found.`);
@@ -405,11 +411,11 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
     bulkOption = invoiceItems.map((item) => ({
       updateOne: {
-        filter: { _id: item.product },
+        filter: { qr: item.qr },
         update: {
-          $inc: { quantity: item.quantity, activeCount: +item.quantity },
+          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
           $set: {
-            serialNumber: item.serialNumber,
+            // serialNumber: item.serialNumber,
             buyingprice: item.buyingpriceOringal,
             tax: item.taxId,
             price: item.price,
@@ -418,7 +424,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         },
       },
     }));
-
+    await productModel.bulkWrite(bulkOption, {});
     await supplier.save();
 
     invoiceItems.forEach((newInvoiceItem) => {
@@ -453,49 +459,42 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
 
     try {
-      await Promise.all(
-        invoiceItems
-          .filter((item) => item.product && item.quantity)
-          .map(async (item) => {
-            const product = await productModel.findById(item.product);
-            if (product) {
-              const updateOperations = stocks
-                .filter((stock) => stock.product === item.product)
-                .map((stock) => ({
-                  updateOne: {
-                    filter: {
-                      _id: product._id,
-                      "stocks.stockId": stock.stockId,
-                    },
-                    update: {
-                      $inc: {
-                        "stocks.$.productQuantity": +item.quantity,
-                      },
-                    },
+      const invoiceProcessingPromises = invoiceItems.map(async (item) => {
+        const product = await productModel.findOne({ qr: item.qr });
+  
+        if (product) {
+          const updateOperations = stocks
+            .filter((stock) => stock.product === item.product)
+            .map((stock) => ({
+              updateOne: {
+                filter: { _id: product._id, "stocks.stockId": stock.stockId },
+                update: {
+                  $inc: {
+                    "stocks.$.productQuantity": +item.quantity,
                   },
-                }));
-
-              // Execute the bulk write operation for each product
-              if (updateOperations.length > 0) {
-                await productModel.bulkWrite(updateOperations);
-              }
-            }
-          })
-      );
+                },
+              },
+            }));
+  
+          // Execute the bulk write operation for each product
+          if (updateOperations.length > 0) {
+            await productModel.bulkWrite(updateOperations);
+          }
+  
+          createProductMovement(
+            product._id,
+            product.quantity + item.quantity,
+            item.quantity,
+            "in",
+            "purchase",
+            dbName
+          );
+        }
+      });
+  
+      await Promise.all(invoiceProcessingPromises);
 
       const savedInvoice = await newPurchaseInvoice.save();
-
-      invoiceItems.map(async (item) => {
-        const { quantity } = await productModel.findOne({ qr: item.qr });
-        createProductMovement(
-          item.product,
-          quantity,
-          item.quantity,
-          "in",
-          "purchase",
-          dbName
-        );
-      });
 
       const ActiveProductsValue = db.model(
         "ActiveProductsValue",
@@ -504,9 +503,14 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       const existingRecord = await ActiveProductsValue.findOne();
       let totalCount = 0;
       let totalValue = 0;
+
       newPurchaseInvoice.invoices.map((item) => {
-        totalValue += Number(item.totalPrice) * item.currency;
+        totalValue +=
+          (Number(item.totalPrice) || item.totalTax) * item.currency;
         totalCount += item.quantity;
+        console.log(item.totalTax)
+        console.log(item.totalPrice)
+        console.log(item)
       });
 
       if (existingRecord) {
