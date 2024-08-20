@@ -24,6 +24,7 @@ exports.createCashQuotation = asyncHandler(async (req, res, next) => {
     startDate,
     endDate,
     description,
+    shippingPrice,
   } = req.body;
 
   const nextCounter = (await quotationModel.countDocuments()) + 1;
@@ -40,6 +41,7 @@ exports.createCashQuotation = asyncHandler(async (req, res, next) => {
     endDate,
     description,
     counter: "QT " + nextCounter,
+    shippingPrice,
   });
 
   res.status(201).json({ status: "success", data: quotation });
@@ -51,8 +53,24 @@ exports.getAllQuotations = asyncHandler(async (req, res, next) => {
 
   const quotationModel = db.model("Quotations", quotationSchema);
 
-  const quotations = await quotationModel.find();
-  res.status(200).json({ status: "success", data: quotations });
+  const pageSize = 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  let mongooseQuery = quotationModel.find().sort({ createdAt: -1 });
+
+  const totalItems = await quotationModel.countDocuments();
+  const totalPages = Math.ceil(totalItems / pageSize);
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+
+  const quotations = await mongooseQuery;
+
+  res.status(200).json({
+    status: "success",
+    pages: totalPages,
+    results: quotations.length,
+    data: quotations,
+  });
 });
 
 exports.getQuotationById = asyncHandler(async (req, res, next) => {

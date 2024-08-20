@@ -123,6 +123,7 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     openingBalanceId: String,
+    shippingPrice: { type: String, default: "" },
   },
 
   { timestamps: true }

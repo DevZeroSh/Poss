@@ -5,6 +5,7 @@ const quotationSchema = new mongoose.Schema(
     cartItems: [
       {
         product: { type: String, ref: "Product" },
+        productDesc: { type: String, default: "" },
         quantity: { type: Number },
         price: { type: Number },
         name: { type: String },
@@ -30,6 +31,7 @@ const quotationSchema = new mongoose.Schema(
     startDate: { type: Date },
     endDate: { type: Date },
     description: { type: String, default: "" },
+    shippingPrice: { type: String, default: "" },
     counter: { type: String, default: 0 },
   },
   { timestamps: true }

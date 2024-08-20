@@ -85,6 +85,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     customarId,
     description,
     date,
+    shippingPrice,
   } = req.body;
   const timeIsoString = new Date().toISOString();
 
@@ -147,6 +148,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       exchangeRate: exchangeRate,
       paid: paid,
       description,
+      shippingPrice,
       date,
     });
 
@@ -452,64 +454,64 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-// // @desc    Get All order
-// // @route   GET /api/orders/cartId
-// // @access  privet/All
-// exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
-//   const dbName = req.query.databaseName;
-//   const db = mongoose.connection.useDb(dbName);
+// @desc    Get All order
+// @route   GET /api/orders/cartId
+// @access  privet/All
+/*exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
 
-//   const orderModel = db.model("Orders", orderSchema);
-//   db.model("Employee", emoloyeeShcema);
-//   db.model("Product", productSchema);
-//   db.model("FinancialFunds", financialFundsSchema);
-//   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
 
-//   const pageSize = 10;
-//   const page = parseInt(req.query.page) || 1;
-//   const skip = (page - 1) * pageSize;
+  const pageSize = 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
 
-//   // Initialize the base query to exclude type "pos"
-//   let query = { type: "pos" };
+  // Initialize the base query to exclude type "pos"
+  let query = { type: "pos" };
 
-//   // Add keyword filter if provided
-//   if (req.query.keyword) {
-//     query = {
-//       $and: [
-//         query,
-//         {
-//           $or: [{ counter: req.query.keyword }],
-//         },
-//       ],
-//     };
-//   }
+  // Add keyword filter if provided
+  if (req.query.keyword) {
+    query = {
+      $and: [
+        query,
+        {
+          $or: [{ counter: req.query.keyword }],
+        },
+      ],
+    };
+  }
 
-//   let mongooseQuery = orderModel.find(query);
+  let mongooseQuery = orderModel.find(query);
 
-//   // Apply sorting
-//   mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+  // Apply sorting
+  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
 
-//   // Count total items without pagination
-//   const totalItems = await orderModel.countDocuments(query);
+  // Count total items without pagination
+  const totalItems = await orderModel.countDocuments(query);
 
-//   // Calculate total pages
-//   const totalPages = Math.ceil(totalItems / pageSize);
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
 
-//   // Apply pagination
-//   mongooseQuery = mongooseQuery
-//     .skip(skip)
-//     .limit(pageSize)
-//     .populate({ path: "employee" });
+  // Apply pagination
+  mongooseQuery = mongooseQuery
+    .skip(skip)
+    .limit(pageSize)
+    .populate({ path: "employee" });
 
-//   const order = await mongooseQuery;
+  const order = await mongooseQuery;
 
-//   res.status(200).json({
-//     status: "true",
-//     Pages: totalPages,
-//     results: order.length,
-//     data: order,
-//   });
-// });
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    results: order.length,
+    data: order,
+  });
+});*/
 
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -1167,7 +1169,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
     paidAt: {
       $gte: specificDateString,
     },
-    type: 'pos'
+    type: "pos",
   });
   console.log(orders);
   const cartItems = [];
