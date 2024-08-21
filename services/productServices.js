@@ -1059,7 +1059,7 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
   db.model("Review", reviewSchema);
-
+  db.model("Category", categorySchema);
   const zeroQuantityCount = await productModel.countDocuments({ quantity: 0 });
 
   const ecommerceActiveCount = await productModel.countDocuments({
