@@ -19,6 +19,7 @@ const {
   setEcommerceProductSponsored,
   getEcommerceProductSponsored,
   getEcommerceProductFeatured,
+  ecommerceDashboardStats,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -53,6 +54,7 @@ productRout
   .put(authService.protect, updateEcommerceProducts);
 
 productRout.route("/ecommerce-active-product").get(ecommerceActiveProudct);
+productRout.route("/ecommerce-dashboard-stats").get(ecommerceDashboardStats);
 
 productRout
   .route("/deactive/:id")

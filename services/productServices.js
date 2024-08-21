@@ -22,6 +22,7 @@ const ActiveProductsValueModel = require("../models/activeProductsValueModel");
 const reviewSchema = require("../models/ecommerce/reviewModel");
 const getAllChildCategories = require("../utils/CategoriesChild");
 const E_user_Schema = require("../models/ecommerce/E_user_Modal");
+const ecommerceOrderSchema = require("../models/ecommerce/ecommerceOrderModel");
 
 // @desc Get list product
 // @route Get /api/product
@@ -1009,9 +1010,8 @@ exports.deActiveProductQuantity = asyncHandler(async (req, res) => {
 });
 
 // @desc Get Ecommerc Active Product
-// @route get /api/product/ecommerce-active-product
+// @route GET /api/product/ecommerce-active-product
 // @access private
-
 exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -1046,6 +1046,40 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
     results: product.length,
     Pages: totalPages,
     data: product,
+  });
+});
+
+// @desc Get Ecommerce dashboard stats
+// @route GET /api/product/ecommerce-dashboard-stats
+// @access private
+exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+
+  const zeroQuantityCount = await productModel.countDocuments({ quantity: 0 });
+
+  const ecommerceActiveCount = await productModel.countDocuments({
+    ecommerceActive: true,
+  });
+
+  const ecommerceInactiveCount = await productModel.countDocuments({
+    ecommerceActive: false,
+  });
+
+  const publishedCount = await productModel.countDocuments({ publish: true });
+
+  const totalOrderCount = await orderModel.countDocuments();
+
+  res.status(200).json({
+    status: "true",
+    zeroQuantityCount,
+    ecommerceActiveCount,
+    ecommerceInactiveCount,
+    publishedCount,
+    totalOrderCount,
   });
 });
 
