@@ -1058,8 +1058,14 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
 
   const productModel = db.model("Product", productSchema);
   const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-  db.model("Review", reviewSchema);
   db.model("Category", categorySchema);
+  db.model("brand", brandSchema);
+  db.model("Labels", labelsSchema);
+  db.model("Tax", TaxSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Variant", variantSchema);
+  db.model("Currency", currencySchema);
+
   const zeroQuantityCount = await productModel.countDocuments({ quantity: 0 });
 
   const ecommerceActiveCount = await productModel.countDocuments({
