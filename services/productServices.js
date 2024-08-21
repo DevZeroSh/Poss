@@ -274,30 +274,28 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
       return next(new Error("Invalid brand ID format"));
     }
   }
-  if (req.body.brandId) {
+  if (req.query.brandId) {
     let brandIds;
-    // Check if brandId is an array or a string
-    if (Array.isArray(req.body.brandId)) {
-      brandIds = req.body.brandId.map((id) => new mongoose.Types.ObjectId(id));
-    } else if (typeof req.body.brandId === "string") {
-      brandIds = req.body.idj
+    if (Array.isArray(req.query.brandId)) {
+      brandIds = req.query.brandId.map((id) => new mongoose.Types.ObjectId(id));
+    } else if (typeof req.query.brandId === "string") {
+      brandIds = req.query.brandId
         .split(",")
         .map((id) => new mongoose.Types.ObjectId(id));
     } else {
       return next(new Error("Invalid brand ID format"));
     }
-
     query.brand = { $in: brandIds };
   }
-  if (req.body.minAvg || req.body.maxAvg) {
+  if (req.query.minAvg || req.query.maxAvg) {
     query.ratingsAverage = {};
 
-    if (req.body.minAvg) {
-      query.ratingsAverage.$gte = parseFloat(req.body.minAvg);
+    if (req.query.minAvg) {
+      query.ratingsAverage.$gte = parseFloat(req.query.minAvg);
     }
 
-    if (req.body.maxAvg) {
-      query.ratingsAverage.$lte = parseFloat(req.body.maxAvg);
+    if (req.query.maxAvg) {
+      query.ratingsAverage.$lte = parseFloat(req.query.maxAvg);
     }
   }
 
@@ -912,7 +910,6 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-
 // @desc put Deactivate prodcut quantity
 // @route put /api/product/deactivate
 // @access Private
@@ -1209,7 +1206,6 @@ exports.getEcommerceProductSponsored = async (req, res, next) => {
   }
 };
 
-
 // @desc import products from Excel
 // @route add /api/add
 // @access Private
@@ -1219,7 +1215,6 @@ exports.addProduct = asyncHandler(async (req, res) => {
   const productModel = db.model("Product", productSchema);
 
   const taxModel = db.model("Tax", TaxSchema);
-
 
   try {
     const { buffer } = req.file;
@@ -1311,4 +1306,3 @@ exports.addProduct = asyncHandler(async (req, res) => {
       .json({ error: "Internal Server Error", details: error.message });
   }
 });
-
