@@ -135,12 +135,14 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
 
   const { fromStockId, toStockId, products } = req.body;
-  
+
   // Fetch the stocks
   const stocks = await StockModel.find({
     _id: { $in: [fromStockId, toStockId] },
   });
-  const fromStock = stocks.find((stock) => stock._id.toString() === fromStockId);
+  const fromStock = stocks.find(
+    (stock) => stock._id.toString() === fromStockId
+  );
   const toStock = stocks.find((stock) => stock._id.toString() === toStockId);
 
   if (!fromStock || !toStock) {
@@ -151,7 +153,9 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
   for (const product of products) {
     const quantity = parseInt(product.productQuantity, 10);
     if (quantity < 0) {
-      return res.status(400).json({ message: "Product quantity cannot be less than 0" });
+      return res
+        .status(400)
+        .json({ message: "Product quantity cannot be less than 0" });
     }
   }
   // Update stock quantities in product model
@@ -162,11 +166,12 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
 
     // Find the product and check if the stocks already contain fromStockId and toStockId
     const productDoc = await productModel.findById(productId);
-    console.log(productDoc)
-    console.log(productId)
-    const fromStockExists = productDoc.stocks.some(stock => stock.stockId.toString() === fromStockId);
-    const toStockExists = productDoc.stocks.some(stock => stock.stockId.toString() === toStockId);
-
+    const fromStockExists = productDoc.stocks.some(
+      (stock) => stock.stockId.toString() === fromStockId
+    );
+    const toStockExists = productDoc.stocks.some(
+      (stock) => stock.stockId.toString() === toStockId
+    );
     if (fromStockExists) {
       // Decrease quantity from the fromStock
       bulkOps.push({
@@ -176,9 +181,12 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
         },
       });
     } else {
-      return res.status(400).json({ message: `Stock ID ${fromStockId} not found in product ${productId}` });
+      return res
+        .status(400)
+        .json({
+          message: `Stock ID ${fromStockId} not found in product ${productId}`,
+        });
     }
-
     if (toStockExists) {
       // Increase quantity to the toStock
       bulkOps.push({
@@ -196,7 +204,7 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
             $push: {
               stocks: {
                 stockId: toStockId,
-                stockName: toStock.stockName,
+                stockName: toStock.name,
                 productQuantity: quantity,
               },
             },
@@ -208,8 +216,6 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
 
   // Execute bulk update operations
   await productModel.bulkWrite(bulkOps);
-  console.log(req.body)
-  // Log the stock transfer
   const transferStock = await stockTransferModel.create(req.body);
   res.status(200).json({
     status: "success",
@@ -217,7 +223,6 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
     data: transferStock,
   });
 });
-
 
 // @desc put list product
 // @route put /api/stock/transfer
