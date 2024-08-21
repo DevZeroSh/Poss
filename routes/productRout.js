@@ -56,9 +56,9 @@ productRout
 productRout.route("/ecommerce-active-product").get(ecommerceActiveProudct);
 productRout.route("/ecommerce-dashboard-stats").get(ecommerceDashboardStats);
 
-// productRout
-//   .route("/deactive/:id")
-//   .put(authService.protect, deActiveProductQuantity);
+productRout
+  .route("/deactive/:id")
+  .put(authService.protect, deActiveProductQuantity);
 
 productRout
   .route("/publish")
@@ -74,10 +74,10 @@ productRout
   .put(authService.protect, setEcommerceProductSponsored)
   .get(getEcommerceProductSponsored);
 
-// productRout
-//   .route("/:id")
-//   .get(getOneProduct)
-//   .put(authService.protect, uploadProductImage, resizerImage, updateProduct)
-//   .delete(authService.protect, deleteProductValdiator, archiveProduct);
+productRout
+  .route("/:id")
+  .get(getOneProduct)
+  .put(authService.protect, uploadProductImage, resizerImage, updateProduct)
+  .delete(authService.protect, deleteProductValdiator, archiveProduct);
 
 module.exports = productRout;
