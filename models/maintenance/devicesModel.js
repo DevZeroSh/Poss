@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
-const devicesSchema = new mongoose.Schema({
+const devicesSchema = new mongoose.Schema(
+  {
     admin: String,
     caserecord: [{ date: Date, name: String, status: String }],
     customerId: String,
@@ -8,10 +9,10 @@ const devicesSchema = new mongoose.Schema({
     customerPhone: String,
     connection: [{ connect: String, date: Date, user: String }],
     note: String,
-    SerialNumber: String,
-    name: String,
+    srialNumber: String,
+    devicesName: String,
     malfunction: String,
-    malfunctionStatus: String,
+    status: String,
     des: String,
     total: Number, // payed Total
     cost: String, // The first cost
@@ -20,8 +21,10 @@ const devicesSchema = new mongoose.Schema({
     fixingDes: String,
     piecesAndCost: [{ const: Number, name: String }],
     paystatus: String,
-    backback:Boolean,
-    charger:Boolean,
-}, { timestamps: true })
+    backback: Boolean,
+    charger: Boolean,
+  },
+  { timestamps: true }
+);
 
 module.exports = devicesSchema;

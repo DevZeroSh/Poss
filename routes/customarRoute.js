@@ -9,12 +9,7 @@ const {
   deleteCustomar,
   updateCustomerPassword,
 } = require("../services/customarServices");
-const {
-  createCustomarVlaidator,
-  updataCustomarVlaidator,
-  getCustomarVlaidator,
-  deleteCustomarVlaidator,
-} = require("../utils/validators/customarValidator");
+
 router.route("/e-edit/:id").put(authService.ecommerceProtect, updataCustomar);
 router
   .route("/updatePassword")
@@ -25,7 +20,7 @@ router
   .get(authService.protect, getCustomars);
 router
   .route("/:id")
-  .get(authService.protect, getCustomarVlaidator, getCustomar)
+  .get(authService.protect, getCustomar)
   .put(authService.protect, updataCustomar)
   .delete(authService.protect, deleteCustomar);
 

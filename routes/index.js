@@ -89,7 +89,6 @@ const mountRoutes = (app) => {
   app.use("/api/payment-history", paymentHistoryRout);
   app.use("/api/stock", stockRout);
   app.use("/api/offers", offersRouter);
-  app.use("/api/device", devicesRout);
   app.use("/api/quotation", quotationRouter);
   app.use("/api/sales-pos", SalesPosRout);
   app.use("/api/sales-pos", SalesPosRout);
@@ -114,5 +113,8 @@ const mountRoutes = (app) => {
 
   //Payment
   app.use("/api", paytrRouter);
+
+  //Maintenance
+  app.use("/api/device", devicesRout);
 };
 module.exports = mountRoutes;
