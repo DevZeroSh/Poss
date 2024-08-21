@@ -274,13 +274,12 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
       return next(new Error("Invalid brand ID format"));
     }
   }
-  if (req.body.id) {
+  if (req.body.brandId) {
     let brandIds;
-
     // Check if brandId is an array or a string
-    if (Array.isArray(req.body.id)) {
-      brandIds = req.body.id.map((id) => new mongoose.Types.ObjectId(id));
-    } else if (typeof req.body.id === "string") {
+    if (Array.isArray(req.body.brandId)) {
+      brandIds = req.body.brandId.map((id) => new mongoose.Types.ObjectId(id));
+    } else if (typeof req.body.brandId === "string") {
       brandIds = req.body.idj
         .split(",")
         .map((id) => new mongoose.Types.ObjectId(id));
@@ -913,110 +912,6 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
   }
 });
 
-// @desc import products from Excel
-// @route add /api/add
-// @access Private
-exports.addProduct = asyncHandler(async (req, res) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-  const productModel = db.model("Product", productSchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  const taxModel = db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
-  db.model("Currency", currencySchema);
-  try {
-    const { buffer } = req.file;
-
-    let csvData;
-
-    // Check the file type based on the file extension or content type
-    if (
-      req.file.originalname.endsWith(".csv") ||
-      req.file.mimetype === "text/csv"
-    ) {
-      // Use csvtojson to convert CSV buffer to JSON array
-      csvData = await csvtojson().fromString(buffer.toString());
-    } else if (
-      req.file.originalname.endsWith(".xlsx") ||
-      req.file.mimetype ===
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    ) {
-      // Use xlsx library to convert XLSX buffer to JSON array
-      const workbook = xlsx.read(buffer, { type: "buffer" });
-      const sheet_name_list = workbook.SheetNames;
-      csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
-    } else {
-      return res.status(400).json({ error: "Unsupported file type" });
-    }
-
-    console.log("Parsed CSV Data:", csvData);
-
-    for (const item of csvData) {
-      try {
-        const tax = await taxModel.findById(item.tax);
-        const finalPrice = item.price * (1 + tax.tax / 100);
-        item.taxPrice = finalPrice;
-        item.activeCount = item.quantity;
-        // Extract stocks information from the item and add to the item
-        item.stocks = [];
-        if (item.stock && item.stockName && item.quantity) {
-          item.stocks.push({
-            stockId: item.stock,
-            stockName: item.stockName,
-            productQuantity: item.quantity,
-          });
-        }
-        await createProductMovement(
-          item._id,
-          item.quantity,
-          item.quantity,
-          "in",
-          "create",
-          dbName
-        );
-        // Log to verify stocks are being added correctly
-        console.log("Processed Item:", item);
-      } catch (error) {
-        // Handle errors when finding tax
-        console.error(
-          `Error finding tax for item with QR ${item.qr}: ${error.message}`
-        );
-      }
-    }
-
-    // Process your data and save to MongoDB using your mongoose model
-    const duplicateQRs = [];
-
-    // Use try-catch to catch duplicate key errors
-    try {
-      const insertedProducts = await productModel.insertMany(csvData, {
-        ordered: false,
-      });
-      console.log("Inserted Products:", insertedProducts);
-    } catch (error) {
-      if (error.code === 11000) {
-        // Duplicate key error
-        error.writeErrors.forEach((writeError) => {
-          const duplicateQR = writeError.err.op.qr;
-          duplicateQRs.push(duplicateQR);
-          console.log(`Duplicate QR: ${duplicateQR}`);
-        });
-      } else {
-        throw error; // Re-throw other errors
-      }
-    }
-
-    res.json({ success: "Success", duplicateQRs });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(500)
-      .json({ error: "Internal Server Error", details: error.message });
-  }
-});
 
 // @desc put Deactivate prodcut quantity
 // @route put /api/product/deactivate
@@ -1313,3 +1208,107 @@ exports.getEcommerceProductSponsored = async (req, res, next) => {
     next(error);
   }
 };
+
+
+// @desc import products from Excel
+// @route add /api/add
+// @access Private
+exports.addProduct = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const productModel = db.model("Product", productSchema);
+
+  const taxModel = db.model("Tax", TaxSchema);
+
+
+  try {
+    const { buffer } = req.file;
+
+    let csvData;
+
+    // Check the file type based on the file extension or content type
+    if (
+      req.file.originalname.endsWith(".csv") ||
+      req.file.mimetype === "text/csv"
+    ) {
+      // Use csvtojson to convert CSV buffer to JSON array
+      csvData = await csvtojson().fromString(buffer.toString());
+    } else if (
+      req.file.originalname.endsWith(".xlsx") ||
+      req.file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ) {
+      // Use xlsx library to convert XLSX buffer to JSON array
+      const workbook = xlsx.read(buffer, { type: "buffer" });
+      const sheet_name_list = workbook.SheetNames;
+      csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+    } else {
+      return res.status(400).json({ error: "Unsupported file type" });
+    }
+
+    console.log("Parsed CSV Data:", csvData);
+
+    for (const item of csvData) {
+      try {
+        const tax = await taxModel.findById(item.tax);
+        const finalPrice = item.price * (1 + tax.tax / 100);
+        item.taxPrice = finalPrice;
+        item.activeCount = item.quantity;
+        // Extract stocks information from the item and add to the item
+        item.stocks = [];
+        if (item.stock && item.stockName && item.quantity) {
+          item.stocks.push({
+            stockId: item.stock,
+            stockName: item.stockName,
+            productQuantity: item.quantity,
+          });
+        }
+        await createProductMovement(
+          item._id,
+          item.quantity,
+          item.quantity,
+          "in",
+          "create",
+          dbName
+        );
+        // Log to verify stocks are being added correctly
+        console.log("Processed Item:", item);
+      } catch (error) {
+        // Handle errors when finding tax
+        console.error(
+          `Error finding tax for item with QR ${item.qr}: ${error.message}`
+        );
+      }
+    }
+
+    // Process your data and save to MongoDB using your mongoose model
+    const duplicateQRs = [];
+
+    // Use try-catch to catch duplicate key errors
+    try {
+      const insertedProducts = await productModel.insertMany(csvData, {
+        ordered: false,
+      });
+      console.log("Inserted Products:", insertedProducts);
+    } catch (error) {
+      if (error.code === 11000) {
+        // Duplicate key error
+        error.writeErrors.forEach((writeError) => {
+          const duplicateQR = writeError.err.op.qr;
+          duplicateQRs.push(duplicateQR);
+          console.log(`Duplicate QR: ${duplicateQR}`);
+        });
+      } else {
+        throw error; // Re-throw other errors
+      }
+    }
+
+    res.json({ success: "Success", duplicateQRs });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "Internal Server Error", details: error.message });
+  }
+});
+
