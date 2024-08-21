@@ -37,6 +37,10 @@ const productRout = express.Router();
 
 productRout.post("/add", uploads.single("file"), addProduct);
 
+
+
+
+productRout.route("/ecommerce-dashboard-stats").get(ecommerceDashboardStats);
 productRout
   .route("/")
   .get(getProduct)
@@ -54,7 +58,7 @@ productRout
   .put(authService.protect, updateEcommerceProducts);
 
 productRout.route("/ecommerce-active-product").get(ecommerceActiveProudct);
-productRout.route("/ecommerce-dashboard-stats").get(ecommerceDashboardStats);
+
 
 productRout
   .route("/deactive/:id")
