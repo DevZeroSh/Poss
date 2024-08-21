@@ -40,7 +40,7 @@ productRout.post("/add", uploads.single("file"), addProduct);
 
 
 
-productRout.route("/ecommerce-dashboard-stats").get(ecommerceDashboardStats);
+productRout.route("/ecommercedashboardstats").get(ecommerceDashboardStats);
 productRout
   .route("/")
   .get(getProduct)
