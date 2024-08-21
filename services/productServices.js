@@ -1036,7 +1036,7 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   const totalPages = Math.ceil(totalItems / pageSize);
   const product = await productModel
     .find(query)
-    .sort({ createdAt: -1 })
+    .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(pageSize)
     .populate({ path: "category" });
