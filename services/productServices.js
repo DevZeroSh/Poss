@@ -1073,7 +1073,8 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
   });
 
   const ecommerceInactiveCount = await productModel.countDocuments({
-    ecommerceActive: false,
+    ecommerceActive: true,
+    publish: false,
   });
 
   const publishedCount = await productModel.countDocuments({ publish: true });
