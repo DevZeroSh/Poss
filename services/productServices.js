@@ -302,12 +302,12 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
   // Tax price range filtering
   if (req.query.taxPriceMin || req.query.taxPriceMax) {
-    query.taxPrice = {};
+    query.ecommercePrice = {};
     if (req.query.taxPriceMin) {
-      query.taxPrice.$gte = parseFloat(req.query.taxPriceMin);
+      query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin);
     }
     if (req.query.taxPriceMax) {
-      query.taxPrice.$lte = parseFloat(req.query.taxPriceMax);
+      query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax);
     }
   }
 

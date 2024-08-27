@@ -23,6 +23,7 @@ const devicesSchema = new mongoose.Schema(
     paymentStatus: String,
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },
+    deliveryDate: String,
   },
   { timestamps: true }
 );
