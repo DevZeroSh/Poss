@@ -1167,24 +1167,25 @@ exports.canceledPosSales = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { stockId } = req.body;
   const canceled = await orderFishModel.findById(id);
+
   if (canceled.type !== "cancel") {
     if (canceled.financialFunds && canceled.financialFunds.length > 0) {
       for (const fundId of canceled.financialFunds) {
-        console.log(fundId);
         const financialFund = await FinancialFundsModel.findById({
           _id: fundId.fundId,
         });
+        console.log(fundId.allocatedAmount);
         financialFund.fundBalance -= fundId.allocatedAmount;
         await financialFund.save();
 
         await ReportsFinancialFundsModel.create({
           date: currentDateTime.toISOString(),
-          amount: canceled.totalOrderPrice,
+          amount: fundId.allocatedAmount,
           order: canceled._id,
           type: "cancel",
           financialFundId: financialFund._id,
           financialFundRest: financialFund.fundBalance,
-          exchangeRate: canceled.priceExchangeRate,
+          exchangeRate: fundId.allocatedAmount,
         });
       }
     } else {
