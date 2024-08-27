@@ -88,6 +88,8 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
       counter: "op-" + nextCounterPromise,
       paid: "unpaid",
       openingBalanceId: customar.openingBalanceId,
+      exchangeRate:req.body.openingBalanceExchangeRate,
+      currencyCode:req.body.openingBalanceCurrencyCode,
       date,
     });
   }
