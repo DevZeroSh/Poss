@@ -3,26 +3,26 @@ const mongoose = require("mongoose");
 const devicesSchema = new mongoose.Schema(
   {
     admin: String,
-    caserecord: [{ date: Date, name: String, status: String }],
     customerId: String,
     customerName: String,
     customerPhone: String,
-    connection: [{ connect: String, date: Date, user: String }],
+    connection: [{ connect: String, date: Date, user: String, _id: false }],
     note: String,
-    srialNumber: String,
-    devicesName: String,
-    malfunction: String,
+    serialNumber: String,
+    deviceName: String,
+    deviceType: String,
+    issue: String,
     status: String,
-    des: String,
+    desc: String,
     total: Number, // payed Total
-    cost: String, // The first cost
+    approximateCost: String, // The first cost
     deviceModel: String,
     deviceStatus: String,
-    fixingDes: String,
-    piecesAndCost: [{ const: Number, name: String }],
-    paystatus: String,
-    backback: Boolean,
-    charger: Boolean,
+    fixingDesc: String,
+    piecesAndCost: [{ cost: Number, name: String, _id: false }],
+    paymentStatus: String,
+    backpack: { type: Boolean, default: false },
+    charger: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

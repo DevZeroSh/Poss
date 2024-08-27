@@ -1,8 +1,8 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../../utils/apiError");
-const { default: slugify } = require("slugify");
 const mongoose = require("mongoose");
 const devicesSchema = require("../../models/maintenance/devicesModel");
+const devicesHitstorySchema = require("../../models/maintenance/devicesHistory");
 
 exports.getDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -44,9 +44,20 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const deviceModel = db.model("Device", devicesSchema);
+  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
 
   const { id } = req.params;
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
 
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
   const devicesUpdate = await deviceModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
@@ -54,8 +65,13 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
   if (!devicesUpdate) {
     return next(new ApiError(`No Diveces with this id ${id}`));
   }
-
-  res.status(200).json({ success: true, data: devicesUpdate });
+  const history = await deviceHistoryModel.create({
+    devicesId: id,
+    name: req.user.name,
+    date: formattedDate,
+    status: "update",
+  });
+  res.status(200).json({ success: "success", data: devicesUpdate, history });
 });
 
 exports.getOneDevice = asyncHandler(async (req, res, next) => {
@@ -63,29 +79,51 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const deviceModel = db.model("Device", devicesSchema);
+  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
 
   const { id } = req.params;
 
   const findDevice = await deviceModel.findById(id);
-
+  const history=await deviceHistoryModel.find({ devicesId: id });
   if (!findDevice) {
     return next(new ApiError(`No Devices By this ID ${id}`));
   }
 
-  res.status(200).json({ message: "success", data: findDevice });
+  res.status(200).json({ message: "success", data: findDevice,history });
 });
 
 exports.createDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
+  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
   const deviceModel = db.model("Device", devicesSchema);
-  req.body.admin = req.body.admin || req.user.name;
-  const createed = await deviceModel.create(req.body);
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
 
-  res
-    .status(200)
-    .json({ success: "success", message: "devices inserted", data: createed });
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+
+  req.body.admin = req.body.admin || req.user.name;
+
+  const createed = await deviceModel.create(req.body);
+  const history = await deviceHistoryModel.create({
+    devicesId: createed.id,
+    name: req.user.name,
+    date: formattedDate,
+    status: "create",
+  });
+  res.status(200).json({
+    success: "success",
+    message: "devices inserted",
+    data: createed,
+    history,
+  });
 });
 
 exports.deleteDevice = asyncHandler(async (req, res, next) => {
