@@ -701,7 +701,12 @@ exports.setEcommerceProductPublish = async (req, res, next) => {
     const id = req.body.id;
     const publish = req.body.publish;
     const product = await productModel.findById(id);
-    if (product && product.ecommercePrice > 0) {
+    console.log(product);
+    if (product.ecommercePrice <= 0) {
+      const updatedProduct = await productModel.findByIdAndUpdate(
+        { _id: id },
+        { publish: false }
+      );
       return next(new ApiError("Please check the price of the product", 506));
     }
     // Await the findByIdAndUpdate operation

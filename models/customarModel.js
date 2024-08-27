@@ -29,6 +29,8 @@ const customarSchema = new mongoose.Schema(
     ],
     openingBalanceId: String,
     openingBalance: Number,
+    openingBalanceExchangeRate: Number,
+    openingBalanceCurrencyCode: String,
     sex: {
       type: String,
       enum: ["male", "female", "unknow"],
