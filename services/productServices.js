@@ -700,15 +700,18 @@ exports.setEcommerceProductPublish = async (req, res, next) => {
   try {
     const id = req.body.id;
     const publish = req.body.publish;
-
+    const product = await productModel.findById(id);
+    if (product && product.ecommercePrice > 0) {
+      return next(new ApiError("Please check the price of the product", 506));
+    }
     // Await the findByIdAndUpdate operation
-    const product = await productModel.findByIdAndUpdate(
+    const updatedProduct = await productModel.findByIdAndUpdate(
       { _id: id },
       { publish: publish },
       { new: true }
     );
 
-    res.status(200).json({ success: true, data: product });
+    res.status(200).json({ success: true, data: updatedProduct });
   } catch (error) {
     next(error);
   }
