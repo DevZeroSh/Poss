@@ -69,6 +69,7 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
     devicesId: id,
     name: req.user.name,
     date: formattedDate,
+    conuter: devicesUpdate.conuter,
     status: "update",
   });
   res.status(200).json({ success: "success", data: devicesUpdate, history });
@@ -84,12 +85,14 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   const findDevice = await deviceModel.findById(id);
-  const history=await deviceHistoryModel.find({ devicesId: id });
+  const history = await deviceHistoryModel
+    .find({ devicesId: id })
+    .sort({ date: -1 });
   if (!findDevice) {
     return next(new ApiError(`No Devices By this ID ${id}`));
   }
 
-  res.status(200).json({ message: "success", data: findDevice,history });
+  res.status(200).json({ message: "success", data: findDevice, history });
 });
 
 exports.createDevice = asyncHandler(async (req, res, next) => {
@@ -101,6 +104,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     return value < 10 ? `0${value}` : value;
   }
 
+  const nextCounter = (await deviceModel.countDocuments()) + 1;
   const ts = Date.now();
   const date_ob = new Date(ts);
   const formattedDate = `${date_ob.getFullYear()}-${padZero(
@@ -110,12 +114,13 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
   )}:${padZero(date_ob.getSeconds())}`;
 
   req.body.admin = req.body.admin || req.user.name;
-
+  req.body.conuter = nextCounter;
   const createed = await deviceModel.create(req.body);
   const history = await deviceHistoryModel.create({
     devicesId: createed.id,
     name: req.user.name,
     date: formattedDate,
+    conuter: nextCounter,
     status: "create",
   });
   res.status(200).json({

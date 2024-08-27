@@ -24,6 +24,8 @@ const devicesSchema = new mongoose.Schema(
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },
     deliveryDate: String,
+    brand: String,
+    conuter: String,
   },
   { timestamps: true }
 );
