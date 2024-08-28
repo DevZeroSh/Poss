@@ -305,19 +305,28 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   // Tax price range filtering
   if (req.query.taxPriceMin || req.query.taxPriceMax) {
     query.ecommercePrice = {};
+
     if (req.query.taxPriceMin) {
-      query.ecommercePriceAftereDiscount > 0
-        ? (query.ecommercePriceAftereDiscount.$gte = parseFloat(
-            req.query.taxPriceMin
-          ))
-        : (query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin));
+      query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin);
     }
+
     if (req.query.taxPriceMax) {
-      query.ecommercePriceAftereDiscount > 0
-        ? (query.ecommercePriceAftereDiscount.$lte = parseFloat(
+      query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax);
+    }
+
+    if (req.query.taxPriceMin || req.query.taxPriceMax) {
+      if (query.ecommercePriceAftereDiscount) {
+        if (req.query.taxPriceMin) {
+          query.ecommercePriceAftereDiscount.$gte = parseFloat(
+            req.query.taxPriceMin
+          );
+        }
+        if (req.query.taxPriceMax) {
+          query.ecommercePriceAftereDiscount.$lte = parseFloat(
             req.query.taxPriceMax
-          ))
-        : (query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax));
+          );
+        }
+      }
     }
   }
 
