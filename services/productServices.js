@@ -250,7 +250,8 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   db.model("Brand", brandSchema);
   db.model("Variant", variantSchema);
   db.model("Tax", TaxSchema);
-  const limit = parseInt(req.query.limit) || 20;
+
+  const limit = parseInt(req.query.limit) || 16;
   const skip = parseInt(req.query.skip) || 0;
   let query = {
     publish: true,
@@ -282,9 +283,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     if (Array.isArray(req.query.brandId)) {
       brandIds = req.query.brandId.map((id) => new mongoose.Types.ObjectId(id));
     } else if (typeof req.query.brandId === "string") {
-      brandIds = req.query.brandId
-        .split(",")
-        .map((id) => new mongoose.Types.ObjectId(id));
+      brandIds = req.query.brandId.split(",").map((id) => new mongoose.Types.ObjectId(id));
     } else {
       return next(new Error("Invalid brand ID format"));
     }
@@ -302,34 +301,6 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Tax price range filtering
-  if (req.query.taxPriceMin || req.query.taxPriceMax) {
-    query.ecommercePrice = {};
-
-    if (req.query.taxPriceMin) {
-      query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin);
-    }
-
-    if (req.query.taxPriceMax) {
-      query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax);
-    }
-
-    if (req.query.taxPriceMin || req.query.taxPriceMax) {
-      if (query.ecommercePriceAftereDiscount) {
-        if (req.query.taxPriceMin) {
-          query.ecommercePriceAftereDiscount.$gte = parseFloat(
-            req.query.taxPriceMin
-          );
-        }
-        if (req.query.taxPriceMax) {
-          query.ecommercePriceAftereDiscount.$lte = parseFloat(
-            req.query.taxPriceMax
-          );
-        }
-      }
-    }
-  }
-
   // Sorting logic
   let sortQuery = { createdAt: -1 };
   if (req.query.sold) {
@@ -339,19 +310,38 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     sortQuery = { taxPrice: parseInt(req.query.taxPrice) === 1 ? 1 : -1 };
   }
   if (req.query.ratingsAverage) {
-    sortQuery = {
-      ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1,
-    };
+    sortQuery = { ratingsAverage: parseInt(req.query.ratingsAverage) === 1 ? 1 : -1 };
   }
   if (req.query.addToFavourites) {
-    sortQuery = {
-      addToFavourites: parseInt(req.query.addToFavourites) === 1 ? 1 : -1,
-    };
+    sortQuery = { addToFavourites: parseInt(req.query.addToFavourites) === 1 ? 1 : -1 };
   }
+
   try {
-    // Aggregation pipeline for querying and population
     const aggregationPipeline = [
-      { $match: query },
+      // Add a temporary field to determine which price to use
+      {
+        $addFields: {
+          effectivePrice: {
+            $cond: {
+              if: { $gt: ["$ecommercePriceAftereDiscount", 0] },
+              then: "$ecommercePriceAftereDiscount",
+              else: "$ecommercePrice",
+            },
+          },
+        },
+      },
+      // Match query with conditional price filtering
+      {
+        $match: {
+          ...query,
+          ...(req.query.taxPriceMin || req.query.taxPriceMax) && {
+            effectivePrice: {
+              ...(req.query.taxPriceMin && { $gte: parseFloat(req.query.taxPriceMin) }),
+              ...(req.query.taxPriceMax && { $lte: parseFloat(req.query.taxPriceMax) }),
+            },
+          },
+        },
+      },
       { $sort: sortQuery },
       { $skip: skip },
       { $limit: limit },
@@ -363,10 +353,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           as: "category",
         },
       },
-
-      {
-        $unwind: "$category",
-      },
+      { $unwind: "$category" },
       {
         $lookup: {
           from: "categories",
@@ -405,21 +392,19 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
     const totalItems = await productModel.countDocuments(query);
     const totalPages = Math.ceil(totalItems / limit);
+    
     const setImageURL = (doc) => {
       if (doc.image) {
-        const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
-        doc.image = imageUrl;
+        doc.image = `${process.env.BASE_URL}/product/${doc.image}`;
       }
       if (doc.imagesArray) {
-        const imageList = doc.imagesArray.map(
-          (image) => `${process.env.BASE_URL}/product/${image}`
-        );
-        doc.imagesArray = imageList;
+        doc.imagesArray = doc.imagesArray.map(image => `${process.env.BASE_URL}/product/${image}`);
       }
     };
 
     // Set image URLs for each product
     products.forEach(setImageURL);
+
     res.status(200).json({
       status: "true",
       results: products.length,
@@ -430,6 +415,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     next(error);
   }
 });
+
 
 // @desc update Stock product Quantity
 const updateStocks = async (
