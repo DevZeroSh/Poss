@@ -238,7 +238,9 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
   next();
 });
 
-//
+// @desc get Product for Ecommerces
+// @route Post /api/productLazy
+// @access public
 exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -304,10 +306,18 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   if (req.query.taxPriceMin || req.query.taxPriceMax) {
     query.ecommercePrice = {};
     if (req.query.taxPriceMin) {
-      query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin);
+      query.ecommercePriceAftereDiscount > 0
+        ? (query.ecommercePriceAftereDiscount.$gte = parseFloat(
+            req.query.taxPriceMin
+          ))
+        : (query.ecommercePrice.$gte = parseFloat(req.query.taxPriceMin));
     }
     if (req.query.taxPriceMax) {
-      query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax);
+      query.ecommercePriceAftereDiscount > 0
+        ? (query.ecommercePriceAftereDiscount.$lte = parseFloat(
+            req.query.taxPriceMax
+          ))
+        : (query.ecommercePrice.$lte = parseFloat(req.query.taxPriceMax));
     }
   }
 

@@ -63,136 +63,189 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
 
     //2-insert all main dashboard roles
     const allDashRoles = [
+      // Dashboard Start
       {
-        title: "roles",
-        desc: "Roles",
-        info: "This feature will allow you to add and modify Roles",
+        title: "Dashboard Reports",
+        desc: "Dashboard",
+        info: "This will give you full permissions on the Dashboard page only",
       },
       {
-        title: "new Definitions",
-        desc: "Definitions",
-        info: "This feature will allow you to add and modify definitions",
+        title: "Dashboard",
+        desc: "Dashboard",
+        info: "This feature gives you access to the dashboard and edit your personal profile",
+      },
+      // Sales Invoices Start
+      {
+        title: "Customer",
+        desc: "Customer",
+        info: "add and edit the customer",
       },
       {
-        title: "currency",
-        desc: "Currency",
-        info: "This feature allows you to add and modify the currency",
+        title: "Delete Customer",
+        desc: "Customer",
+        info: "delete customer",
       },
       {
-        title: "customer",
-        desc: "customer",
-        info: "This feature allows you to add and modify the customer",
-      },
-      {
-        title: "delete customer",
-        desc: "customer",
-        info: "This feature allows you to delete customer",
-      },
-      {
-        title: "delete currency",
-        desc: "currency",
-        info: "This feature allows you to delete currency",
-      },
-      {
-        title: "edit Definitions",
-        desc: "Definitions",
-        info: "This feature allows you to edit Definitions",
-      },
-      {
-        title: "delete Definitions",
-        desc: "Definitions",
-        info: "This feature allows you to delete Definitions",
-      },
-      {
-        title: "discount",
-        desc: "Discount",
-        info: "This feature allows you to delete discount",
-      },
-      {
-        title: "expense category",
-        desc: "Expense Category",
-        info: "This feature allows you to add and modify Expense Category",
-      },
-      {
-        title: "delete expense category",
-        desc: "Expense Category",
-        info: "This feature allows you to Delete Expense Category",
-      },
-      {
-        title: "expenses",
+        title: "Sales Invoices",
         desc: "Invoices",
-        info: "This feature allows you to add and modify expenses",
+        info: "This feature will allow you to delete the employee",
       },
       {
-        title: "financial funds",
-        desc: "Financial Funds",
-        info: "This feature allows you to add and modify financial funds",
+        title: "Refund Sales Invoices",
+        desc: "Invoices",
+        info: "return a sales invoice",
       },
       {
-        title: "delete financial funds",
-        desc: "Financial Funds",
-        info: "This feature allows you to delete financial funds",
+        title: "Quotation ",
+        desc: "Purchase & Price Offers",
+        info: "add and edit a price quote",
       },
       {
-        title: "transfer financial funds",
-        desc: "Financial Funds",
-        info: "This feature allows you to transfer between funds",
+        title: "Delete Quotation",
+        desc: "Purchase & Price Offers",
+        info: "delete a price quote",
+      },
+      // Purchase Invoices Start
+      {
+        title: "Supplier",
+        desc: "Supplier",
+        info: "add and edit suppliers",
       },
       {
-        title: "payment Type",
-        desc: "Payment Type",
-        info: "This feature allows you to create payment methods",
+        title: "Delete Supplier",
+        desc: "Supplier",
+        info: "delete suppliers",
       },
       {
-        title: "delete payment Type",
-        desc: "Payment Type",
-        info: "This feature allows you to delete payment methods",
+        title: "Purchase Invoices",
+        desc: "Invoices",
+        info: "add and edit Purchase",
       },
       {
-        title: "Category pricing",
-        desc: "Category pricing",
-        info: "This feature allows you to create and modify category pricing",
+        title: "Refund Purchase Invoices",
+        desc: "Invoices",
+        info: "return a purchase invoice",
+      },
+      {
+        title: "Purchase Request",
+        desc: "Purchase & Price Offers",
+        info: "add and edit a purchase request",
+      },
+      // Stock Start
+      {
+        title: "Product",
+        desc: "Product",
+        info: "add and edit products",
+      },
+      {
+        title: "Archive Product",
+        desc: "Product",
+        info: "Archive product, keep records intact.",
       },
       {
         title: "Product Movments",
         desc: "Product Movments",
-        info: "This feature allows you to show the movement of products",
-      },
-      {
-        title: "product",
-        desc: "Product",
-        info: "This feature allows you to add and modify products",
-      },
-      {
-        title: "delete product",
-        desc: "Product",
-        info: "This feature allows you to delete products",
-      },
-      {
-        title: "ProfitLoss",
-        desc: "ProfitLoss",
-        info: "This feature allows you to add, modify, and display the profit and loss report",
-      },
-      {
-        title: "Financial Funds Reports",
-        desc: "Financial Funds",
-        info: "This feature allows you to view fund reports",
-      },
-      {
-        title: "supllier",
-        desc: "Supplier",
-        info: "This feature allows you to add and modify suppliers",
-      },
-      {
-        title: "delete supllier",
-        desc: "Supplier",
-        info: "This feature allows you to delete suppliers",
+        info: "show the movement of products",
       },
       {
         title: "Show Product",
         desc: "Product",
         info: "These allow you to display products and show their details",
       },
+      // Financial Start
+      {
+        title: "roles",
+        desc: "Roles",
+        info: "This feature will allow you to add and edit Roles",
+      },
+      {
+        title: "new Definitions",
+        desc: "Definitions",
+        info: "This feature will allow you to add and edit definitions",
+      },
+      {
+        title: "currency",
+        desc: "Currency",
+        info: "add and edit the currency",
+      },
+
+      {
+        title: "delete currency",
+        desc: "currency",
+        info: "delete currency",
+      },
+      {
+        title: "edit Definitions",
+        desc: "Definitions",
+        info: "edit Definitions",
+      },
+      {
+        title: "delete Definitions",
+        desc: "Definitions",
+        info: "delete Definitions",
+      },
+      {
+        title: "discount",
+        desc: "Discount",
+        info: "delete discount",
+      },
+      {
+        title: "expense category",
+        desc: "Expense Category",
+        info: "add and edit Expense Category",
+      },
+      {
+        title: "delete expense category",
+        desc: "Expense Category",
+        info: "Delete Expense Category",
+      },
+      {
+        title: "expenses",
+        desc: "Invoices",
+        info: "add and edit expenses",
+      },
+      {
+        title: "financial funds",
+        desc: "Financial Funds",
+        info: "add and edit financial funds",
+      },
+      {
+        title: "delete financial funds",
+        desc: "Financial Funds",
+        info: "delete financial funds",
+      },
+      {
+        title: "transfer financial funds",
+        desc: "Financial Funds",
+        info: "transfer between funds",
+      },
+      {
+        title: "payment Type",
+        desc: "Payment Type",
+        info: "create payment methods",
+      },
+      {
+        title: "delete payment Type",
+        desc: "Payment Type",
+        info: "delete payment methods",
+      },
+      {
+        title: "Category pricing",
+        desc: "Category pricing",
+        info: "create and edit category pricing",
+      },
+      {
+        title: "ProfitLoss",
+        desc: "ProfitLoss",
+        info: "add, edit, and display the profit and loss report",
+      },
+      {
+        title: "Financial Funds Reports",
+        desc: "Financial Funds",
+        info: "view fund reports",
+      },
+
+  
       {
         title: "company info",
         desc: "Company",
@@ -201,33 +254,14 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       {
         title: "employee",
         desc: "Employee",
-        info: "This feature will allow you to add and modify employee",
+        info: "This feature will allow you to add and edit employee",
       },
       {
         title: "delete employee",
         desc: "Employee",
         info: "This feature will allow you to delete the employee",
       },
-      {
-        title: "Sales Invoices",
-        desc: "Invoices",
-        info: "This feature will allow you to delete the employee",
-      },
-      {
-        title: "Refund sales Invoices",
-        desc: "Invoices",
-        info: "This feature allows you to return a sales invoice",
-      },
-      {
-        title: "Purchase Invoices",
-        desc: "Invoices",
-        info: "This feature will allow you to add and modify Purchase",
-      },
-      {
-        title: "Refund purchase Invoices",
-        desc: "Invoices",
-        info: "This feature allows you to return a purchase invoice",
-      },
+
       {
         title: "view reports",
         desc: "Reports",
@@ -238,26 +272,18 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         desc: "Stock",
         info: "This feature will allow you to confirm inventory",
       },
-      {
-        title: "Dashboard",
-        desc: "Dashboard",
-        info: "This feature gives you access to the dashboard and modify your personal profile",
-      },
+
       {
         title: "Add Payment",
         desc: "Payment",
-        info: "This feature will allow you to add and modify payment",
+        info: "This feature will allow you to add and edit payment",
       },
       {
         title: "Show Payment",
         desc: "Payment",
         info: "This feature will allow you to Show payment",
       },
-      {
-        title: "Dashboard Reports",
-        desc: "Dashboard",
-        info: "This will give you full permissions on the Dashboard page only",
-      },
+
       {
         title: "FingerPrintReports",
         desc: "HR",
@@ -271,8 +297,10 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const stock = await StockModel.create({ name: "main Stcok" });
     //3-insert all pos roles
     const allPosRoles = [
-      { title: "discount", desc: "discount" },
       { title: "pos", desc: "pos" },
+      { title: "pos Offers", desc: "pos" },
+      { title: "pos Sales Invoices", desc: "pos" },
+      { title: "discount", desc: "discount" },
       { title: "Refund Sales", desc: "Refund" },
     ];
 
@@ -283,7 +311,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const dashboardRoleIds = mainDashboardRoles.map((role) => role._id);
     const posRoleIds = mainPosRoles.map((role) => role._id);
     const insertMainRole = await rolesModel.create({
-      name: "The owner", 
+      name: "The owner",
       description: "Role Description",
       rolesDashboard: dashboardRoleIds,
       rolesPos: posRoleIds,
