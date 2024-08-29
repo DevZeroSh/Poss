@@ -223,7 +223,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
         createProductMovement(
           product._id,
-          product.quantity ,
+          product.quantity,
           item.quantity,
           "in",
           "purchase",
@@ -284,8 +284,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
     // Respond with the created invoice
     await financialFund.save();
-
-
 
     try {
       const ActiveProductsValue = db.model(
@@ -451,7 +449,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     try {
       const invoiceProcessingPromises = invoiceItems.map(async (item) => {
         const product = await productModel.findOne({ qr: item.qr });
-  
+
         if (product) {
           const updateOperations = stocks
             .filter((stock) => stock.product === item.product)
@@ -465,12 +463,12 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
                 },
               },
             }));
-  
+
           // Execute the bulk write operation for each product
           if (updateOperations.length > 0) {
             await productModel.bulkWrite(updateOperations);
           }
-  
+
           createProductMovement(
             product._id,
             product.quantity + item.quantity,
@@ -481,7 +479,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
           );
         }
       });
-  
+
       await Promise.all(invoiceProcessingPromises);
 
       const savedInvoice = await newPurchaseInvoice.save();
@@ -498,9 +496,6 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         totalValue +=
           (Number(item.totalPrice) || item.totalTax) * item.currency;
         totalCount += item.quantity;
-        console.log(item.totalTax)
-        console.log(item.totalPrice)
-        console.log(item)
       });
 
       if (existingRecord) {

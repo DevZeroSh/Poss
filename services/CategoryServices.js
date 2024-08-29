@@ -79,7 +79,6 @@ exports.createCategory = asyncHandler(async (req, res, next) => {
 
   const category = await categoryModel.create(req.body);
 
-  console.log(category._id)
   if (req.body.parentCategory) {
     await categoryModel.findByIdAndUpdate(req.body.parentCategory, {
       $push: { children: category._id },

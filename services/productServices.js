@@ -472,27 +472,29 @@ const createProductHandler = async (dbName, productData) => {
 
     // Create a slug for the product name
     productData.slug = slugify(productData.name);
-
-    // Filter out stocks with productQuantity equal to 0
-    productData.stocks = productData.stocks.filter(
-      (stock) => stock.productQuantity > 0
-    );
-
-    // Create the product in the database
     const product = await productModel.create(productData);
-    const productValue = product.activeCount * product.buyingprice;
-    const currency = await currencyModel.findById(product.currency);
-    createActiveProductsValue(
-      product.activeCount,
-      productValue,
-      currency._id,
-      dbName
-    )
-      .then((savedData) => {})
-      .catch((error) => {
-        console.log(error);
-      });
-
+    if (productData.type !== "Service") {
+      // Filter out stocks with productQuantity equal to 0
+      productData.stocks = productData.stocks.filter(
+        (stock) => stock.productQuantity > 0
+      );
+      productData.ecommercePrice = productData.taxPrice;
+      productData.ecommercePriceBeforeTax = productData.price;
+      // Create the product in the database
+      
+      const productValue = product.activeCount * product.buyingprice;
+      const currency = await currencyModel.findById(product.currency);
+      createActiveProductsValue(
+        product.activeCount,
+        productValue,
+        currency._id,
+        dbName
+      )
+        .then((savedData) => {})
+        .catch((error) => {
+          console.log(error);
+        });
+    }
     return product;
   } catch (error) {
     throw new Error(`Error creating product: ${error.message}`);

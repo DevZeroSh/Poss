@@ -19,7 +19,17 @@ const devicesSchema = new mongoose.Schema(
     deviceModel: String,
     deviceStatus: String,
     fixingDesc: String,
-    piecesAndCost: [{ cost: Number, name: String, _id: false }],
+    piecesAndCost: [
+      {
+        cost: Number,
+        name: String,
+        quantity: String,
+        productId: String,
+        qr: String,
+        paid: { type: String, enum: ["paid", "unpaid"] },
+        _id: false,
+      },
+    ],
     paymentStatus: String,
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },

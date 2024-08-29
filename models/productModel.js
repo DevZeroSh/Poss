@@ -169,6 +169,7 @@ const productSchema = new mongoose.Schema(
       {
         key: String,
         value: String,
+        _id: false 
       },
     ],
     addToCart: { type: Number, default: 0 },
@@ -178,6 +179,7 @@ const productSchema = new mongoose.Schema(
         stockId: String,
         stockName: String,
         productQuantity: Number,
+        _id: false 
       },
     ],
     ecommerceActive: { type: Boolean, default: false },
@@ -208,6 +210,7 @@ const productSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
+        _id: false 
       },
     ],
     groupID: { type: String },

@@ -8,7 +8,6 @@ exports.createAssts = asyncHandler(async (req, res, next) => {
   const assetsModel = db.model("Assets", assetsSchema);
   if (req.body.type === "building") {
     const findBuilding = await assetsModel.findOne({ type: "building" });
-    console.log(findBuilding)
     req.body.parentAccountCode = 1211;
     req.body.code = 121100;
   }

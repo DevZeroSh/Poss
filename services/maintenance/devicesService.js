@@ -3,6 +3,8 @@ const ApiError = require("../../utils/apiError");
 const mongoose = require("mongoose");
 const devicesSchema = require("../../models/maintenance/devicesModel");
 const devicesHitstorySchema = require("../../models/maintenance/devicesHistory");
+const productSchema = require("../../models/productModel");
+const stockSchema = require("../../models/stockModel");
 
 exports.getDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -144,4 +146,59 @@ exports.deleteDevice = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`not Fund for device with id ${id}`));
   }
   res.status(200).json({ success: "success", message: "devices has deleted" });
+});
+
+exports.addProductInDevice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const { id } = req.params;
+  const { piecesAndCost } = req.body;
+  const deviceModel = db.model("Device", devicesSchema);
+  const productModel = db.model("Product", productSchema);
+  db.model("Stock", stockSchema);
+
+  // Find the product by ID
+  const product = await productModel.findById({ _id: piecesAndCost.productId });
+  if (!product) {
+    return next(new ApiError("Product not found", 400));
+  }
+  if (product.type !== "Service") {
+    // Find the specific stock within the product's stocks array
+    const stock = product.stocks.find(
+      (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+    );
+    if (!stock) {
+      return next(new ApiError("Stock not found", 400));
+    }
+
+    // Ensure the quantity is available in the stock
+    if (stock.productQuantity < piecesAndCost.quantity) {
+      return next(new ApiError("Insufficient stock quantity", 400));
+    }
+  }
+  // Prepare data to be added to the piecesAndCost array
+  const data = {
+    cost: piecesAndCost.cost || product.taxPrice,
+    productId: product._id,
+    name: product.name,
+    qr: product.qr,
+    quantity: piecesAndCost.quantity,
+  };
+
+  const updatedDevice = await deviceModel.findByIdAndUpdate(
+    id,
+    { $push: { piecesAndCost: data } },
+    { new: true }
+  );
+  if (product.type !== "Service") {
+    // Update the product's stock quantity by subtracting the quantity
+    stock.productQuantity -= piecesAndCost.quantity;
+
+    await product.save();
+  }
+  res.status(200).json({
+    status: "success",
+    message: "Product added to device and stock updated",
+    data: updatedDevice,
+  });
 });

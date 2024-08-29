@@ -167,7 +167,6 @@ exports.transfer = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findByIdAndUpdate({
     _id: id,
   });
-  console.log("Befor: " + financialFund.fundBalance);
 
   // 2) Save the value with which the transfer will be made
 
