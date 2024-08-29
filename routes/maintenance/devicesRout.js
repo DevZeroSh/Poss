@@ -8,12 +8,14 @@ const {
   updateDevices,
   deleteDevice,
   addProductInDevice,
+  convertToSales,
 } = require("../../services/maintenance/devicesService");
 
 const devicesRout = express.Router();
 
 devicesRout.route("/").get(getDevices).post(authService.protect, createDevice);
-devicesRout.route("/add/:id").put(addProductInDevice);
+devicesRout.route("/add/:id").put(authService.protect, addProductInDevice);
+devicesRout.route("/convert/:id").put(authService.protect, convertToSales);
 
 devicesRout
   .route("/:id")

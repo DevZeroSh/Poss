@@ -5,7 +5,15 @@ const devicesSchema = require("../../models/maintenance/devicesModel");
 const devicesHitstorySchema = require("../../models/maintenance/devicesHistory");
 const productSchema = require("../../models/productModel");
 const stockSchema = require("../../models/stockModel");
+const orderSchema = require("../../models/orderModel");
+const ReportsSalesSchema = require("../../models/reportsSalesModel");
+const ActiveProductsValueModel = require("../../models/activeProductsValueModel");
+const financialFundsSchema = require("../../models/financialFundsModel");
+const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
 
+// @desc Get All Devices
+// @route get /api/device
+// @accsess public
 exports.getDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -41,6 +49,9 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   });
 });
 
+// @desc put update Devices
+// @route put /api/device/:id
+// @accsess public
 exports.updateDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -76,7 +87,9 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
   });
   res.status(200).json({ success: "success", data: devicesUpdate, history });
 });
-
+// @desc Get one Devices
+// @route get /api/device/id
+// @accsess public
 exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -96,7 +109,9 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ message: "success", data: findDevice, history });
 });
-
+// @desc post Devices
+// @route post /api/device
+// @accsess public
 exports.createDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -132,7 +147,9 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     history,
   });
 });
-
+// @desc delete delete Devices
+// @route delete /api/device/id
+// @accsess privet
 exports.deleteDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -147,7 +164,9 @@ exports.deleteDevice = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ success: "success", message: "devices has deleted" });
 });
-
+// @desc put All Devices
+// @route put /api/device/add/id
+// @accsess public
 exports.addProductInDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -162,8 +181,27 @@ exports.addProductInDevice = asyncHandler(async (req, res, next) => {
   if (!product) {
     return next(new ApiError("Product not found", 400));
   }
+  console.log(piecesAndCost);
+  // Prepare data to be added to the piecesAndCost array
+  const data = {
+    cost: piecesAndCost.cost || product.taxPrice,
+    productId: product._id,
+    name: product.name,
+    qr: product.qr,
+    quantity: Number(piecesAndCost.quantity),
+    exchangeRate: Number(piecesAndCost.exchangeRate),
+    buyingPrice: Number(piecesAndCost.buyingPrice),
+    prodcutType: product.type,
+    taxRate: piecesAndCost?.taxRate?.tax || 0,
+    taxs: piecesAndCost?.taxRate?._id || 0,
+    price: Number(piecesAndCost.price),
+  };
+  const updatedDevice = await deviceModel.findByIdAndUpdate(
+    id,
+    { $push: { piecesAndCost: data } },
+    { new: true }
+  );
   if (product.type !== "Service") {
-    // Find the specific stock within the product's stocks array
     const stock = product.stocks.find(
       (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
     );
@@ -171,29 +209,10 @@ exports.addProductInDevice = asyncHandler(async (req, res, next) => {
       return next(new ApiError("Stock not found", 400));
     }
 
-    // Ensure the quantity is available in the stock
     if (stock.productQuantity < piecesAndCost.quantity) {
       return next(new ApiError("Insufficient stock quantity", 400));
     }
-  }
-  // Prepare data to be added to the piecesAndCost array
-  const data = {
-    cost: piecesAndCost.cost || product.taxPrice,
-    productId: product._id,
-    name: product.name,
-    qr: product.qr,
-    quantity: piecesAndCost.quantity,
-  };
-
-  const updatedDevice = await deviceModel.findByIdAndUpdate(
-    id,
-    { $push: { piecesAndCost: data } },
-    { new: true }
-  );
-  if (product.type !== "Service") {
-    // Update the product's stock quantity by subtracting the quantity
     stock.productQuantity -= piecesAndCost.quantity;
-
     await product.save();
   }
   res.status(200).json({
@@ -201,4 +220,98 @@ exports.addProductInDevice = asyncHandler(async (req, res, next) => {
     message: "Product added to device and stock updated",
     data: updatedDevice,
   });
+});
+
+exports.convertToSales = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const deviceModel = db.model("Device", devicesSchema);
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+  const { id } = req.params;
+  const device = await deviceModel.findById(id);
+
+  let test = [];
+  let financialFunds;
+  const cut = device.piecesAndCost.map((item) => {
+    if (item.paid !== "paid") {
+      test.push({
+        taxPrice: item.cost,
+        product: item.productId,
+        exchangeRate: item.exchangeRate,
+        buyingPrice: item.buyingPrice,
+        taxRate: item.taxRate,
+        taxs: item.taxs,
+        price: item.price,
+        qr: item.qr,
+        name: item.name,
+        paid: "paid",
+      });
+      item.paid == "paid";
+      device.save();
+    }
+  });
+  if (test.length > 0) {
+    const order = await orderModel.create({
+      employee: req.user._id,
+      cartItems: test,
+      returnCartItem: test,
+      currencyCode: req.body.currency,
+      customarId: device.customerId,
+      customarName: device.customerName,
+      customarEmail: device.customerEmail,
+      customarPhone: device.customerPhone,
+      customarAddress: device.customarAddress,
+      totalOrderPrice: req.body.total,
+      paidAt: formattedDate,
+      onefinancialFunds: req.body.financialFundsId,
+      counter: "in-" + nextCounter,
+      exchangeRate: req.body.exchangeRate,
+      paid: req.body.paid,
+    });
+    if (req.body.paid === "paid") {
+      const financialFund = await FinancialFundsModel.findById({
+        _id: req.body.financialFundsId,
+      });
+
+      financialFund.fundBalance += req.body.total;
+
+      await ReportsFinancialFundsModel.create({
+        date: formattedDate,
+        amount: req.body.total,
+        totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+        order: order._id,
+        type: "sales",
+        financialFundId: financialFund._id,
+        financialFundRest: financialFund.fundBalance,
+        exchangeRate: req.body.exchangeRate,
+      });
+      res.status(200).json({ message: order });
+    }
+  } else {
+    res.status(404).json({ message: "you don't have any prodcut to Add" });
+  }
 });

@@ -309,7 +309,15 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
   }
   if (req.query.taxPrice) {
-    sortQuery = { taxPrice: parseInt(req.query.taxPrice) === 1 ? 1 : -1 };
+    sortQuery = {
+      $cond: {
+        if: { $gt: ["$ecommercePriceAftereDiscount", 0] },
+        then: {
+          ecommercePriceAftereDiscount: req.query.taxPrice === "asc" ? 1 : -1,
+        },
+        else: { effectivePrice: req.query.taxPrice === "asc" ? 1 : -1 },
+      },
+    };
   }
   if (req.query.ratingsAverage) {
     sortQuery = {
@@ -481,7 +489,7 @@ const createProductHandler = async (dbName, productData) => {
       productData.ecommercePrice = productData.taxPrice;
       productData.ecommercePriceBeforeTax = productData.price;
       // Create the product in the database
-      
+
       const productValue = product.activeCount * product.buyingprice;
       const currency = await currencyModel.findById(product.currency);
       createActiveProductsValue(
