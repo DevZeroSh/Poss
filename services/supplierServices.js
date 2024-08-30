@@ -15,6 +15,7 @@ const {
   editPaymentHistory,
 } = require("./paymentHistoryService");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
+const emoloyeeShcema = require("../models/employeeModel");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -90,6 +91,10 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     totalRemainder: req.body.TotalUnpaid,
     totalRemainderMainCurrency: req.body.TotalUnpaid,
     paid: "unpaid",
+    openingBalanceId: supplier.openingBalanceId,
+    exchangeRate: req.body.openingBalanceExchangeRate,
+    currencyCode: req.body.openingBalanceCurrencyCode,
+    type: "openingBalance",
   });
   supplier.save();
   res
@@ -144,7 +149,12 @@ exports.updataSupplier = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const supplierModel = db.model("Supplier", supplierSchema);
-
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+  db.model("Employee", emoloyeeShcema);
+  db.model("Tax", TaxSchema);
   const supplier = await supplierModel.findById(id);
   if (!supplier) {
     return next(new ApiError(`There is no supplier with this id ${id}`, 404));
@@ -170,6 +180,19 @@ exports.updataSupplier = asyncHandler(async (req, res, next) => {
         new: true,
       }
     );
+    const purchase = await PurchaseInvoicesModel.findOne({
+      openingBalanceId: supplier.openingBalanceId,
+    });
+    const amountBalance2 =
+      parseFloat(req.body.openingBalance) -
+      parseFloat(req.body.openingBalanceBefor);
+
+    purchase.totalRemainderMainCurrency += amountBalance2;
+    purchase.finalPriceMainCurrency += amountBalance2;
+    purchase.finalPrice += amountBalance2;
+    purchase.totalPriceWitheOutTax += amountBalance2;
+    purchase.totalRemainder += amountBalance2;
+    await purchase.save();
     res.status(200).json({
       status: "true",
       message: "Supplier updated",

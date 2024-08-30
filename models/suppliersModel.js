@@ -58,6 +58,7 @@ const supplierSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
+    
     parentAccountCode: {
       type: String,
       default: 211,

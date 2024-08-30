@@ -50,7 +50,14 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     finalPriceMainCurrency: Number,
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
-    payments: [{ payment: Number, paymentMainCurrency: Number, financialFunds: String, date: String }],
+    payments: [
+      {
+        payment: Number,
+        paymentMainCurrency: Number,
+        financialFunds: String,
+        date: String,
+      },
+    ],
     date: String,
     description: String,
     paid: {
@@ -66,6 +73,8 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       type: String,
       unique: true,
     },
+    openingBalanceId: String,
+    type: String,
   },
   { timestamps: true }
 );
