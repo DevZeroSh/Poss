@@ -17,7 +17,7 @@ const ReportsSalesSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["pos", "normal", "cancel", "refund-pos"],
+      enum: ["pos", "normal", "cancel", "refund-pos", "mt"],
       default: "normal",
     },
     fund: {

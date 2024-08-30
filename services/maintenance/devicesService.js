@@ -10,6 +10,7 @@ const ReportsSalesSchema = require("../../models/reportsSalesModel");
 const ActiveProductsValueModel = require("../../models/activeProductsValueModel");
 const financialFundsSchema = require("../../models/financialFundsModel");
 const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
+const { createInvoiceHistory } = require("../invoiceHistoryService");
 
 // @desc Get All Devices
 // @route get /api/device
@@ -239,6 +240,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
   const nextCounter = (await orderModel.countDocuments()) + 1;
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -255,8 +257,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const device = await deviceModel.findById(id);
 
   let test = [];
-  let financialFunds;
-  const cut = device.piecesAndCost.map((item) => {
+
+  // Accumulate changes to the device document
+  device.piecesAndCost.forEach((item) => {
     if (item.paid !== "paid") {
       test.push({
         taxPrice: item.cost,
@@ -269,49 +272,73 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         qr: item.qr,
         name: item.name,
         paid: "paid",
+        quantity: item.quantity,
       });
-      item.paid == "paid";
-      device.save();
+      item.paid = "paid";
     }
   });
+
+  // Save the device document after accumulating changes
+  await device.save();
+
   if (test.length > 0) {
-    const order = await orderModel.create({
-      employee: req.user._id,
-      cartItems: test,
-      returnCartItem: test,
-      currencyCode: req.body.currency,
-      customarId: device.customerId,
-      customarName: device.customerName,
-      customarEmail: device.customerEmail,
-      customarPhone: device.customerPhone,
-      customarAddress: device.customarAddress,
-      totalOrderPrice: req.body.total,
-      paidAt: formattedDate,
-      onefinancialFunds: req.body.financialFundsId,
-      counter: "in-" + nextCounter,
-      exchangeRate: req.body.exchangeRate,
-      paid: req.body.paid,
-    });
-    if (req.body.paid === "paid") {
-      const financialFund = await FinancialFundsModel.findById({
-        _id: req.body.financialFundsId,
-      });
-
-      financialFund.fundBalance += req.body.total;
-
-      await ReportsFinancialFundsModel.create({
-        date: formattedDate,
-        amount: req.body.total,
-        totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
-        order: order._id,
-        type: "sales",
-        financialFundId: financialFund._id,
-        financialFundRest: financialFund.fundBalance,
+    try {
+      const order = await orderModel.create({
+        employee: req.user._id,
+        cartItems: test,
+        returnCartItem: test,
+        currencyCode: req.body.currency,
+        customarId: device.customerId,
+        customarName: device.customerName,
+        customarEmail: device.customerEmail,
+        customarPhone: device.customerPhone,
+        customarAddress: device.customarAddress,
+        totalOrderPrice: req.body.total,
+        priceExchangeRate: req.body.total,
+        paidAt: formattedDate,
+        onefinancialFunds: req.body.financialFundsId,
+        counter: "mt-" + nextCounter,
         exchangeRate: req.body.exchangeRate,
+        paid: req.body.paid,
       });
+      await ReportsSalesModel.create({
+        customer: device.customerName,
+        orderId: order._id,
+        date: formattedDate,
+        fund: req.body.financialFundsId,
+        amount: req.body.total,
+        cartItems: test,
+        type: "mt",
+        counter: nextCounterReports,
+        paymentType: "Single Fund",
+        employee: req.user._id,
+      });
+      if (req.body.paid === "paid") {
+        const financialFund = await FinancialFundsModel.findById(
+          req.body.financialFundsId
+        );
+
+        financialFund.fundBalance += req.body.total;
+        await financialFund.save();
+
+        await ReportsFinancialFundsModel.create({
+          date: formattedDate,
+          amount: req.body.total,
+          totalPriceAfterDiscount: req.body.total,
+          order: order._id,
+          type: "sales",
+          financialFundId: financialFund._id,
+          financialFundRest: financialFund.fundBalance,
+          exchangeRate: req.body.exchangeRate,
+        });
+      }
+      createInvoiceHistory(dbName, order._id, "create", req.user._id);
       res.status(200).json({ message: order });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "An error occurred" });
     }
   } else {
-    res.status(404).json({ message: "you don't have any prodcut to Add" });
+    res.status(404).json({ message: "You don't have any product to add" });
   }
 });

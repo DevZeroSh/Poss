@@ -56,6 +56,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
     },
     financialFundRest: Number,
     exchangeRate: Number,
+    runningBalance: Number,
   },
   { timestamps: true }
 );

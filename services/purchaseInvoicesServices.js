@@ -272,7 +272,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
 
     // Save the new purchase invoice to the database
     const savedInvoice = await newPurchaseInvoice.save();
-    await ReportsFinancialFundsModel.create({
+    const ReportsFinancialFunds = await ReportsFinancialFundsModel.create({
       date: isaaaa,
       invoice: savedInvoice._id,
       amount: finalPrice,
@@ -284,7 +284,8 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
     });
     // Respond with the created invoice
     await financialFund.save();
-
+    newPurchaseInvoice.reportsBalanceId = ReportsFinancialFunds._id;
+    PurchaseInvoicesModel.save();
     try {
       const ActiveProductsValue = db.model(
         "ActiveProductsValue",
@@ -552,12 +553,25 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const { totalPages, mongooseQuery } = await Search(
-    PurchaseInvoicesModel,
-    req
-  );
+  const pageSize = req.query.limit || 25;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  let query = { type: { $ne: "openingBalance" } };
 
-  const purchaseInvoices = await mongooseQuery;
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+  const totalItems = await PurchaseInvoicesModel.countDocuments(query);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const purchaseInvoices = await PurchaseInvoicesModel.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
 
   res.status(200).json({
     status: "true",
@@ -647,7 +661,7 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     supplierId.TotalUnpaid += req.body.beforTotal;
     supplierId.total += req.body.beforTotal;
     await supplierId.save();
-
+    console.log(req.body.beforTotal)
     await existingFinancialFund.save();
 
     // Update the purchase invoice

@@ -74,6 +74,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       unique: true,
     },
     openingBalanceId: String,
+    reportsBalanceId: String,
     type: String,
   },
   { timestamps: true }
