@@ -228,7 +228,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
       .toFile(`uploads/product/${imageECoverFilename}`);
 
     //save image into our db
-    req.body.image = imageECoverFilename;
+    req.body.imageCover = imageECoverFilename;
   }
   //-2 Images
   if (req.files.imagesArray) {
