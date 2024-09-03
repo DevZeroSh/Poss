@@ -203,6 +203,7 @@ const uploadMixOfImages = (arrayOfFilelds) =>
 
 exports.uploadProductImage = uploadMixOfImages([
   { name: "image", maxCount: 1 },
+  { name: "imageCover", maxCount: 1 },
   { name: "imagesArray", maxCount: 5 },
 ]);
 
@@ -217,6 +218,17 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
 
     //save image into our db
     req.body.image = imageCoverFilename;
+  }
+  if (req.files.imageCover) {
+    const imageECoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
+
+    await sharp(req.files.imageCover[0].buffer)
+      .toFormat("png")
+      .png({ quality: 70 })
+      .toFile(`uploads/product/${imageECoverFilename}`);
+
+    //save image into our db
+    req.body.image = imageECoverFilename;
   }
   //-2 Images
   if (req.files.imagesArray) {

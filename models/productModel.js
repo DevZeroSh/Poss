@@ -111,6 +111,9 @@ const productSchema = new mongoose.Schema(
     image: {
       type: String,
     },
+    imageCover: {
+      type: String,
+    },
     imagesArray: [String],
 
     brand: {
@@ -169,7 +172,7 @@ const productSchema = new mongoose.Schema(
       {
         key: String,
         value: String,
-        _id: false 
+        _id: false,
       },
     ],
     addToCart: { type: Number, default: 0 },
@@ -179,7 +182,7 @@ const productSchema = new mongoose.Schema(
         stockId: String,
         stockName: String,
         productQuantity: Number,
-        _id: false 
+        _id: false,
       },
     ],
     ecommerceActive: { type: Boolean, default: false },
@@ -210,7 +213,7 @@ const productSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
-        _id: false 
+        _id: false,
       },
     ],
     groupID: { type: String },
@@ -227,6 +230,10 @@ const setImageURL = (doc) => {
   if (doc.image) {
     const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
+  }
+  if (doc.imageCover) {
+    const imageUrl = `${process.env.BASE_URL}/product/${doc.imageCover}`;
+    doc.imageCover = imageUrl;
   }
   if (doc.imagesArray) {
     const imageList = doc.imagesArray.map(
