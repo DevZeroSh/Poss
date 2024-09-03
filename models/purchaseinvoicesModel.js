@@ -3,51 +3,49 @@ const mongoose = require("mongoose");
 
 const PurchaseInvoicesSchema = new mongoose.Schema(
   {
-    invoices: [
+    suppliersId: String,
+    supplierName: String,
+    supplierPhone: String,
+    supplierEmail: String,
+    supplierAddress: String,
+    supplierCompany: String,
+    invoicesItems: [
       {
         product: {
           type: mongoose.Schema.ObjectId,
           ref: "Product",
         },
+        buyingPrice: Number,
         quantity: Number,
+        taxPrice: Number,
+        taxRate: Number,
+        taxs: Number,
+        taxId: { type: mongoose.Schema.ObjectId, ref: "Tax" },
+        price: Number,
         name: String,
         qr: String,
-        taxRate: Number,
-        taxId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "Tax",
-        },
-        price: Number,
-        buyingprice: Number,
-        totalTax: Number,
-        taxPrice: Number,
-        totalWitheOutTaxPrice: Number,
-        totalWitheTaxPrice: Number,
-        totalPrice: String,
-        currency: Number,
+        exchangeRate: Number,
         buyingpriceOringal: Number,
-        serialNumber: [String],
-        profitRatio: Number,
+        _id: false,
       },
     ],
-    paidAt: String,
-    totalProductTax: Number,
-    totalPriceWitheOutTax: Number,
-    finalPrice: Number,
+    exchangeRate: Number,
+    currencyCode: String,
+    priceExchangeRate: {
+      type: Number,
+      default: 0,
+    },
+    onefinancialFunds: {
+      type: mongoose.Schema.ObjectId,
+      ref: "FinancialFunds",
+    },
+    totalPurchasePrice: Number,
+    totalPurchasePriceMainCurrency: Number,
     addedValue: Number,
-    totalQuantity: Number,
-    totalbuyingprice: Number,
-    suppliers: { type: mongoose.Schema.ObjectId, ref: "Supplier" },
-    supplier: String,
-    supplierPhone: String,
-    supplierEmail: String,
-    supplierAddress: String,
-    supplierCompany: String,
-    invoiceCurrencyId: { type: mongoose.Schema.ObjectId, ref: "Currency" },
-    invoiceCurrency: String,
-    invoiceCurrencyExchangeRate: Number,
-    invoiceFinancialFund: String,
-    finalPriceMainCurrency: Number,
+    paidAt: String,
+    date: String,
+    description: String,
+
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
     payments: [
@@ -58,8 +56,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         date: String,
       },
     ],
-    date: String,
-    description: String,
+
     paid: {
       type: String,
       default: "unpaid",
@@ -75,23 +72,8 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     },
     openingBalanceId: String,
     reportsBalanceId: String,
-    type: String,
   },
   { timestamps: true }
 );
-PurchaseInvoicesSchema.pre(/^find/, function (next) {
-  this.populate({
-    path: "suppliers",
-    select: "supplierName companyName phoneNumber email address tax",
-  })
-    .populate({ path: "employee", select: "name profileImg email phone" })
-    .populate({ path: "invoices.taxId", select: "tax " })
-    .populate({
-      path: "invoiceCurrencyId",
-      select: "currencyCode exchangeRate ",
-    });
-
-  next();
-});
 
 module.exports = PurchaseInvoicesSchema;

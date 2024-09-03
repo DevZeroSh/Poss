@@ -8,6 +8,7 @@ const {
   returnPurchaseInvoice,
   getReturnPurchase,
   getOneReturnPurchase,
+  createPurchaseInvoice,
 } = require("../services/purchaseInvoicesServices");
 const PurchaseInvoices = express.Router();
 PurchaseInvoices.use(authService.protect);
@@ -17,7 +18,7 @@ PurchaseInvoices.route("/refund")
   .post(returnPurchaseInvoice);
 PurchaseInvoices.route("/refund/:id").get(getOneReturnPurchase);
 PurchaseInvoices.route("/")
-  .post(createProductInvoices)
+  .post(createPurchaseInvoice)
   .get(findAllProductInvoices);
 PurchaseInvoices.route("/:id").get(findOneProductInvoices).put(updateInvoices);
 

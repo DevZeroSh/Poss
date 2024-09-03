@@ -277,7 +277,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       invoice: savedInvoice._id,
       amount: finalPrice,
       type: "purchase",
-      exchangeRate: finalPriceExchangeRate,
+      exchangeRate: req.body.invoiceCurrencyExchangeRate,
       finalPriceMainCurrency: finalPriceMainCurrency,
       financialFundId: invoiceFinancialFund,
       financialFundRest: financialFund.fundBalance,
@@ -482,7 +482,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       });
 
       await Promise.all(invoiceProcessingPromises);
-
+      const supplier = await suppl.findById(suppliersId);
       const savedInvoice = await newPurchaseInvoice.save();
 
       const ActiveProductsValue = db.model(
@@ -538,6 +538,254 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
   }
 });
 
+exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const ProductModel = db.model("Product", productSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const SupplierModel = db.model("Supplier", supplierSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
+  db.model("Stock", stockSchema);
+  const stocks = req.body.stocks;
+  // Helper function to get the current formatted date
+  const getFormattedDate = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const date = padZero(dateOb.getDate());
+    const month = padZero(dateOb.getMonth() + 1);
+    const year = dateOb.getFullYear();
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const formattedDate = getFormattedDate();
+
+  const {
+    suppliersId,
+    invoicesItems,
+    priceExchangeRate,
+    onefinancialFunds,
+    totalPurchasePrice,
+    description,
+    paid,
+    currencyCode,
+    exchangeRate,
+    supplierName,
+    supplierPhone,
+    supplierEmail,
+    supplierAddress,
+    supplierCompany,
+    pricePurchaseInvocie,
+    fundPricePurchaseInvocie,
+    totalPurchasePriceMainCurrency,
+  } = req.body;
+  console.log(req.body);
+  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
+  const invoiceItems = [];
+  const supplier = await SupplierModel.findById(suppliersId);
+  // Process each invoice item
+  for (const item of invoicesItems) {
+    const productDoc = await ProductModel.findOne({ qr: item.qr });
+    if (!productDoc) {
+      console.log(`Product not found for QR code: ${item.qr}`);
+      continue;
+    }
+    invoiceItems.push({
+      ...item,
+      name: productDoc.name,
+      profitRatio: item.profitRatio,
+    });
+  }
+
+  let newPurchaseInvoice;
+
+  if (paid === "paid") {
+    const financialFund = await FinancialFundsModel.findById(onefinancialFunds);
+    financialFund.fundBalance -= fundPricePurchaseInvocie;
+
+    const newInvoiceData = {
+      employee: req.user._id,
+      invoicesItems: invoiceItems,
+      paidAt: paid === "paid" ? formattedDate : undefined,
+      suppliersId,
+      supplierName,
+      supplierPhone,
+      supplierEmail,
+      supplierAddress,
+      supplierCompany,
+      addedValue: req.body.addedValue,
+      currencyCode,
+      exchangeRate,
+      priceExchangeRate,
+      onefinancialFunds,
+      counter: nextCounter,
+      date: req.body.date,
+      paid: "paid",
+      totalPurchasePrice,
+      description,
+      totalPurchasePriceMainCurrency,
+    };
+    newPurchaseInvoice = await PurchaseInvoicesModel.create(newInvoiceData);
+    await ReportsFinancialFundsModel.create({
+      date: formattedDate,
+      invoice: newPurchaseInvoice._id,
+      amount: fundPricePurchaseInvocie,
+      type: "purchase",
+      exchangeRate: exchangeRate,
+      exchangeAmount: totalPurchasePriceMainCurrency,
+      financialFundId: onefinancialFunds,
+      financialFundRest: financialFund.fundBalance,
+    });
+
+    await financialFund.save();
+  } else {
+    supplier.total += totalPurchasePriceMainCurrency;
+    supplier.TotalUnpaid += totalPurchasePriceMainCurrency;
+    const newInvoiceData = {
+      employee: req.user._id,
+      invoicesItems: invoiceItems,
+      suppliersId,
+      supplierName,
+      supplierPhone,
+      supplierEmail,
+      supplierAddress,
+      supplierCompany,
+      addedValue: req.body.addedValue,
+      currencyCode,
+      exchangeRate,
+      priceExchangeRate,
+      onefinancialFunds,
+      counter: nextCounter,
+      date: req.body.date,
+      paid: "unpaid",
+      totalPurchasePrice,
+      totalPurchasePriceMainCurrency,
+      description,
+      totalRemainder: totalPurchasePrice,
+      totalRemainderMainCurrency: totalPurchasePriceMainCurrency,
+    };
+    newPurchaseInvoice = await PurchaseInvoicesModel.create(newInvoiceData);
+  }
+
+  // Prepare bulk operations for updating products and stocks
+  const bulkProductUpdates = invoiceItems.map((item) => ({
+    updateOne: {
+      filter: { qr: item.qr },
+      update: {
+        $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+        $set: {
+          buyingprice: item.buyingpriceOringal,
+          tax: item.taxId,
+          price: item.price,
+          taxPrice: item.taxPrice,
+        },
+      },
+    },
+  }));
+  const bulkStockUpdates = [];
+  invoiceItems.forEach((item) => {
+    const relatedStocks = stocks.filter(
+      (stock) => stock.product === item.product
+    );
+    relatedStocks.forEach((stock) => {
+      bulkStockUpdates.push({
+        updateOne: {
+          filter: { qr: item.qr, "stocks.stockId": stock.stockId },
+          update: {
+            $inc: { "stocks.$.productQuantity": +item.quantity },
+          },
+        },
+      });
+    });
+
+    // Create product movement for each item
+    createProductMovement(
+      item.qr,
+      item.quantity,
+      item.quantity,
+      "in",
+      "purchase",
+      dbName
+    );
+  });
+  invoiceItems.map(async (item) => {
+    const product = await ProductModel.findOne({ qr: item.qr });
+    console.log(product);
+    if (product && product.type !== "Service") {
+      const existingRecord = await ActiveProductsValue.findOne({
+        currency: product.currency._id,
+      });
+      if (existingRecord) {
+        existingRecord.activeProductsCount += item.quantity;
+        existingRecord.activeProductsValue +=
+          (item.buyingpriceOringal ) * item.quantity;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(0, 0, product.currency._id, dbName);
+      }
+    }
+  });
+  await ProductModel.bulkWrite(bulkProductUpdates);
+  if (bulkStockUpdates.length > 0) {
+    await ProductModel.bulkWrite(bulkStockUpdates);
+  }
+
+  invoiceItems.forEach((item) => {
+    const existingProduct = supplier.products.find(
+      (prod) => prod.qr === item.qr
+    );
+
+    if (existingProduct) {
+      Object.assign(existingProduct, {
+        quantity: existingProduct.quantity + item.quantity,
+        buyingprice: item.buyingpriceOringal,
+        exchangeRate: item.currency,
+        taxRate: item.taxRate,
+      });
+    } else {
+      supplier.products.push({
+        product: item.product,
+        qr: item.qr,
+        name: item.name,
+        buyingprice: item.buyingpriceOringal,
+        quantity: item.quantity,
+        exchangeRate: item.currency,
+        taxRate: item.taxRate,
+      });
+    }
+  });
+
+  await supplier.save();
+
+  const history = createInvoiceHistory(
+    dbName,
+    newPurchaseInvoice._id,
+    "create",
+    req.user._id
+  );
+  res.status(201).json({
+    status: "201",
+    message: "created sucssess",
+    data: newPurchaseInvoice,
+    history,
+  });
+});
+
 exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -571,7 +819,11 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
   const purchaseInvoices = await PurchaseInvoicesModel.find(query)
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(pageSize);
+    .limit(pageSize)
+    .populate({
+      path: "employee",
+      select: "name profileImg email phone",
+    });
 
   res.status(200).json({
     status: "true",
@@ -601,7 +853,15 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   );
 
   const { id } = req.params;
-  const ProductInvoices = await PurchaseInvoicesModel.findById(id);
+  const ProductInvoices = await PurchaseInvoicesModel.findById(id)
+    .populate({
+      path: "invoicesItems.taxId",
+      select: "tax",
+    })
+    .populate({
+      path: "employee",
+      select: "name profileImg email phone",
+    });
 
   if (!ProductInvoices) {
     return next(new ApiError(`No ProductInvoices for this id ${id}`, 404));
@@ -661,7 +921,7 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
     supplierId.TotalUnpaid += req.body.beforTotal;
     supplierId.total += req.body.beforTotal;
     await supplierId.save();
-    console.log(req.body.beforTotal)
+    console.log(req.body.beforTotal);
     await existingFinancialFund.save();
 
     // Update the purchase invoice
@@ -705,8 +965,8 @@ exports.updateInvoices = asyncHandler(async (req, res, next) => {
         date: isaaaa,
         invoice: updatedInvoice._id,
         // amount: finalPrice,
-        amount: finalPriceExchangeRate,
-        exchangeRate: finalPrice,
+        amount: finalPrice,
+        exchangeRate: req.body.invoiceCurrencyExchangeRate,
         finalPriceMainCurrency: finalPriceMainCurrency,
         type: "purchase",
         financialFundId: existingFinancialFund._id,

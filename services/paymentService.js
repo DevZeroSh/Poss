@@ -15,17 +15,22 @@ const { createPaymentHistory } = require("./paymentHistoryService");
 
 async function recalculateBalances(startDate, dbName) {
   const db = mongoose.connection.useDb(dbName);
-  const PurchaseInvoicesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
   const salesrModel = db.model("Orders", orderSchema);
 
   // Fetch transactions (purchases and sales) that are affected
   const affectedPurchases = await PurchaseInvoicesModel.find({
-    date: { $gte: startDate }
+    date: { $gte: startDate },
   }).sort({ date: 1 });
 
-  const affectedSales = await salesrModel.find({
-    date: { $gte: startDate }
-  }).sort({ date: 1 });
+  const affectedSales = await salesrModel
+    .find({
+      date: { $gte: startDate },
+    })
+    .sort({ date: 1 });
 
   // Recalculate balances
   recalculatePurchaseBalances(affectedPurchases);
@@ -36,7 +41,8 @@ async function recalculateBalances(startDate, dbName) {
 function recalculatePurchaseBalances(purchases) {
   let cumulativeBalance = 0;
   for (const purchase of purchases) {
-    purchase.totalRemainderMainCurrency = purchase.totalAmount - cumulativeBalance;
+    purchase.totalRemainderMainCurrency =
+      purchase.totalAmount - cumulativeBalance;
     cumulativeBalance += purchase.totalRemainderMainCurrency;
   }
 }
@@ -49,7 +55,6 @@ function recalculateSalesBalances(sales) {
     cumulativeBalance += sale.totalRemainderMainCurrency;
   }
 }
-
 
 exports.createPayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -77,8 +82,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   }
 
   const currentDate = new Date();
-  const formattedDate = req.body.date + ` ${padZero(currentDate.getHours())}:${padZero(currentDate.getMinutes())}:${padZero(currentDate.getSeconds())}`
-    || `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)} 
+  const formattedDate =
+    req.body.date +
+      ` ${padZero(currentDate.getHours())}:${padZero(
+        currentDate.getMinutes()
+      )}:${padZero(currentDate.getSeconds())}` ||
+    `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)} 
    -${padZero(currentDate.getDate())}`;
   const timeIsoString = currentDate.toISOString();
 
@@ -88,7 +97,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   let paymentText = "";
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
-  const description = req.body.description
+  const description = req.body.description;
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
     const totalMainCurrency = req.body.totalMainCurrency;
@@ -223,6 +232,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   } else if (req.body.taker === "purchase") {
+    console.log(req.body.supplierId);
     const suppler = await supplerModel.findById(req.body.supplierId);
     const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
 
@@ -237,8 +247,10 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       date: formattedDate,
     });
 
-    if (purchase.totalRemainderMainCurrency <= 0) {
+    if (purchase.totalRemainderMainCurrency <= 0.9) {
       purchase.paid = "paid";
+      purchase.totalRemainderMainCurrency = 0;
+      purchase.totalRemainder = 0;
     }
 
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
@@ -322,7 +334,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   });
 });
 
-
 exports.getPayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -334,7 +345,6 @@ exports.getPayment = asyncHandler(async (req, res, next) => {
   }
   res.status(200).json({ status: "success", data: payment });
 });
-
 
 exports.getOnePayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -357,7 +367,9 @@ exports.getOnePayment = asyncHandler(async (req, res, next) => {
   const payment = await paymentModel.findOne(query);
 
   if (!payment) {
-    return res.status(404).json({ status: "fail", message: "Payment not found" });
+    return res
+      .status(404)
+      .json({ status: "fail", message: "Payment not found" });
   }
 
   res.status(200).json({ status: "success", data: payment });
