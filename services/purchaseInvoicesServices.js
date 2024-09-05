@@ -1283,6 +1283,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         },
       },
     });
+
   });
 
   // Applying the quantities of updated items
@@ -1305,20 +1306,23 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     });
   });
 
-  try {
-    await productModel.bulkWrite(bulkProductUpdatesOriginal);
-    await productModel.bulkWrite(bulkProductUpdatesNew);
-    await productModel.bulkWrite(bulkStockUpdates);
-  } catch (error) {
-    console.error("Error during bulk updates:", error);
-    return res.status(500).json({ message: "Bulk update failed", error });
-  }
+  // try {
+  //   await productModel.bulkWrite(bulkProductUpdatesOriginal);
+  //   await productModel.bulkWrite(bulkProductUpdatesNew);
+  //   await productModel.bulkWrite(bulkStockUpdates);
+  // } catch (error) {
+  //   console.error("Error during bulk updates:", error);
+  //   return res.status(500).json({ message: "Bulk update failed", error });
+  // }
 
   // Update the purchase invoice with the new items
-  purchase.invoicesItems = updatedItems;
-  await purchase.save();
+  // purchase.invoicesItems = updatedItems;
+  // await purchase.save();
 
-  res.status(200).json({ message: "Purchase invoice updated successfully" });
+  res.status(200).json({
+    status: "success",
+    message: "Purchase invoice updated successfully",
+  });
 });
 
 exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {

@@ -632,7 +632,7 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
       }
       if (doc.imagesArray) {
         const imageList = doc.imagesArray.map(
-          (image) => `${process.env.BASE_URL}/product/${image}`
+          (image) => `${process.env.BASE_URL}/product/${image.image}`
         );
         doc.imagesArray = imageList;
       }
