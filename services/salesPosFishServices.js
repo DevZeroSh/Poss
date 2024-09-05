@@ -115,8 +115,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const createReportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
     date: new Date().toISOString(),
     amount:
-      totalPriceAfterDiscount > 0 ? totalPriceAfterDiscount : totalOrderPrice,
+      totalPriceAfterDiscount > 0 ? totalPriceAfterDiscount : priceExchangeRate,
     totalPriceAfterDiscount: totalPriceAfterDiscount / exchangeRate,
+    exchangeAmount:
+      totalPriceAfterDiscount > 0 ? totalPriceAfterDiscount : totalOrderPrice,
     order: order._id,
     type: "sales",
     financialFundId: financialFundsId,

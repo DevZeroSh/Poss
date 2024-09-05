@@ -34,6 +34,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "PurchaseInvoices",
     },
+    archives: { type: Boolean, default: false },
     type: {
       type: String,
       enum: [
@@ -47,7 +48,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
         "refund-purchase",
         "payment-sup",
         "payment-cut",
-        "cancel"
+        "cancel",
       ],
     },
     financialFundId: {

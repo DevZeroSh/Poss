@@ -154,8 +154,9 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
     const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
       date: timeIsoString,
-      amount: totalOrderPrice,
+      amount: req.body.totalPriceExchangeRate,
       totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
+      exchangeAmount: totalOrderPrice,
       order: order._id,
       type: "sales",
       financialFundId: financialFundsId,
@@ -190,6 +191,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
             await ReportsFinancialFundsModel.create({
               date: formattedDate,
               amount: expenseQuantityAfterKdv,
+
               order: expensee._id,
               type: "expense",
               financialFundId: financialFundsId,
@@ -645,6 +647,7 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
         amount: order.totalOrderPrice,
         order: order._id,
         type: "order",
+
         financialFundId: order.onefinancialFunds._id,
         financialFundRest: financialFunds.fundBalance,
         exchangeRate: req.body.exchangeRate,

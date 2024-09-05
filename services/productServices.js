@@ -242,7 +242,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
           .toFile(`uploads/product/${imagesName}`);
 
         //save image into our db
-        req.body.imagesArray.push(imagesName);
+        await req.body.imagesArray.push(imagesName);
       })
     );
   }
@@ -1079,11 +1079,16 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   }
 
   const totalItems = await productModel.countDocuments(query);
-
+  let sortQuery = {};
+  if (req.query.publish) {
+    sortQuery = { publish: parseInt(req.query.publish) === 1 ? 1 : -1 };
+  } else {
+    sortQuery = { importDate: -1 };
+  }
   const totalPages = Math.ceil(totalItems / pageSize);
   const product = await productModel
     .find(query)
-    .sort({ importDate: -1 })
+    .sort(sortQuery)
     .skip(skip)
     .limit(pageSize)
     .populate({ path: "category" });

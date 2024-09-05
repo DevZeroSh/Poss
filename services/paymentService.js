@@ -98,17 +98,19 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
   const description = req.body.description;
+
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
+
     const totalMainCurrency = req.body.totalMainCurrency;
     suppler.TotalUnpaid -= totalMainCurrency;
     let remainingPayment = totalMainCurrency;
 
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
-      suppliers: req.body.supplierId,
+      suppliersId: req.body.supplierId,
     });
-
+  
     const bulkUpdateOperations = purchases.map((purchase) => {
       const paymentAmount = Math.min(
         purchase.totalRemainderMainCurrency,
@@ -120,11 +122,11 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             purchase.totalRemainderMainCurrency - paymentAmount,
           totalRemainder:
             purchase.totalRemainder -
-            paymentAmount / purchase.invoiceCurrencyExchangeRate,
+            paymentAmount / purchase.exchangeRate,
         },
         $push: {
           payments: {
-            payment: paymentAmount / purchase.invoiceCurrencyExchangeRate,
+            payment: paymentAmount / purchase.exchangeRate,
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
             date: formattedDate,

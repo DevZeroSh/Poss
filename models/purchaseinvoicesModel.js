@@ -9,6 +9,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     supplierEmail: String,
     supplierAddress: String,
     supplierCompany: String,
+    type: { type: String, default: "normal" },
     invoicesItems: [
       {
         product: {
@@ -26,11 +27,13 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         qr: String,
         exchangeRate: Number,
         buyingpriceOringal: Number,
+        stockId: String,
         _id: false,
       },
     ],
     exchangeRate: Number,
     currencyCode: String,
+    currencyId: String,
     priceExchangeRate: {
       type: Number,
       default: 0,

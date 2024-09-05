@@ -41,6 +41,7 @@ exports.getSpecificReports = asyncHandler(async (req, res, next) => {
 
   const financialReports = await ReportsFinancialFundsModel.find({
     financialFundId: id,
+    archives: false,
   });
   let runningBalance = 0;
   financialReports.forEach((transaction) => {
