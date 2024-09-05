@@ -631,10 +631,13 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
         doc.image = imageUrl;
       }
       if (doc.imagesArray) {
-        const imageList = doc.imagesArray.map(
-          (image) => `${process.env.BASE_URL}/product/${image.image}`
-        );
+        const imageList = doc.imagesArray.map((imageObj) => {
+          return {
+            image: `${process.env.BASE_URL}/product/${imageObj.image}`,
+          };
+        });
         doc.imagesArray = imageList;
+        console.log(doc.imagesArray);
       }
     };
 
