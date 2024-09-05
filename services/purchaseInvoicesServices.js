@@ -1305,8 +1305,6 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     });
   });
 
-
-
   try {
     await productModel.bulkWrite(bulkProductUpdatesOriginal);
     await productModel.bulkWrite(bulkProductUpdatesNew);
