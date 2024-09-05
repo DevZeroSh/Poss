@@ -64,12 +64,7 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    // serialNumber: [
-    //   {
-    //     type: String,
-    //     default: "undefined",
-    //   },
-    // ],
+
     quantity: { type: Number, default: 0 },
     price: {
       type: Number,
@@ -111,10 +106,13 @@ const productSchema = new mongoose.Schema(
     image: {
       type: String,
     },
-    imageCover: {
-      type: String,
-    },
-    imagesArray: [String],
+
+    imagesArray: [
+      {
+        url: String,
+        isCover: { type: Boolean, default: false },
+      },
+    ],
 
     brand: {
       type: mongoose.Schema.ObjectId,
