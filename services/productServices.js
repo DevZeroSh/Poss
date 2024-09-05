@@ -256,6 +256,7 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
           // Save other images into the imagesArray
           req.body.imagesArray.push({
             image: imageName,
+            isCover: false,
           });
         }
       })
