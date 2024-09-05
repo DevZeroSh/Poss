@@ -230,25 +230,45 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
     //save image into our db
     req.body.imageCover = imageECoverFilename;
   }
+  let coverImageName = null;
   //-2 Images
   if (req.files.imagesArray) {
     req.body.imagesArray = [];
+    console.log(req.body);
+
+    // Initialize a variable to store the cover image
+    let coverImageName = null;
+
+    // Process the images
     await Promise.all(
       req.files.imagesArray.map(async (img, index) => {
-        const imagesName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
+        const imageName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
+
         await sharp(img.buffer)
           .toFormat("png")
           .png({ quality: 70 })
-          .toFile(`uploads/product/${imagesName}`);
+          .toFile(`uploads/product/${imageName}`);
 
-        //save image into our db
-        req.body.imagesArray.push({
-          image: imagesName,
-        });
+        // Check if this image should be the cover image
+        if (index === 0) {
+          coverImageName = imageName; // Set the first image as the cover
+        } else {
+          // Save other images into the imagesArray
+          req.body.imagesArray.push({
+            image: imageName,
+          });
+        }
       })
     );
-  }
 
+    // If there's a cover image, add it to the imagesArray
+    if (coverImageName) {
+      req.body.imagesArray.unshift({
+        image: coverImageName,
+        isCover: true, // Mark this image as the cover
+      });
+    }
+  }
   next();
 });
 
