@@ -106,11 +106,11 @@ const productSchema = new mongoose.Schema(
     image: {
       type: String,
     },
-
     imagesArray: [
       {
-        url: String,
+        image: String,
         isCover: { type: Boolean, default: false },
+        _id: false,
       },
     ],
 
@@ -229,13 +229,10 @@ const setImageURL = (doc) => {
     const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
     doc.image = imageUrl;
   }
-  if (doc.imageCover) {
-    const imageUrl = `${process.env.BASE_URL}/product/${doc.imageCover}`;
-    doc.imageCover = imageUrl;
-  }
+
   if (doc.imagesArray) {
     const imageList = doc.imagesArray.map(
-      (image) => `${process.env.BASE_URL}/product/${image}`
+      (image) => `${process.env.BASE_URL}/product/${image.image}`
     );
     doc.imagesArray = imageList;
   }

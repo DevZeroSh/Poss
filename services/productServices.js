@@ -203,6 +203,7 @@ const uploadMixOfImages = (arrayOfFilelds) =>
 
 exports.uploadProductImage = uploadMixOfImages([
   { name: "image", maxCount: 1 },
+  { name: "imageCover", maxCount: 1 },
   { name: "imagesArray", maxCount: 5 },
 ]);
 
@@ -218,27 +219,31 @@ exports.resizerImage = asyncHandler(async (req, res, next) => {
     //save image into our db
     req.body.image = imageCoverFilename;
   }
+  if (req.files.imageCover) {
+    const imageECoverFilename = `product-${uuidv4()}-${Date.now()}-cover.png`;
 
+    await sharp(req.files.imageCover[0].buffer)
+      .toFormat("png")
+      .png({ quality: 70 })
+      .toFile(`uploads/product/${imageECoverFilename}`);
+
+    //save image into our db
+    req.body.imageCover = imageECoverFilename;
+  }
   //-2 Images
   if (req.files.imagesArray) {
     req.body.imagesArray = [];
     await Promise.all(
       req.files.imagesArray.map(async (img, index) => {
         const imagesName = `product-${uuidv4()}-${Date.now()}-${index + 1}.png`;
-        const imagePath = path.join(
-          __dirname,
-          "uploads",
-          "product",
-          imagesName
-        );
-
         await sharp(img.buffer)
           .toFormat("png")
           .png({ quality: 70 })
-          .toFile(imagePath);
+          .toFile(`uploads/product/${imagesName}`);
 
+        //save image into our db
         req.body.imagesArray.push({
-          url: imagesName,
+          image: imagesName,
         });
       })
     );
@@ -1076,16 +1081,11 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   }
 
   const totalItems = await productModel.countDocuments(query);
-  let sortQuery = {};
-  if (req.query.publish) {
-    sortQuery = { publish: parseInt(req.query.publish) === 1 ? 1 : -1 };
-  } else {
-    sortQuery = { importDate: -1 };
-  }
+
   const totalPages = Math.ceil(totalItems / pageSize);
   const product = await productModel
     .find(query)
-    .sort(sortQuery)
+    .sort({ importDate: -1 })
     .skip(skip)
     .limit(pageSize)
     .populate({ path: "category" });
