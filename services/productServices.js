@@ -1097,19 +1097,31 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
 
   let query = { ecommerceActive: true };
 
+  if (req.query.publish) {
+    const publishStatus = req.query.publish === "true";
+    query.publish = publishStatus;
+  }
   if (req.query.keyword) {
     query.$or = [
       { name: { $regex: req.query.keyword, $options: "i" } },
       { qr: { $regex: req.query.keyword, $options: "i" } },
     ];
   }
-
+  let sortQuery = { importDate: -1 };
+  if (req.query.quantity) {
+    sortQuery = { quantity: parseInt(req.query.quantity) === 1 ? 1 : -1 };
+  }
+  if (req.query.ecommercePrice) {
+    sortQuery = {
+      ecommercePrice: parseInt(req.query.ecommercePrice) === 1 ? 1 : -1,
+    };
+  }
   const totalItems = await productModel.countDocuments(query);
 
   const totalPages = Math.ceil(totalItems / pageSize);
   const product = await productModel
     .find(query)
-    .sort({ importDate: -1 })
+    .sort(sortQuery)
     .skip(skip)
     .limit(pageSize)
     .populate({ path: "category" });

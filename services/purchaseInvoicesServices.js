@@ -571,11 +571,8 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const date = padZero(dateOb.getDate());
     const month = padZero(dateOb.getMonth() + 1);
     const year = dateOb.getFullYear();
-    const hours = padZero(dateOb.getHours());
-    const minutes = padZero(dateOb.getMinutes());
-    const seconds = padZero(dateOb.getSeconds());
 
-    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+    return `${month}/${date}/${year}`;
   };
 
   const formattedDate = getFormattedDate();
@@ -599,9 +596,9 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     fundPricePurchaseInvocie,
     totalPurchasePriceMainCurrency,
     currencyId,
+    invoiceNumber,
   } = req.body;
 
-  const nextCounter = (await PurchaseInvoicesModel.countDocuments()) + 1;
   const invoiceItems = [];
   const supplier = await SupplierModel.findById(suppliersId);
   // Process each invoice item
@@ -639,7 +636,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       exchangeRate,
       priceExchangeRate,
       onefinancialFunds,
-      counter: nextCounter,
+      counter: invoiceNumber,
       paid: "paid",
       totalPurchasePrice,
       description,
@@ -674,7 +671,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       supplier.TotalUnpaid,
       "supplier",
       supplier._id,
-      nextCounter,
+      invoiceNumber,
       dbName,
       description,
       nextCounterPayment
@@ -718,7 +715,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       exchangeRate,
       priceExchangeRate,
       onefinancialFunds,
-      counter: nextCounter,
+      counter: invoiceNumber,
       paid: "unpaid",
       totalPurchasePrice,
       totalPurchasePriceMainCurrency,
@@ -792,7 +789,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         supplier.TotalUnpaid,
         "supplier",
         suppliersId,
-        nextCounter,
+        invoiceNumber,
         dbName
       );
     }
@@ -1264,65 +1261,67 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
   const bulkStockUpdates = [];
   const bulkProductUpdatesOriginal = [];
   const bulkProductUpdatesNew = [];
-
-  // Reverting the quantities of original items
-  originalItems.forEach((item) => {
-    bulkProductUpdatesOriginal.push({
-      updateOne: {
-        filter: { qr: item.qr },
-        update: {
-          $inc: { quantity: -item.quantity, activeCount: -item.quantity },
+  if (purchase.payments.length <= 0) {
+    // Reverting the quantities of original items
+    originalItems.forEach((item) => {
+      bulkProductUpdatesOriginal.push({
+        updateOne: {
+          filter: { qr: item.qr },
+          update: {
+            $inc: { quantity: -item.quantity, activeCount: -item.quantity },
+          },
         },
-      },
-    });
-    bulkStockUpdates.push({
-      updateOne: {
-        filter: { qr: item.qr, "stocks.stockId": item.stockId },
-        update: {
-          $inc: { "stocks.$.productQuantity": -item.quantity },
+      });
+      bulkStockUpdates.push({
+        updateOne: {
+          filter: { qr: item.qr, "stocks.stockId": item.stockId },
+          update: {
+            $inc: { "stocks.$.productQuantity": -item.quantity },
+          },
         },
-      },
+      });
     });
 
-  });
-
-  // Applying the quantities of updated items
-  updatedItems.forEach((item) => {
-    bulkProductUpdatesNew.push({
-      updateOne: {
-        filter: { qr: item.qr },
-        update: {
-          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+    // Applying the quantities of updated items
+    updatedItems.forEach((item) => {
+      bulkProductUpdatesNew.push({
+        updateOne: {
+          filter: { qr: item.qr },
+          update: {
+            $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+          },
         },
-      },
-    });
-    bulkStockUpdates.push({
-      updateOne: {
-        filter: { qr: item.qr, "stocks.stockId": item.stockId },
-        update: {
-          $inc: { "stocks.$.productQuantity": +item.quantity },
+      });
+      bulkStockUpdates.push({
+        updateOne: {
+          filter: { qr: item.qr, "stocks.stockId": item.stockId },
+          update: {
+            $inc: { "stocks.$.productQuantity": +item.quantity },
+          },
         },
-      },
+      });
     });
-  });
 
-  // try {
-  //   await productModel.bulkWrite(bulkProductUpdatesOriginal);
-  //   await productModel.bulkWrite(bulkProductUpdatesNew);
-  //   await productModel.bulkWrite(bulkStockUpdates);
-  // } catch (error) {
-  //   console.error("Error during bulk updates:", error);
-  //   return res.status(500).json({ message: "Bulk update failed", error });
-  // }
+    try {
+      await productModel.bulkWrite(bulkProductUpdatesOriginal);
+      await productModel.bulkWrite(bulkProductUpdatesNew);
+      await productModel.bulkWrite(bulkStockUpdates);
+    } catch (error) {
+      console.error("Error during bulk updates:", error);
+      return next(new ApiError("Bulk update failed" + error, 500));
+    }
 
-  // Update the purchase invoice with the new items
-  // purchase.invoicesItems = updatedItems;
-  // await purchase.save();
+    // Update the purchase invoice with the new items
+    purchase.invoicesItems = updatedItems;
+    await purchase.save();
 
-  res.status(200).json({
-    status: "success",
-    message: "Purchase invoice updated successfully",
-  });
+    res.status(200).json({
+      status: "success",
+      message: "Purchase invoice updated successfully",
+    });
+  } else {
+    return next(new ApiError("You Have a payment for this Invicoe", 500));
+  }
 });
 
 exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
