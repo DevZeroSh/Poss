@@ -1116,6 +1116,11 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
       ecommercePrice: parseInt(req.query.ecommercePrice) === 1 ? 1 : -1,
     };
   }
+  if (req.query.name) {
+    sortQuery = {
+      name: req.query.name === 1 ? 1 : -1,
+    };
+  }
   const totalItems = await productModel.countDocuments(query);
 
   const totalPages = Math.ceil(totalItems / pageSize);
