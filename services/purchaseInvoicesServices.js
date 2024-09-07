@@ -733,12 +733,6 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       filter: { qr: item.qr },
       update: {
         $inc: { quantity: +item.quantity, activeCount: +item.quantity },
-        $set: {
-          buyingprice: item.buyingpriceOringal,
-          tax: item.taxId,
-          price: item.price,
-          taxPrice: item.taxPrice,
-        },
       },
     },
   }));
