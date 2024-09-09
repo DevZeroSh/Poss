@@ -15,7 +15,7 @@ const {
 
 const SalesPosRout = express.Router();
 
-SalesPosRout.use(authService.protect);
+// SalesPosRout.use(authService.protect);
 
 // Define more specific routes before general ones
 
