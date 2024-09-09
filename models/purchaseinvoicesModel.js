@@ -71,7 +71,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
     },
-    counter: {
+    invoiceNumber: {
       type: String,
       unique: true,
     },
