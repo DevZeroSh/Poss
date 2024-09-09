@@ -76,7 +76,7 @@ exports.login = asyncHandler(async (req, res, next) => {
 // @desc   make sure the user is logged in sys
 exports.protect = asyncHandler(async (req, res, next) => {
   //1-Check if token exist, if exist get
-  const dbName = req.query.databaseName;
+  const dbName = req.query.databaseName||req.body.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
   console.log("dbName");
