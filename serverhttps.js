@@ -11,7 +11,6 @@ const mountRoutes = require("./routes");
 
 dotenv.config({ path: "config.env" });
 
-
 dbConnection();
 
 const app = express();
@@ -29,14 +28,11 @@ mountRoutes(app);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const privateKey = fs.readFileSync(
-  "/etc/letsencrypt/live/nooncar.com/privkey.pem",
-  "utf8"
-);
-const certificate = fs.readFileSync(
-  "/etc/letsencrypt/live/nooncar.com/fullchain.pem",
-  "utf8"
-);
+const privateKeyPath = path.join(__dirname, "../pvt.key");
+const certificatePath = path.join(__dirname, "../cert.crt");
+const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+const certificate = fs.readFileSync(certificatePath, "utf8");
+
 const credentials = { key: privateKey, cert: certificate };
 
 const httpsServer = https.createServer(credentials, app);
