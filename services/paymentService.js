@@ -234,7 +234,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   } else if (req.body.taker === "purchase") {
-    console.log(req.body.supplierId);
     const suppler = await supplerModel.findById(req.body.supplierId);
     const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
 

@@ -349,6 +349,17 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
       req.user._id
     );
 
+    await paymentModel.create({
+      supplierId: suppliersId,
+      supplierName: supplier,
+      total: totalPurchasePrice,
+      totalMainCurrency: totalPurchasePriceMainCurrency,
+      exchangeRate: financialFund.fundCurrency.exchangeRate,
+      currencyCode: currencyCode,
+      date: date,
+      invoiceNumber: invoiceNumber,
+      counter: nextCounter,
+    });
     res.status(201).json({ status: "success", data: savedInvoice, history });
   } else {
     const supplier = await suppl.findById(suppliersId);
@@ -515,6 +526,7 @@ exports.createProductInvoices = asyncHandler(async (req, res, next) => {
         "create",
         req.user._id
       );
+
       await createPaymentHistory(
         "invoice",
         formattedDate,
@@ -572,8 +584,10 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const date = padZero(dateOb.getDate());
     const month = padZero(dateOb.getMonth() + 1);
     const year = dateOb.getFullYear();
-
-    return `${year}-${date}-${month}`;
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${year}-${date}-${month} ${hours}:${minutes}:${seconds}`;
   };
 
   const formattedDate = getFormattedDate();
@@ -598,6 +612,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     totalPurchasePriceMainCurrency,
     currencyId,
     invoiceNumber,
+    date,
   } = req.body;
 
   const invoiceItems = [];
@@ -665,18 +680,18 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     await newPurchaseInvoice.save();
     await financialFund.save();
     paymentText = "payment-sup";
-    await createPaymentHistory(
-      "payment",
-      formattedDate,
-      totalPurchasePriceMainCurrency,
-      supplier.TotalUnpaid,
-      "supplier",
-      supplier._id,
-      invoiceNumber,
-      dbName,
-      description,
-      nextCounterPayment
-    );
+    await paymentModel.create({
+      supplierId: suppliersId,
+      supplierName: supplier,
+      total: totalPurchasePrice,
+      totalMainCurrency: totalPurchasePriceMainCurrency,
+      exchangeRate: financialFund.fundCurrency.exchangeRate,
+      currencyCode: currencyCode,
+      date: date,
+      invoiceNumber: invoiceNumber,
+      counter: nextCounterPayment,
+    });
+
     supplier.total += totalPurchasePriceMainCurrency;
   } else {
     supplier.total += totalPurchasePriceMainCurrency;
@@ -738,21 +753,72 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     },
   }));
   const bulkStockUpdates = [];
-  invoiceItems.forEach((item) => {
-    const relatedStocks = stocks.filter(
-      (stock) => stock.product === item.product
-    );
-    relatedStocks.forEach((stock) => {
-      bulkStockUpdates.push({
-        updateOne: {
-          filter: { qr: item.qr, "stocks.stockId": stock.stockId },
-          update: {
-            $inc: { "stocks.$.productQuantity": +item.quantity },
-          },
-        },
-      });
-    });
-  });
+  // Iterate over each invoice item asynchronously
+  await Promise.all(
+    invoiceItems.map(async (item) => {
+      // Find the product by QR code
+      const product = await ProductModel.findOne({ qr: item.qr });
+
+      if (product) {
+        // Create arrays to store update and insert operations
+        const updateOperations = [];
+        const insertOperations = [];
+
+        // Get the existing stocks for the product
+        const existingStocks = product.stocks || [];
+
+        // Map over stocks related to the invoice item
+        stocks
+          .filter((stock) => stock.product === item.product)
+          .forEach((stock) => {
+            // Check if the stock already exists in the product
+            const existingStock = existingStocks.find(
+              (s) => s.stockId === stock.stockId
+            );
+
+            if (existingStock) {
+              // If stock exists, create an update operation
+              updateOperations.push({
+                updateOne: {
+                  filter: { _id: product._id, "stocks.stockId": stock.stockId },
+                  update: {
+                    $inc: { "stocks.$.productQuantity": +item.quantity },
+                  },
+                },
+              });
+            } else {
+              // If stock does not exist, prepare an insert operation
+              insertOperations.push({
+                updateOne: {
+                  filter: { _id: product._id },
+                  update: {
+                    $push: {
+                      stocks: {
+                        stockId: stock.stockId,
+                        stockName: stock.stockName,
+                        productQuantity: +item.quantity,
+                      },
+                    },
+                  },
+                  upsert: true,
+                },
+              });
+            }
+          });
+
+        // Execute update operations if any
+        if (updateOperations.length > 0) {
+          await ProductModel.bulkWrite(updateOperations);
+        }
+
+        // Execute insert operations if any
+        if (insertOperations.length > 0) {
+          await ProductModel.bulkWrite(insertOperations);
+        }
+      }
+    })
+  );
+
   invoiceItems.map(async (item) => {
     const product = await ProductModel.findOne({ qr: item.qr });
     if (product && product.type !== "Service") {
@@ -777,18 +843,32 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         "purchase",
         dbName
       );
-      await createPaymentHistory(
-        "invoice",
-        formattedDate,
-        totalPurchasePriceMainCurrency,
-        supplier.TotalUnpaid,
-        "supplier",
-        suppliersId,
-        invoiceNumber,
-        dbName
-      );
     }
   });
+  await createPaymentHistory(
+    "invoice",
+    formattedDate,
+    totalPurchasePriceMainCurrency,
+    supplier.TotalUnpaid,
+    "supplier",
+    suppliersId,
+    invoiceNumber,
+    dbName
+  );
+  if (paid === "paid") {
+    await createPaymentHistory(
+      "payment",
+      formattedDate,
+      totalPurchasePriceMainCurrency,
+      supplier.TotalUnpaid,
+      "supplier",
+      suppliersId,
+      invoiceNumber,
+      dbName,
+      description,
+      nextCounterPayment
+    );
+  }
   await ProductModel.bulkWrite(bulkProductUpdates);
   if (bulkStockUpdates.length > 0) {
     await ProductModel.bulkWrite(bulkStockUpdates);
@@ -829,7 +909,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   );
   res.status(201).json({
     status: "success",
-    message: "created sucssess",
+    message: "create sucssess",
     data: newPurchaseInvoice,
     history,
   });
@@ -1263,8 +1343,10 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     const date = padZero(dateOb.getDate());
     const month = padZero(dateOb.getMonth() + 1);
     const year = dateOb.getFullYear();
-
-    return `${month}/${date}/${year}`;
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${month}/${date}/${year} ${hours}:${minutes}:${seconds}`;
   };
 
   const formattedDate = getFormattedDate();
@@ -1290,6 +1372,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     currencyId,
     invoiceNumber,
     totalPurchasePriceMainCurrencyBefor,
+    date,
   } = req.body;
 
   const originalItems = purchase.invoicesItems;
@@ -1384,7 +1467,10 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         totalPurchasePriceMainCurrency,
         currencyId,
       };
-      newPurchaseInvoice = await PurchaseInvoicesModel.create(newInvoiceData);
+      newPurchaseInvoice = await PurchaseInvoicesModel.updateOne(
+        { _id: id },
+        newInvoiceData
+      );
       const reports = await ReportsFinancialFundsModel.create({
         date: formattedDate,
         invoice: newPurchaseInvoice._id,
@@ -1395,34 +1481,39 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         financialFundId: onefinancialFunds,
         financialFundRest: financialFund.fundBalance,
       });
-      newPurchaseInvoice.payments.push({
+      purchase.payments.push({
         payment: totalPurchasePriceMainCurrency,
         paymentMainCurrency: fundPricePurchaseInvocie,
         financialFunds: financialFund.fundName,
         date: formattedDate,
       });
-      newPurchaseInvoice.reportsBalanceId = reports.id;
-      await newPurchaseInvoice.save();
+      purchase.reportsBalanceId = reports.id;
+      await purchase.save();
       await financialFund.save();
       paymentText = "payment-sup";
-      await createPaymentHistory(
-        "payment",
-        formattedDate,
-        totalPurchasePriceMainCurrency,
-        supplier.TotalUnpaid,
-        "supplier",
-        supplier._id,
-        invoiceNumber,
-        dbName,
-        description,
-        nextCounterPayment
-      );
-      purchaseSupplier.total -= totalPurchasePriceMainCurrencyBefor;
-      supplier.total += totalPurchasePriceMainCurrency;
-    } else {
+
+      await paymentModel.create({
+        supplierId: suppliersId,
+        supplierName: supplier,
+        total: totalPurchasePrice,
+        totalMainCurrency: totalPurchasePriceMainCurrency,
+        exchangeRate: financialFund.fundCurrency.exchangeRate,
+        currencyCode: currencyCode,
+        date: date,
+        invoiceNumber: invoiceNumber,
+        counter: nextCounterPayment,
+      });
+
       if (suppliersId === purchase.suppliersId) {
         supplier.total +=
           totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
+      } else {
+        purchaseSupplier.total -= totalPurchasePriceMainCurrencyBefor;
+        await purchaseSupplier.save();
+        supplier.total += totalPurchasePriceMainCurrency;
+      }
+    } else {
+      if (suppliersId === purchase.suppliersId) {
         supplier.TotalUnpaid +=
           totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
       } else {
@@ -1463,21 +1554,25 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         newInvoiceData
       );
     }
-    console.log(invoiceNumber);
+
     await PaymentHistoryModel.deleteMany({
       invoiceNumber: invoiceNumber,
     });
 
-    await createPaymentHistory(
-      "invoice",
-      formattedDate,
-      totalPurchasePriceMainCurrency,
-      supplier.TotalUnpaid,
-      "supplier",
-      suppliersId,
-      invoiceNumber,
-      dbName
-    );
+    if (paid === "paid") {
+      await createPaymentHistory(
+        "payment",
+        formattedDate,
+        totalPurchasePriceMainCurrency,
+        supplier.TotalUnpaid,
+        "supplier",
+        suppliersId,
+        invoiceNumber,
+        dbName,
+        description,
+        nextCounterPayment
+      );
+    }
 
     res.status(200).json({
       status: "success",

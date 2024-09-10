@@ -52,12 +52,10 @@ const productSchema = new mongoose.Schema(
     },
     descriptionAR: {
       type: String,
-      maxlength: [5000, "Too long product Arabic long description"],
       default: "Product description AR",
     },
     descriptionTR: {
       type: String,
-      maxlength: [5000, "Too long product Turkish long description"],
       default: "Product description TR",
     },
     sold: {

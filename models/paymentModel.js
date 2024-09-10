@@ -31,14 +31,14 @@ const PaymentSchema = new mongoose.Schema(
     },
     currencyCode: String,
     data: String,
-
+    invoiceNumber: String,
     counter: {
       type: String,
       default: 0,
       unique: true,
     },
     date: String,
-    description: String
+    description: String,
   },
   { timestamps: true }
 );
