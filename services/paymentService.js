@@ -110,7 +110,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paid: "unpaid",
       suppliersId: req.body.supplierId,
     });
-  
+
     const bulkUpdateOperations = purchases.map((purchase) => {
       const paymentAmount = Math.min(
         purchase.totalRemainderMainCurrency,
@@ -121,8 +121,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
           totalRemainderMainCurrency:
             purchase.totalRemainderMainCurrency - paymentAmount,
           totalRemainder:
-            purchase.totalRemainder -
-            paymentAmount / purchase.exchangeRate,
+            purchase.totalRemainder - paymentAmount / purchase.exchangeRate,
         },
         $push: {
           payments: {
@@ -316,11 +315,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
     amount: req.body.total,
+    finalPriceMainCurrency: req.body.totalMainCurrency,
     payment: payment._id,
     type: paymentText,
     financialFundId: financialFundsId,
     financialFundRest: financialFunds.fundBalance,
-    exchangeRate: req.body.totalMainCurrency,
+    exchangeRate: req.body.exchangeRate || 1,
   });
 
   if (!payment) {

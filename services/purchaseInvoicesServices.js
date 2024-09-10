@@ -587,7 +587,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const hours = padZero(dateOb.getHours());
     const minutes = padZero(dateOb.getMinutes());
     const seconds = padZero(dateOb.getSeconds());
-    return `${year}-${date}-${month} ${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
   };
 
   const formattedDate = getFormattedDate();
@@ -1346,7 +1346,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     const hours = padZero(dateOb.getHours());
     const minutes = padZero(dateOb.getMinutes());
     const seconds = padZero(dateOb.getSeconds());
-    return `${month}/${date}/${year} ${hours}:${minutes}:${seconds}`;
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
   };
 
   const formattedDate = getFormattedDate();
