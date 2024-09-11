@@ -568,10 +568,6 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
   const thirdPartyModel = db.model("ThirdPartyAuth", thirdPartyAuthSchema);
   const { googleClientID, googleClientSecret } =
     await thirdPartyModel.findOne();
-  console.log("googleClientID");
-  console.log(googleClientID);
-  console.log("googleClientSecret");
-  console.log(googleClientSecret);
 
   const { code } = req.body;
   try {
@@ -602,8 +598,9 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
 
     let user = await UserModel.findOne({ email });
     if (!user) {
-      await UserModel.create({ email, name });
+      user = await UserModel.create({ email, name });
     }
+
     const token = createToken(user._id);
     res.status(200).json({ message: "login success", user, token: token });
   } catch (error) {
