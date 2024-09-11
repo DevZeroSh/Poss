@@ -13,6 +13,7 @@ const sendEmail = require("../utils/sendEmail");
 const { OAuth2Client } = require("google-auth-library");
 const E_user_Schema = require("../models/ecommerce/E_user_Modal");
 const { default: axios } = require("axios");
+const thirdPartyAuthSchema = require("../models/ecommerce/thirdPartyAuthModel");
 
 // @desc      Login
 // @route     POST /api/auth/login
@@ -76,10 +77,10 @@ exports.login = asyncHandler(async (req, res, next) => {
 // @desc   make sure the user is logged in sys
 exports.protect = asyncHandler(async (req, res, next) => {
   //1-Check if token exist, if exist get
-  const dbName = req.query.databaseName||req.body.databaseName;
+  const dbName = req.query.databaseName || req.body.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
-   const employeeModel = db.model("Employee", emoloyeeShcema);
+  const employeeModel = db.model("Employee", emoloyeeShcema);
 
   let token;
   if (
@@ -564,7 +565,14 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const UserModel = db.model("Users", E_user_Schema);
-  console.log(req.body);
+  const thirdPartyModel = db.model("ThirdPartyAuth", thirdPartyAuthSchema);
+  const { googleClientID, googleClientSecret } =
+    await thirdPartyModel.findOne();
+  console.log("googleClientID");
+  console.log(googleClientID);
+  console.log("googleClientSecret");
+  console.log(googleClientSecret);
+
   const { code } = req.body;
   try {
     // Exchange authorization code for tokens
@@ -572,9 +580,9 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
       "https://oauth2.googleapis.com/token",
       new URLSearchParams({
         code,
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        redirect_uri: "http://localhost:3000", // Make sure this matches
+        client_id: googleClientID,
+        client_secret: googleClientSecret,
+        redirect_uri: "http://localhost:3000",
         grant_type: "authorization_code",
       }),
       {
