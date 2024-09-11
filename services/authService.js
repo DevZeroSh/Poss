@@ -553,17 +553,42 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
+const oAuth2Client = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  "postmessage" // Redirect URI for authorization code flow
+);
+
 exports.googleLogin = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const UserModel = db.model("Users", E_user_Schema);
-  const { tokenId } = req.body;
+  console.log(req.body);
+  const { code } = req.body;
   try {
+    // Exchange authorization code for tokens
+    const { data } = await axios.post(
+      "https://oauth2.googleapis.com/token",
+      new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: "http://localhost:3000", // Make sure this matches
+        grant_type: "authorization_code",
+      }),
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
+
+    const { id_token, access_token } = data;
+
+    // Verify the ID token
     const ticket = await client.verifyIdToken({
-      idToken: tokenId,
-      audience:
-        "58741021625-php6on8j0si0qvpi59fqtu2aj5vigbd2.apps.googleusercontent.com",
+      idToken: id_token,
+      audience: process.env.CLIENT_ID,
     });
+
     const { email, name } = ticket.getPayload();
 
     let user = await UserModel.findOne({ email });
