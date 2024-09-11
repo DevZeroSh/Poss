@@ -676,7 +676,7 @@ exports.updateEcommerceProducts = async (req, res, next) => {
       // Update products by category
       updatedProducts = await productModel.updateMany(
         { category: { $in: allCategories } },
-        { $set: { ecommerceActive: true } }
+        { $set: { ecommerceActive: true, importDate: new Date() } }
       );
 
       if (updatedProducts.matchedCount === 0) {
@@ -685,7 +685,7 @@ exports.updateEcommerceProducts = async (req, res, next) => {
     } else if (brandId) {
       updatedProducts = await productModel.updateMany(
         { brand: { $in: brandId } },
-        { $set: { ecommerceActive: true } }
+        { $set: { ecommerceActive: true, importDate: new Date() } }
       );
     } else {
       // Update products matching the given productIds
@@ -1127,7 +1127,7 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
     sortQuery = {
       importDate: req.query.importDate == 1 ? 1 : -1,
     };
-  } 
+  }
   const totalItems = await productModel.countDocuments(query);
 
   const totalPages = Math.ceil(totalItems / pageSize);

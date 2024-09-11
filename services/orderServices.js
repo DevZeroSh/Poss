@@ -236,7 +236,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       currencyCode: req.body.currency,
       totalOrderPrice,
       totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
-      taxs: req.body.taxs,
       price: req.body.price,
       taxRate: req.body.taxRate,
       customarId: customarId,
