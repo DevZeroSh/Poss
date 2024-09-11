@@ -28,6 +28,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         exchangeRate: Number,
         buyingpriceOringal: Number,
         stockId: String,
+        stockName: String,
         _id: false,
       },
     ],
@@ -57,6 +58,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         paymentMainCurrency: Number,
         financialFunds: String,
         date: String,
+        _id: false,
       },
     ],
 
@@ -69,7 +71,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
     },
-    counter: {
+    invoiceNumber: {
       type: String,
       unique: true,
     },

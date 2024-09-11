@@ -76,10 +76,10 @@ exports.login = asyncHandler(async (req, res, next) => {
 // @desc   make sure the user is logged in sys
 exports.protect = asyncHandler(async (req, res, next) => {
   //1-Check if token exist, if exist get
-  const dbName = req.query.databaseName;
+  const dbName = req.query.databaseName||req.body.databaseName;
 
   const db = mongoose.connection.useDb(dbName);
-  const employeeModel = db.model("Employee", emoloyeeShcema);
+   const employeeModel = db.model("Employee", emoloyeeShcema);
 
   let token;
   if (
@@ -95,6 +95,7 @@ exports.protect = asyncHandler(async (req, res, next) => {
     try {
       //2- Verify token (no change happens, expired token)
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
       //3-Check if user exists
       const curentUser = await employeeModel.findById(decoded.userId);
       if (!curentUser) {
