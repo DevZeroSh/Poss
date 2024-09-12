@@ -359,7 +359,8 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     dbName,
     order._id,
     "create",
-    req.user._id
+    req.user._id,
+    formattedDate
   );
   await createPaymentHistory(
     "invoice",

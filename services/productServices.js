@@ -285,6 +285,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   db.model("Brand", brandSchema);
   db.model("Variant", variantSchema);
   db.model("Tax", TaxSchema);
+  db.model("Currency", currencySchema);
 
   const limit = parseInt(req.query.limit) || 16;
   const skip = parseInt(req.query.skip) || 0;
@@ -292,7 +293,8 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     publish: true,
     ecommerceActive: true,
   };
-
+  // Sorting logic
+  let sortQuery = { importDate: -1 };
   // Keyword search
   if (req.query.keyword) {
     query.name = { $regex: req.query.keyword, $options: "i" };
@@ -338,8 +340,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     }
   }
 
-  // Sorting logic
-  let sortQuery = { importDate: -1 };
+
   if (req.query.sold) {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
   }
@@ -442,6 +443,14 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           localField: "tax",
           foreignField: "_id",
           as: "tax",
+        },
+      },
+      {
+        $lookup: {
+          from: "currencies",
+          localField: "currency",
+          foreignField: "_id",
+          as: "currency",
         },
       },
     ];
@@ -1103,7 +1112,7 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   const pageSize = req.query.limit || 15;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-
+  let sortQuery = { importDate: -1 };
   let query = { ecommerceActive: true };
 
   if (req.query.publish) {
@@ -1125,7 +1134,7 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
       ecommercePrice: parseInt(req.query.ecommercePrice) === 1 ? 1 : -1,
     };
   }
-  let sortQuery = { importDate: -1 };
+
   if (req.query.name) {
     console.log(req.query.name);
     sortQuery = {

@@ -37,6 +37,7 @@ const PaymentSchema = new mongoose.Schema(
       default: 0,
       unique: true,
     },
+    ordersPayid: [{ type: String, order: String, _id: false }],
     date: String,
     description: String,
   },

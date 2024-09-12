@@ -85,6 +85,7 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
     date: formattedDate,
     conuter: devicesUpdate.conuter,
     status: "update",
+    devicesStatus: req.body.deviceStatus,
   });
   res.status(200).json({ success: "success", data: devicesUpdate, history });
 });
@@ -140,6 +141,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     date: formattedDate,
     conuter: nextCounter,
     status: "create",
+    devicesStatus: req.body.deviceStatus,
   });
   res.status(200).json({
     success: "success",
