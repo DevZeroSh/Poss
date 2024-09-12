@@ -51,7 +51,7 @@ const ReportsSalesSchema = new mongoose.Schema(
         taxPrice: Number,
         buyingPrice: Number,
         taxRate: Number,
-        taxs: Number,
+        taxs: String,
         price: Number,
         name: String,
         qr: String,

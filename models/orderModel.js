@@ -47,14 +47,14 @@ const orderSchema = new mongoose.Schema(
         _id: false,
       },
     ],
-    stocks: [
-      {
-        stockId: String,
-        stockName: String,
-        stockQuantity: Number,
-        _id: false,
-      },
-    ],
+    // stocks: [
+    //   {
+    //     stockId: String,
+    //     stockName: String,
+    //     stockQuantity: Number,
+    //     _id: false,
+    //   },
+    // ],
     returnCartItem: [
       {
         product: {
@@ -80,6 +80,7 @@ const orderSchema = new mongoose.Schema(
     totalOrderPrice: Number,
     totalPriceAfterDiscount: Number,
     currencyCode: String,
+    currencyId: String,
     isPadid: {
       type: Boolean,
       default: false,

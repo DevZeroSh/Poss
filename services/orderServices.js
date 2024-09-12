@@ -125,7 +125,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       employee: req.user._id,
       priceExchangeRate: req.body.priceExchangeRate,
       cartItems,
-      stocks: stocks,
       returnCartItem: cartItems,
       currencyCode: req.body.currency,
       totalOrderPrice,
@@ -150,6 +149,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       description,
       shippingPrice,
       date,
+      currencyId: req.body.currencyId,
     });
 
     const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
@@ -254,6 +254,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       paid: req.body.paid,
       totalRemainder: req.body.priceExchangeRate,
       totalRemainderMainCurrency: total,
+      currencyId: req.body.currencyId,
     });
   }
 
@@ -274,7 +275,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
   const bulkWritePromise = await productModel.bulkWrite(bulkOption);
 
-  console.log(stocks);
 
   const bulkOptionst2 = await Promise.all(
     cartItems

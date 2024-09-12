@@ -339,7 +339,7 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
   }
 
   // Sorting logic
-  let sortQuery = { createdAt: -1 };
+  let sortQuery = { importDate: -1 };
   if (req.query.sold) {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
   }
@@ -406,7 +406,12 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           as: "category",
         },
       },
-      { $unwind: "$category" },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
       {
         $lookup: {
           from: "categories",
