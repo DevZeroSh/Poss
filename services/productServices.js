@@ -463,11 +463,11 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
           };
         });
         doc.imagesArray = imageList;
-        console.log(doc.imagesArray);
       }
     };
 
-    setImageURL(products);
+    products.forEach(setImageURL);
+
 
     res.status(200).json({
       status: "true",
