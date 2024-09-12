@@ -453,17 +453,21 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
 
     const setImageURL = (doc) => {
       if (doc.image) {
-        doc.image = `${process.env.BASE_URL}/product/${doc.image}`;
+        const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
+        doc.image = imageUrl;
       }
       if (doc.imagesArray) {
-        doc.imagesArray = doc.imagesArray.map(
-          (image) => `${process.env.BASE_URL}/product/${image}`
-        );
+        const imageList = doc.imagesArray.map((imageObj) => {
+          return {
+            image: `${process.env.BASE_URL}/product/${imageObj.image}`,
+          };
+        });
+        doc.imagesArray = imageList;
+        console.log(doc.imagesArray);
       }
     };
 
-    // Set image URLs for each product
-    products.forEach(setImageURL);
+    setImageURL(products);
 
     res.status(200).json({
       status: "true",
