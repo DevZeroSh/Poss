@@ -340,7 +340,6 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     }
   }
 
-
   if (req.query.sold) {
     sortQuery = { sold: parseInt(req.query.sold) === 1 ? 1 : -1 };
   }
@@ -476,7 +475,6 @@ exports.getLezyProduct = asyncHandler(async (req, res, next) => {
     };
 
     products.forEach(setImageURL);
-
 
     res.status(200).json({
       status: "true",
@@ -1205,6 +1203,33 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
     totalOrderCount,
   });
 });
+
+// exports.convertImage = asyncHandler(async (req, res, next) => {
+//   const dbName = req.query.databaseName;
+//   const db = mongoose.connection.useDb(dbName);
+
+//   const productModel = db.model("Product", productSchema);
+
+//   // Find products that are ecommerceActive
+//   const products = await productModel.find({ ecommerceActive: true })
+ 
+
+//   // Optionally, save the updated products to the database
+//   for (const product of products) {
+//     await productModel.updateOne(
+//       { _id: product._id },
+//       { $unset: { imagesArrays: "" } } 
+//     );
+//   }
+
+//   res.status(200).json({
+//     status: "success",
+//     products,
+//   });
+// });
+
+
+
 
 // @desc Update the product to be featured
 // @route PUT /api/featureProduct
