@@ -555,18 +555,12 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-const oAuth2Client = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  "postmessage" // Redirect URI for authorization code flow
-);
-
 exports.googleLogin = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const UserModel = db.model("Users", E_user_Schema);
   const thirdPartyModel = db.model("ThirdPartyAuth", thirdPartyAuthSchema);
-  const { googleClientID, googleClientSecret } =
+  const { googleClientID, googleClientSecret, redirectUri } =
     await thirdPartyModel.findOne();
 
   const { code } = req.body;
@@ -578,7 +572,7 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
         code,
         client_id: googleClientID,
         client_secret: googleClientSecret,
-        redirect_uri: "https://store.noontek.com",
+        redirect_uri: redirectUri,
         grant_type: "authorization_code",
       }),
       {
