@@ -578,7 +578,7 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
         code,
         client_id: googleClientID,
         client_secret: googleClientSecret,
-        redirect_uri: "http://localhost:3000",
+        redirect_uri: "https://store.noontek.com",
         grant_type: "authorization_code",
       }),
       {
