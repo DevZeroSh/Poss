@@ -1212,13 +1212,12 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
 
 //   // Find products that are ecommerceActive
 //   const products = await productModel.find({ ecommerceActive: true })
- 
 
 //   // Optionally, save the updated products to the database
 //   for (const product of products) {
 //     await productModel.updateOne(
 //       { _id: product._id },
-//       { $unset: { imagesArrays: "" } } 
+//       { $unset: { imagesArrays: "" } }
 //     );
 //   }
 
@@ -1227,9 +1226,6 @@ exports.ecommerceDashboardStats = asyncHandler(async (req, res) => {
 //     products,
 //   });
 // });
-
-
-
 
 // @desc Update the product to be featured
 // @route PUT /api/featureProduct
@@ -1303,7 +1299,18 @@ exports.getEcommerceProductFeatured = async (req, res, next) => {
 
   try {
     const product = await productModel.find({ featured: true });
+    const setImageURL = (doc) => {
+      if (doc.imagesArray) {
+        const imageList = doc.imagesArray.map((imageObj) => {
+          return {
+            image: `${process.env.BASE_URL}/product/${imageObj.image}`,
+          };
+        });
+        doc.imagesArray = imageList;
+      }
+    };
 
+    product.forEach(setImageURL);
     res.status(200).json({ success: true, data: product });
   } catch (error) {
     next(error);
@@ -1381,7 +1388,18 @@ exports.getEcommerceProductSponsored = async (req, res, next) => {
 
   try {
     const product = await productModel.find({ sponsored: true });
+    const setImageURL = (doc) => {
+      if (doc.imagesArray) {
+        const imageList = doc.imagesArray.map((imageObj) => {
+          return {
+            image: `${process.env.BASE_URL}/product/${imageObj.image}`,
+          };
+        });
+        doc.imagesArray = imageList;
+      }
+    };
 
+    product.forEach(setImageURL);
     res.status(200).json({ success: true, data: product });
   } catch (error) {
     next(error);
