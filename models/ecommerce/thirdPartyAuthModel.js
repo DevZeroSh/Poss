@@ -5,7 +5,7 @@ const thirdPartyAuthSchema = new mongoose.Schema(
     googleClientID: String,
     googleClientSecret: String,
     facebookAppID: String,
-    redirectUri: [String],
+    redirectUri: String,
   },
   { timestamps: true }
 );

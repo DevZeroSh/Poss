@@ -562,6 +562,7 @@ exports.googleLogin = asyncHandler(async (req, res, next) => {
   const thirdPartyModel = db.model("ThirdPartyAuth", thirdPartyAuthSchema);
   const { googleClientID, googleClientSecret, redirectUri } =
     await thirdPartyModel.findOne();
+  console.log(redirectUri);
 
   const { code } = req.body;
   try {
