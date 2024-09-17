@@ -640,7 +640,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const newInvoiceData = {
       employee: req.user._id,
       invoicesItems: invoiceItems,
-      date: formattedDate,
+      date: date || formattedDate,
       suppliersId,
       supplierName,
       supplierPhone,
@@ -661,7 +661,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     };
     newPurchaseInvoice = await PurchaseInvoicesModel.create(newInvoiceData);
     const reports = await ReportsFinancialFundsModel.create({
-      date: formattedDate,
+      date: date || formattedDate,
       invoice: newPurchaseInvoice._id,
       amount: fundPricePurchaseInvocie,
       type: "purchase",
@@ -671,10 +671,11 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       financialFundRest: financialFund.fundBalance,
     });
     newPurchaseInvoice.payments.push({
-      payment: totalPurchasePriceMainCurrency,
-      paymentMainCurrency: fundPricePurchaseInvocie,
+      payment: fundPricePurchaseInvocie,
+      paymentMainCurrency: totalPurchasePriceMainCurrency,
       financialFunds: financialFund.fundName,
-      date: formattedDate,
+      financialFundsCurrencyCode: req.body.invoiceFinancialFundCurrencyCode,
+      date: date || formattedDate,
     });
     newPurchaseInvoice.reportsBalanceId = reports.id;
     await newPurchaseInvoice.save();
@@ -682,12 +683,12 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     paymentText = "payment-sup";
     await paymentModel.create({
       supplierId: suppliersId,
-      supplierName: supplier,
-      total: totalPurchasePrice,
+      supplierName: supplierName,
+      total: fundPricePurchaseInvocie,
       totalMainCurrency: totalPurchasePriceMainCurrency,
       exchangeRate: financialFund.fundCurrency.exchangeRate,
-      currencyCode: currencyCode,
-      date: date,
+      currencyCode: financialFund.fundCurrency.currencyCode,
+      date: date || formattedDate,
       invoiceNumber: invoiceNumber,
       counter: nextCounterPayment,
     });
@@ -718,7 +719,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     }
     const newInvoiceData = {
       employee: req.user._id,
-      date: formattedDate,
+      date: date || formattedDate,
       invoicesItems: invoiceItems,
       suppliersId,
       supplierName,
@@ -749,6 +750,9 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       filter: { qr: item.qr },
       update: {
         $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+        $set: {
+          buyingprice: item.buyingpriceOringal,
+        },
       },
     },
   }));
@@ -847,7 +851,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   });
   await createPaymentHistory(
     "invoice",
-    formattedDate,
+    date || formattedDate,
     totalPurchasePriceMainCurrency,
     supplier.TotalUnpaid,
     "supplier",
@@ -858,7 +862,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   if (paid === "paid") {
     await createPaymentHistory(
       "payment",
-      formattedDate,
+      date || formattedDate,
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
@@ -1448,7 +1452,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       const newInvoiceData = {
         employee: req.user._id,
         invoicesItems: invoicesItems,
-        date: formattedDate,
+        date: date || formattedDate,
         suppliersId,
         supplierName,
         supplierPhone,
@@ -1460,7 +1464,6 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         exchangeRate,
         priceExchangeRate,
         onefinancialFunds,
-        invoiceNumber: invoiceNumber,
         paid: "paid",
         totalPurchasePrice,
         description,
@@ -1472,7 +1475,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         newInvoiceData
       );
       const reports = await ReportsFinancialFundsModel.create({
-        date: formattedDate,
+        date: date || formattedDate,
         invoice: newPurchaseInvoice._id,
         amount: fundPricePurchaseInvocie,
         type: "purchase",
@@ -1485,7 +1488,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         payment: totalPurchasePriceMainCurrency,
         paymentMainCurrency: fundPricePurchaseInvocie,
         financialFunds: financialFund.fundName,
-        date: formattedDate,
+        date: date || formattedDate,
       });
       purchase.reportsBalanceId = reports.id;
       await purchase.save();
@@ -1512,9 +1515,13 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         await purchaseSupplier.save();
         supplier.total += totalPurchasePriceMainCurrency;
       }
-    } else {
+      await supplier.save();
+    } 
+    else {
       if (suppliersId === purchase.suppliersId) {
         supplier.TotalUnpaid +=
+          totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
+        supplier.total +=
           totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
       } else {
         purchaseSupplier.total -= totalPurchasePriceMainCurrencyBefor;
@@ -1527,7 +1534,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
 
       const newInvoiceData = {
         employee: req.user._id,
-        date: formattedDate,
+        date: date || formattedDate,
         invoicesItems: invoicesItems,
         suppliersId,
         supplierName,
@@ -1559,10 +1566,21 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       invoiceNumber: invoiceNumber,
     });
 
+    await createPaymentHistory(
+      "invoice",
+      date || formattedDate,
+      totalPurchasePriceMainCurrency,
+      supplier.TotalUnpaid,
+      "supplier",
+      suppliersId,
+      invoiceNumber,
+      dbName
+    );
+
     if (paid === "paid") {
       await createPaymentHistory(
         "payment",
-        formattedDate,
+        date || formattedDate,
         totalPurchasePriceMainCurrency,
         supplier.TotalUnpaid,
         "supplier",
@@ -1573,7 +1591,13 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         nextCounterPayment
       );
     }
-
+    const history = await createInvoiceHistory(
+      dbName,
+      id,
+      "edit",
+      req.user._id,
+      date
+    );
     res.status(200).json({
       status: "success",
       message: "Purchase invoice updated successfully",

@@ -51,6 +51,8 @@ const thirdPartyRoute = require("./ecommerce/thirdPartyAuthRoute");
 const accountingTreeRout = require("./accountingTreeRoute");
 const assetsRout = require("./assetsRoute");
 const purchaseOrderRouter = require("./purchaseOrderRoute");
+const manitUserRout = require("./maintenance/maintenanceUserRoute");
+const manitCaseRout = require("./maintenance/manitencesCaseRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -116,5 +118,7 @@ const mountRoutes = (app) => {
 
   //Maintenance
   app.use("/api/device", devicesRout);
+  app.use("/api/manituser", manitUserRout);
+  app.use("/api/manitcase", manitCaseRout);
 };
 module.exports = mountRoutes;

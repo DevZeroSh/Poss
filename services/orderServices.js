@@ -33,6 +33,7 @@ const orderFishSchema = require("../models/orderModelFish");
 const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
 const refundPosSalesSchema = require("../models/refundPosSales");
+const PaymentSchema = require("../models/paymentModel");
 
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
@@ -57,7 +58,10 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("PaymentType", paymentTypesSchema);
   db.model("Stock", stockSchema);
+  db.model("Currency", currencySchema);
+  const paymentModel = db.model("Payment", PaymentSchema);
 
+  const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
   const cartItems = req.body.cartItems;
   const stocks = req.body.stocks;
 
@@ -101,7 +105,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   if (paid === "paid") {
     financialFunds = await FinancialFundsModel.findById(
       financialFundsId
-    ).populate({ path: "fundPaymentType" });
+    ).populate({ path: "fundPaymentType fundCurrency" });
     if (!financialFunds) {
       return next(
         new ApiError(
@@ -112,7 +116,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     }
     financialFunds.fundBalance += req.body.totalPriceExchangeRate;
   }
-
   const [customars, nextCounter, reportCounter] = await Promise.all([
     customarsPromise,
     nextCounterOrder,
@@ -123,7 +126,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   if (paid === "paid") {
     order = await orderModel.create({
       employee: req.user._id,
-      priceExchangeRate: req.body.priceExchangeRate,
+      totalPriceExchangeRate: req.body.priceExchangeRate,
       cartItems,
       returnCartItem: cartItems,
       currencyCode: req.body.currency,
@@ -142,20 +145,19 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       couponType: req.body.couponType,
       type: req.body.type,
       onefinancialFunds: financialFundsId,
-      paidAt: formattedDate,
+      date: formattedDate,
       counter: "in-" + nextCounter,
       exchangeRate: exchangeRate,
       paid: paid,
       description,
       shippingPrice,
-      date,
+      date: date || formattedDate,
       currencyId: req.body.currencyId,
     });
 
     const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
       date: timeIsoString,
       amount: req.body.totalPriceExchangeRate,
-      totalPriceAfterDiscount: req.body.totalPriceAfterDiscount,
       exchangeAmount: totalOrderPrice,
       order: order._id,
       type: "sales",
@@ -205,6 +207,27 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       financialFundsSavePromise,
       createExpensePromise,
     ]);
+    order.payments.push({
+      payment: req.body.totalPriceExchangeRate,
+      paymentMainCurrency: totalOrderPrice,
+      financialFunds: financialFunds.fundName,
+      financialFundsCurrencyCode: req.body.invoiceFinancialFundCurrencyCode,
+      date: date || formattedDate,
+    });
+    await paymentModel.create({
+      customarId: customarId,
+      customarName: req.body.customarName,
+      total: req.body.totalPriceExchangeRate,
+      totalMainCurrency: totalOrderPrice,
+      exchangeRate: financialFunds.fundCurrency.exchangeRate,
+      currencyCode: financialFunds.fundCurrency.currencyCode,
+      date: date || formattedDate,
+      invoiceNumber: "in-" + nextCounter,
+      counter: nextCounterPayment,
+    });
+    customars.total += totalOrderPrice;
+    await customars.save();
+    await order.save();
   } else {
     customars.total += totalOrderPrice;
 
@@ -229,7 +252,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
     order = await orderModel.create({
       employee: req.user._id,
-      priceExchangeRate: req.body.priceExchangeRate,
+      totalPriceExchangeRate: req.body.priceExchangeRate,
       cartItems,
       returnCartItem: cartItems,
       stocks: stocks,
@@ -248,16 +271,26 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       couponType: req.body.couponType,
       type: req.body.type,
       onefinancialFunds: financialFundsId,
-      paidAt: formattedDate,
+      date: formattedDate,
       counter: "in-" + nextCounter,
       exchangeRate: exchangeRate,
       paid: req.body.paid,
       totalRemainder: req.body.priceExchangeRate,
       totalRemainderMainCurrency: total,
       currencyId: req.body.currencyId,
+      date: date || formattedDate,
     });
   }
-
+  await createPaymentHistory(
+    "invoice",
+    formattedDate,
+    totalOrderPrice,
+    customars.TotalUnpaid,
+    "customer",
+    customarId,
+    "in-" + nextCounter,
+    dbName
+  );
   const bulkOption = cartItems
     .filter((item) => item.type !== "Service")
     .map((item) => ({
@@ -274,7 +307,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     }));
 
   const bulkWritePromise = await productModel.bulkWrite(bulkOption);
-
 
   const bulkOptionst2 = await Promise.all(
     cartItems
@@ -362,17 +394,21 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     req.user._id,
     formattedDate
   );
-  await createPaymentHistory(
-    "invoice",
-    formattedDate,
-    totalOrderPrice,
-    customars.TotalUnpaid,
-    "customer",
-    customarId,
-    "in-" + nextCounter,
-    dbName
-  );
 
+  if (paid === "paid") {
+    await createPaymentHistory(
+      "payment",
+      date || formattedDate,
+      totalOrderPrice,
+      customars.TotalUnpaid,
+      "customer",
+      customarId,
+      order.counter,
+      dbName,
+      description,
+      nextCounterPayment
+    );
+  }
   res.status(201).json({ status: "success", data: order, history });
 });
 
@@ -456,65 +492,6 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc    Get All order
-// @route   GET /api/orders/cartId
-// @access  privet/All
-/*exports.findAllSalesPos = asyncHandler(async (req, res, next) => {
-  const dbName = req.query.databaseName;
-  const db = mongoose.connection.useDb(dbName);
-
-  const orderModel = db.model("Orders", orderSchema);
-  db.model("Employee", emoloyeeShcema);
-  db.model("Product", productSchema);
-  db.model("FinancialFunds", financialFundsSchema);
-  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
-
-  const pageSize = 10;
-  const page = parseInt(req.query.page) || 1;
-  const skip = (page - 1) * pageSize;
-
-  // Initialize the base query to exclude type "pos"
-  let query = { type: "pos" };
-
-  // Add keyword filter if provided
-  if (req.query.keyword) {
-    query = {
-      $and: [
-        query,
-        {
-          $or: [{ counter: req.query.keyword }],
-        },
-      ],
-    };
-  }
-
-  let mongooseQuery = orderModel.find(query);
-
-  // Apply sorting
-  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
-
-  // Count total items without pagination
-  const totalItems = await orderModel.countDocuments(query);
-
-  // Calculate total pages
-  const totalPages = Math.ceil(totalItems / pageSize);
-
-  // Apply pagination
-  mongooseQuery = mongooseQuery
-    .skip(skip)
-    .limit(pageSize)
-    .populate({ path: "employee" });
-
-  const order = await mongooseQuery;
-
-  res.status(200).json({
-    status: "true",
-    Pages: totalPages,
-    results: order.length,
-    data: order,
-  });
-});*/
-
 exports.findOneOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -535,28 +512,17 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
     // Check if the id is a number
     query = { counter: id };
   }
-  try {
-    const order = await orderModel
-      .findOne(query)
-      .populate({
-        path: "financialFunds.fundId",
-        select: "fundName",
-      })
-      .populate({
-        path: "onefinancialFunds",
-        select: "fundName",
-      });
 
-    if (!order) {
-      return next(new ApiError(`No order found for this id ${id}`, 404));
-    }
+  const order = await orderModel.findOne(query).populate({
+    path: "onefinancialFunds",
+    select: "fundName",
+  });
 
-    res.status(200).json({ status: "true", data: order });
-  } catch (error) {
-    return next(
-      new ApiError(`Error retrieving order for id ${id}: ${error.message}`, 500)
-    );
+  if (!order) {
+    return next(new ApiError(`No order found for this id ${id}`, 404));
   }
+
+  res.status(200).json({ status: "true", data: order });
 });
 
 // @desc put order
@@ -670,8 +636,8 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
       customars.total -= originalOrder.totalOrderPrice;
       customars.TotalUnpaid -= originalOrder.totalOrderPrice;
 
-      order.totalRemainderMainCurrency -= originalOrder.totalOrderPrice;
-      order.totalRemainder -= originalOrder.totalOrderPrice;
+      order.totalRemainderMainCurrency = originalOrder.totalOrderPrice;
+      order.totalRemainder = originalOrder.totalOrderPrice;
 
       await customars.save();
     }
@@ -752,6 +718,242 @@ exports.editOrder = asyncHandler(async (req, res, next) => {
   });
 });
 
+exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("Employee", emoloyeeShcema);
+  db.model("Product", productSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const customersModel = db.model("Customar", customarSchema);
+
+  db.model("Currency", currencySchema);
+  db.model("Variant", variantSchema);
+  const { id } = req.params;
+
+  const {
+    cartItems,
+    customarName,
+    customarEmail,
+    customarPhone,
+    customarAddress,
+    customarId,
+    currencyId,
+    currencyCode,
+    onefinancialFunds,
+    exchangeRate,
+    priceExchangeRate,
+    totalOrderPrice,
+    paid,
+    description,
+    date,
+    fundPriceExchangeRate,
+    totalPriceBefor,
+  } = req.body;
+
+  const orders = await orderModel.findById(id);
+
+  const getFormattedDate = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const date = padZero(dateOb.getDate());
+    const month = padZero(dateOb.getMonth() + 1);
+    const year = dateOb.getFullYear();
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+  };
+
+  const formattedDate = getFormattedDate();
+  const originalItems = orders.cartItems;
+  const updatedItems = req.body.cartItems;
+  const bulkStockUpdates = [];
+  const bulkProductUpdatesOriginal = [];
+  const bulkProductUpdatesNew = [];
+
+  //change the items
+  originalItems.forEach((item) => {
+    bulkProductUpdatesOriginal.push({
+      updateOne: {
+        filter: { qr: item.qr },
+        update: {
+          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+        },
+      },
+    });
+    bulkStockUpdates.push({
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        update: {
+          $inc: { "stocks.$.productQuantity": +item.quantity },
+        },
+      },
+    });
+  });
+
+  // Applying the quantities of updated items
+  updatedItems.forEach((item) => {
+    bulkProductUpdatesNew.push({
+      updateOne: {
+        filter: { qr: item.qr },
+        update: {
+          $inc: { quantity: -item.quantity, activeCount: -item.quantity },
+          $set: { buyingprice: item.buyingPrice },
+        },
+      },
+    });
+    bulkStockUpdates.push({
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        update: {
+          $inc: { "stocks.$.productQuantity": -item.quantity },
+        },
+      },
+    });
+  });
+  try {
+    await productModel.bulkWrite(bulkProductUpdatesOriginal);
+    await productModel.bulkWrite(bulkProductUpdatesNew);
+    await productModel.bulkWrite(bulkStockUpdates);
+  } catch (error) {
+    console.error("Error during bulk updates:", error);
+    return next(new ApiError("Bulk update failed" + error, 500));
+  }
+
+  let newOrderInvoice;
+  //
+  const nextCounterReports = ReportsSalesModel.countDocuments().then(
+    (count) => count + 1
+  );
+  const orderCustomer = await customersModel.findById(orders.customarId);
+
+  const customers = await customersModel.findById(customarId);
+
+  if (paid === "paid") {
+    const financialFund = await FinancialFundsModel.findById(onefinancialFunds);
+    financialFund.fundBalance += fundPriceExchangeRate;
+    const newInvoiceData = {
+      employee: req.user._id,
+      cartItems: cartItems,
+      returnCartItem: cartItems,
+      date: date || formattedDate,
+      customarId: customarId,
+      customarName: customarName,
+      customarEmail: customarEmail,
+      customarPhone: customarPhone,
+      customarAddress: customarAddress,
+      currencyCode,
+      exchangeRate,
+      totalPriceExchangeRate: priceExchangeRate,
+      onefinancialFunds,
+      totalOrderPrice: totalOrderPrice,
+      paid: "paid",
+      description,
+      currencyId,
+      shippingPrice: req.body.shippingPrice,
+    };
+    newOrderInvoice = await orderModel.updateOne({ _id: id }, newInvoiceData, {
+      new: true,
+    });
+    orders.payments.push({
+      payment: totalOrderPrice,
+      paymentMainCurrency: fundPriceExchangeRate,
+      financialFunds: financialFund.fundName,
+      financialFundsCurrencyCode: req.body.invoiceFinancialFundCurrencyCode,
+      date: date || formattedDate,
+    });
+
+    const reports = await ReportsFinancialFundsModel.create({
+      date: date || formattedDate,
+      invoice: newOrderInvoice._id,
+      amount: fundPriceExchangeRate,
+      type: "sales",
+      exchangeRate: exchangeRate,
+      exchangeAmount: priceExchangeRate,
+      financialFundId: onefinancialFunds,
+      financialFundRest: financialFund.fundBalance,
+    });
+    newOrderInvoice.reportsBalanceId = reports.id;
+    await newOrderInvoice.save();
+    if (suppliersId === purchase.suppliersId) {
+      customers.total +=
+        totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
+    } else {
+      orderCustomer.total -= totalPurchasePriceMainCurrencyBefor;
+      await orderCustomer.save();
+      customers.total += totalPurchasePriceMainCurrency;
+    }
+    await customers.save();
+  } else {
+    console.log(customers);
+    console.log(orderCustomer);
+    if (currencyId === orders.currencyId) {
+      customers.TotalUnpaid += totalOrderPrice - totalPriceBefor;
+      customers.total += totalOrderPrice - totalPriceBefor;
+    } else {
+      orderCustomer.total -= totalPriceBefor;
+      orderCustomer.TotalUnpaid -= totalPriceBefor;
+      await orderCustomer.save();
+      customers.total += totalOrderPrice;
+      customers.TotalUnpaid += totalOrderPrice;
+    }
+    await customers.save();
+  }
+  const newInvoiceData = {
+    employee: req.user._id,
+    cartItems: cartItems,
+    returnCartItem: cartItems,
+    date: date || formattedDate,
+    customarId: customarId,
+    customarName: customarName,
+    customarEmail: customarEmail,
+    customarPhone: customarPhone,
+    customarAddress: customarAddress,
+    currencyCode,
+    exchangeRate,
+    totalPriceExchangeRate: priceExchangeRate,
+    totalOrderPrice: totalOrderPrice,
+    paid: "unpaid",
+    description,
+    currencyId,
+    shippingPrice: req.body.shippingPrice,
+  };
+  newOrderInvoice = await orderModel.updateOne({ _id: id }, newInvoiceData, {
+    new: true,
+  });
+  const salesReports = await ReportsSalesModel.findOneAndDelete({
+    orderId: newOrderInvoice._id,
+  });
+  console.log(salesReports)
+  await ReportsSalesModel.create({
+    customer: customarName,
+    orderId: newOrderInvoice._id,
+    date: date || formattedDate,
+    fund: onefinancialFunds,
+    amount: totalOrderPrice,
+    cartItems: cartItems,
+    counter: nextCounterReports,
+    paymentType: "Single Fund",
+    employee: req.user._id,
+  });
+  const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
+  res.status(200).json({
+    status: "true",
+    message: "Order updated successfully",
+    data: orders,
+    history,
+  });
+});
+
 // @desc put Return
 // @route PUT /api/return
 // @access private
@@ -800,7 +1002,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   let minutes = padZero(timeIsoString.getMinutes());
   let seconds = padZero(timeIsoString.getSeconds());
   const formattedDate = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
-  req.body.paidAt = formattedDate;
   req.body.employee = req.user._id;
   try {
     const order = await orderModel.create(req.body);
@@ -1169,7 +1370,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
 
   // Find orders where paidAt matches the specified date and type is 'pos'
   const orders = await salsePos.find({
-    paidAt: {
+    date: {
       $gte: specificDateString,
     },
     type: "pos",
@@ -1222,7 +1423,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   const newOrderData = {
     cartItems: cartItems,
     priceExchangeRate: totalOrderPrice,
-    paidAt: formattedDate,
+    date: formattedDate,
     type: "bills",
     totalOrderPrice: totalOrderPrice,
     counter: "in " + nextCounter,
@@ -1295,7 +1496,7 @@ const margeOrderRefundFish = asyncHandler(async (databaseName) => {
 
   // Find orders where paidAt matches the specified date and type is 'pos'
   const orders = await salsePos.find({
-    paidAt: {
+    date: {
       $gte: specificDateString,
     },
   });
@@ -1347,7 +1548,7 @@ const margeOrderRefundFish = asyncHandler(async (databaseName) => {
   const newOrderData = {
     cartItems: cartItems,
     priceExchangeRate: totalOrderPrice,
-    paidAt: formattedDate,
+    date: formattedDate,
     type: "bills",
     totalOrderPrice: totalOrderPrice,
     counter: "ref " + nextCounter,

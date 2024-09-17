@@ -6,27 +6,11 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
     },
-    financialFunds: [
-      {
-        fundId: {
-          type: mongoose.Schema.ObjectId,
-          ref: "FinancialFunds",
-        },
-        allocatedAmount: {
-          type: Number,
-        },
-        exchangeRate: Number,
-        exchangeRateIcon: String,
-      },
-    ],
     onefinancialFunds: {
       type: mongoose.Schema.ObjectId,
       ref: "FinancialFunds",
     },
-
     exchangeRate: Number,
-    fundExchangeRate: Number,
-
     cartItems: [
       {
         product: {
@@ -47,14 +31,7 @@ const orderSchema = new mongoose.Schema(
         _id: false,
       },
     ],
-    // stocks: [
-    //   {
-    //     stockId: String,
-    //     stockName: String,
-    //     stockQuantity: Number,
-    //     _id: false,
-    //   },
-    // ],
+
     returnCartItem: [
       {
         product: {
@@ -73,7 +50,7 @@ const orderSchema = new mongoose.Schema(
         _id: false,
       },
     ],
-    priceExchangeRate: {
+    totalPriceExchangeRate: {
       type: Number,
       default: 0,
     },
@@ -81,20 +58,7 @@ const orderSchema = new mongoose.Schema(
     totalPriceAfterDiscount: Number,
     currencyCode: String,
     currencyId: String,
-    isPadid: {
-      type: Boolean,
-      default: false,
-    },
-    financialFundsRef: {
-      type: mongoose.Schema.ObjectId,
-      ref: "FinancialFunds",
-    },
-    paymentMethodType: String,
     quantity: Number,
-    paidAt: String,
-    coupon: String,
-    couponCount: String,
-    couponType: String,
     counter: {
       type: String,
       default: 0,
@@ -109,7 +73,7 @@ const orderSchema = new mongoose.Schema(
     description: String,
     type: {
       type: String,
-      enum: ["pos", "normal", "bills", "openBalance", "ecommerce"],
+      enum: ["normal", "bills", "openBalance", "ecommerce"],
       default: "normal",
     },
     fish: [String],
@@ -118,6 +82,7 @@ const orderSchema = new mongoose.Schema(
       default: "unpaid",
       enum: ["paid", "unpaid"],
     },
+    shippingPrice: { type: String, default: "" },
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
     payments: [
@@ -125,12 +90,13 @@ const orderSchema = new mongoose.Schema(
         payment: Number,
         paymentMainCurrency: Number,
         financialFunds: String,
+        financialFundsCurrencyCode: String,
         date: String,
         _id: false,
       },
     ],
     openingBalanceId: String,
-    shippingPrice: { type: String, default: "" },
+    reportsBalanceId: String,
   },
 
   { timestamps: true }

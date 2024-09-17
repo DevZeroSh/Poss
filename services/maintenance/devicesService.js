@@ -2,7 +2,6 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../../utils/apiError");
 const mongoose = require("mongoose");
 const devicesSchema = require("../../models/maintenance/devicesModel");
-const devicesHitstorySchema = require("../../models/maintenance/devicesHistory");
 const productSchema = require("../../models/productModel");
 const stockSchema = require("../../models/stockModel");
 const orderSchema = require("../../models/orderModel");
@@ -11,6 +10,7 @@ const ActiveProductsValueModel = require("../../models/activeProductsValueModel"
 const financialFundsSchema = require("../../models/financialFundsModel");
 const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
 const { createInvoiceHistory } = require("../invoiceHistoryService");
+const devicesHitstorySchema = require("../../models/maintenance/devicesHistoryModel");
 
 // @desc Get All Devices
 // @route get /api/device
@@ -26,7 +26,6 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   let query = {};
   if (req.query.keyword) {
     query.$or = [
-      { admin: { $regex: req.query.keyword, $options: "i" } },
       { customerName: { $regex: req.query.keyword, $options: "i" } },
       { customerPhone: { $regex: req.query.keyword, $options: "i" } },
     ];
@@ -83,9 +82,10 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
     devicesId: id,
     name: req.user.name,
     date: formattedDate,
-    conuter: devicesUpdate.conuter,
+    counter: devicesUpdate.counter,
     status: "update",
     devicesStatus: req.body.deviceStatus,
+    desc: req.body.desc,
   });
   res.status(200).json({ success: "success", data: devicesUpdate, history });
 });
@@ -117,13 +117,12 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
 exports.createDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
   const deviceModel = db.model("Device", devicesSchema);
+  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
-
-  const nextCounter = (await deviceModel.countDocuments()) + 1;
   const ts = Date.now();
   const date_ob = new Date(ts);
   const formattedDate = `${date_ob.getFullYear()}-${padZero(
@@ -132,22 +131,24 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
 
-  req.body.admin = req.body.admin || req.user.name;
-  req.body.conuter = nextCounter;
+  const nextCounter = (await deviceModel.countDocuments()) + 1;
+
+  req.body.counter = "device " + nextCounter;
   const createed = await deviceModel.create(req.body);
-  const history = await deviceHistoryModel.create({
-    devicesId: createed.id,
-    name: req.user.name,
-    date: formattedDate,
-    conuter: nextCounter,
-    status: "create",
-    devicesStatus: req.body.deviceStatus,
-  });
+
   res.status(200).json({
     success: "success",
     message: "devices inserted",
     data: createed,
-    history,
+  });
+  await deviceHistoryModel.create({
+    devicesId: createed.id,
+    name: req.user.name,
+    date: formattedDate,
+    counter: "case " + nextCounter,
+    status: "create",
+    devicesStatus: req.body.deviceStatus,
+    desc: "Created Device",
   });
 });
 // @desc delete delete Devices

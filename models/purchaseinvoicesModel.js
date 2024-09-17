@@ -57,6 +57,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         payment: Number,
         paymentMainCurrency: Number,
         financialFunds: String,
+        financialFundsCurrencyCode: String,
         date: String,
         _id: false,
       },
