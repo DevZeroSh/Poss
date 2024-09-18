@@ -7,6 +7,7 @@ const manitenaceUserSchema = new mongoose.Schema(
     userEmail: String,
     taxNumber: String,
     taxAdminstration: String,
+    counter: String,
   },
   { timestamps: true }
 );
