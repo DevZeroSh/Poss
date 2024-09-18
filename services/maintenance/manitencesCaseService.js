@@ -83,11 +83,11 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
   }
   await deviceHistoryModel.create({
     devicesId: id,
-    name: req.user.name,
+    employeeName: req.user.name,
     date: formattedDate,
     counter: manitCase.counter,
-    status: "update",
-    devicesStatus: req.body.deviceStatus,
+    histoyType: "update",
+    deviceStatus: req.body.deviceStatus,
     desc: req.body.desc,
   });
   res.status(200).json({ success: "success", data: manitCase });
@@ -137,11 +137,11 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
 
   await deviceHistoryModel.create({
     devicesId: createed.id,
-    name: req.user.name,
+    employeeName: req.user.name,
     date: formattedDate,
     counter: "case " + nextCounter,
-    status: "create",
-    devicesStatus: req.body.deviceStatus,
+    histoyType: "create",
+    deviceStatus: req.body.deviceStatus,
     desc: "Created case",
   });
 
@@ -258,6 +258,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
+
   const nextCounter = (await orderModel.countDocuments()) + 1;
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
 
@@ -346,7 +348,15 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         financialFundRest: financialFund.fundBalance,
         exchangeRate: req.body.exchangeRate,
       });
-
+      await deviceHistoryModel.create({
+        devicesId: id,
+        employeeName: req.user.name,
+        date: formattedDate,
+        counter: maintenance.counter,
+        histoyType: "Delivered",
+        deviceStatus: req.body.deviceStatus,
+        desc: req.body.desc,
+      });
       createInvoiceHistory(dbName, order._id, "create", req.user._id);
       res.status(200).json({ message: order });
     } catch (e) {

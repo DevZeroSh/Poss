@@ -80,11 +80,11 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
   }
   const history = await deviceHistoryModel.create({
     devicesId: id,
-    name: req.user.name,
+    employeeName: req.user.name,
     date: formattedDate,
     counter: devicesUpdate.counter,
-    status: "update",
-    devicesStatus: req.body.deviceStatus,
+    histoyType: "update",
+    deviceStatus: req.body.deviceStatus,
     desc: req.body.desc,
   });
   res.status(200).json({ success: "success", data: devicesUpdate, history });
@@ -143,11 +143,11 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
   });
   await deviceHistoryModel.create({
     devicesId: createed.id,
-    name: req.user.name,
+    employeeName: req.user.name,
     date: formattedDate,
     counter: "case " + nextCounter,
-    status: "create",
-    devicesStatus: req.body.deviceStatus,
+    histoyType: "create",
+    deviceStatus: req.body.deviceStatus,
     desc: "Created Device",
   });
 });
