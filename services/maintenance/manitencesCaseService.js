@@ -182,54 +182,62 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   db.model("Stock", stockSchema);
 
   // Find the product by ID
-
-  const product = await productModel.findById({ _id: piecesAndCost.productId });
-  if (!product) {
-    return next(new ApiError("Product not found", 400));
-  }
-  // Prepare data to be added to the piecesAndCost array
-  const data = {
-    productId: product._id,
-    taxPrice: piecesAndCost.taxPrice || product.taxPrice,
-    name: product.name,
-    qr: product.qr,
-    quantity: Number(piecesAndCost.quantity),
-    exchangeRate: Number(piecesAndCost.exchangeRate),
-    buyingPrice: Number(piecesAndCost.buyingPrice),
-    prodcutType: product.type,
-    taxRate: piecesAndCost?.taxRate?.tax || 0,
-    taxs: piecesAndCost?.taxRate?._id || 0,
-    price: Number(piecesAndCost.price),
-  };
-  const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
-    id,
-    { $push: { piecesAndCost: data } },
-    { new: true }
-  );
-
-  if (product.type !== "Service") {
-    const stock = product.stocks.find(
-      (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+  const chaker = await manitencesCaseModel.findById(id);
+  if (chaker.paymentStatus !== "paid") {
+    const product = await productModel.findById({
+      _id: piecesAndCost.productId,
+    });
+    if (!product) {
+      return next(new ApiError("Product not found", 400));
+    }
+    // Prepare data to be added to the piecesAndCost array
+    const data = {
+      productId: product._id,
+      taxPrice: piecesAndCost.taxPrice || product.taxPrice,
+      name: product.name,
+      qr: product.qr,
+      quantity: Number(piecesAndCost.quantity),
+      exchangeRate: Number(piecesAndCost.exchangeRate),
+      buyingPrice: Number(piecesAndCost.buyingPrice),
+      prodcutType: product.type,
+      taxRate: piecesAndCost?.taxRate || 0,
+      taxs: piecesAndCost?.taxsId || 0,
+      price: Number(piecesAndCost.price),
+    };
+    const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
+      id,
+      { $push: { piecesAndCost: data } },
+      { new: true }
     );
-    if (!stock) {
-      return next(new ApiError("Stock not found", 400));
-    }
 
-    if (stock.productQuantity < piecesAndCost.quantity) {
-      return next(new ApiError("Insufficient stock quantity", 400));
-    }
-    product;
+    if (product.type !== "Service") {
+      const stock = product.stocks.find(
+        (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+      );
+      if (!stock) {
+        return next(new ApiError("Stock not found", 400));
+      }
 
-    stock.productQuantity -= piecesAndCost.quantity;
-    product.quantity -= piecesAndCost.quantity;
-    product.activeCount -= piecesAndCost.quantity;
-    await product.save();
+      if (stock.productQuantity < piecesAndCost.quantity) {
+        return next(new ApiError("Insufficient stock quantity", 400));
+      }
+      product;
+
+      stock.productQuantity -= piecesAndCost.quantity;
+      product.quantity -= piecesAndCost.quantity;
+      product.activeCount -= piecesAndCost.quantity;
+      await product.save();
+    }
+    res.status(200).json({
+      status: "success",
+      message: "Product added to manitences Case and stock updated",
+      data: updatedDevice,
+    });
+  } else {
+    res.status(500).json({
+      message: "that case is paided",
+    });
   }
-  res.status(200).json({
-    status: "success",
-    message: "Product added to manitences Case and stock updated",
-    data: updatedDevice,
-  });
 });
 
 // @desc put convet to Sales Invoice
@@ -272,7 +280,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     // Accumulate changes to the manitencesCase document
     maintenance.piecesAndCost.forEach((item) => {
       piecesAndCost.push({
-        taxPrice: item.cost,
+        taxPrice: item.taxPrice,
         product: item.productId,
         exchangeRate: item.exchangeRate,
         buyingPrice: item.buyingPrice,
@@ -301,8 +309,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         customarPhone: maintenance.customerPhone,
         customarAddress: maintenance.customarAddress,
         totalOrderPrice: req.body.total,
-        priceExchangeRate: req.body.total,
-        paidAt: formattedDate,
+        totalPriceExchangeRate: req.body.priceExchangeRate || req.body.total,
+        date: req.body.date || formattedDate,
         onefinancialFunds: req.body.financialFundsId,
         counter: "mt-" + nextCounter,
         exchangeRate: req.body.exchangeRate || 1,

@@ -29,7 +29,7 @@ const manitencesCase = new mongoose.Schema(
         exchangeRate: String,
         buyingPrice: Number,
         taxRate: Number,
-        taxs: String,
+        taxsId: String,
         price: Number,
         prodcutType: String,
         stockId: String,
