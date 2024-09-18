@@ -1,19 +1,27 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../../utils/apiError");
 const mongoose = require("mongoose");
-const manitencesCase = require("../../models/maintenance/manitencesCaseModel");
+const manitencesCaseSchema = require("../../models/maintenance/manitencesCaseModel");
 const manitenaceUserSchema = require("../../models/maintenance/manitenaceUserModel");
 const devicesSchema = require("../../models/maintenance/devicesModel");
 const devicesHitstorySchema = require("../../models/maintenance/devicesHistoryModel");
+const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
+const ActiveProductsValueModel = require("../../models/activeProductsValueModel");
+const ReportsSalesSchema = require("../../models/reportsSalesModel");
+const orderSchema = require("../../models/orderModel");
+const productSchema = require("../../models/productModel");
+const stockSchema = require("../../models/stockModel");
+const financialFundsSchema = require("../../models/financialFundsModel");
+const { createInvoiceHistory } = require("../invoiceHistoryService");
 
 // @desc  Get All Manitenace Case
 // @route Get /api/manitCase
 exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
-  const deviceModel = db.model("Device", devicesSchema);
-  const manitencesCaseModel = db.model("manitencesCase", manitencesCase);
+  db.model("manitUser", manitenaceUserSchema);
+  db.model("Device", devicesSchema);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
   const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
@@ -51,7 +59,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
 exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const manitencesCaseModel = db.model("manitencesCase", manitencesCase);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
 
   function padZero(value) {
@@ -91,14 +99,14 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const manitencesCaseModel = db.model("manitencesCase", manitencesCase);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
   const { id } = req.params;
 
   const manitCase = await manitencesCaseModel.findById(id);
 
   if (!manitCase) {
-    return next(new ApiError(`No Devices By this ID ${id}`));
+    return next(new ApiError(`No manitences Case By this ID ${id}`));
   }
 
   res.status(200).json({ message: "success", data: manitCase });
@@ -108,7 +116,7 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
 exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const manitencesCaseModel = db.model("manitencesCase", manitencesCase);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
 
   function padZero(value) {
@@ -149,15 +157,195 @@ exports.deleteManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const manitencesCaseModel = db.model("manitencesCase", manitencesCase);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   const { id } = req.params;
 
   const manitCase = await manitencesCaseModel.findByIdAndDelete(id);
 
   if (!manitCase) {
-    return next(new ApiError(`not Fund for device with id ${id}`));
+    return next(new ApiError(`not Fund for manitences Case with id ${id}`));
   }
   res
     .status(200)
     .json({ success: "success", message: "Manitenace Case has deleted" });
+});
+
+// @desc put for add Pieces And Cost
+// @route put /api/manitcase/addproduct/id
+exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const { id } = req.params;
+  const { piecesAndCost } = req.body;
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+  const productModel = db.model("Product", productSchema);
+  db.model("Stock", stockSchema);
+
+  // Find the product by ID
+
+  const product = await productModel.findById({ _id: piecesAndCost.productId });
+  if (!product) {
+    return next(new ApiError("Product not found", 400));
+  }
+  // Prepare data to be added to the piecesAndCost array
+  const data = {
+    productId: product._id,
+    taxPrice: piecesAndCost.taxPrice || product.taxPrice,
+    name: product.name,
+    qr: product.qr,
+    quantity: Number(piecesAndCost.quantity),
+    exchangeRate: Number(piecesAndCost.exchangeRate),
+    buyingPrice: Number(piecesAndCost.buyingPrice),
+    prodcutType: product.type,
+    taxRate: piecesAndCost?.taxRate?.tax || 0,
+    taxs: piecesAndCost?.taxRate?._id || 0,
+    price: Number(piecesAndCost.price),
+  };
+  const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
+    id,
+    { $push: { piecesAndCost: data } },
+    { new: true }
+  );
+
+  if (product.type !== "Service") {
+    const stock = product.stocks.find(
+      (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+    );
+    if (!stock) {
+      return next(new ApiError("Stock not found", 400));
+    }
+
+    if (stock.productQuantity < piecesAndCost.quantity) {
+      return next(new ApiError("Insufficient stock quantity", 400));
+    }
+    product;
+
+    stock.productQuantity -= piecesAndCost.quantity;
+    product.quantity -= piecesAndCost.quantity;
+    product.activeCount -= piecesAndCost.quantity;
+    await product.save();
+  }
+  res.status(200).json({
+    status: "success",
+    message: "Product added to manitences Case and stock updated",
+    data: updatedDevice,
+  });
+});
+
+// @desc put convet to Sales Invoice
+// @route put /api/manitcase/convert/id
+exports.convertToSales = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+  const productModel = db.model("Product", productSchema);
+  const orderModel = db.model("Orders", orderSchema);
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const nextCounter = (await orderModel.countDocuments()) + 1;
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+  const { id } = req.params;
+  const maintenance = await manitencesCaseModel.findById(id);
+
+  let piecesAndCost = [];
+  if (maintenance.paymentStatus !== "paid") {
+    // Accumulate changes to the manitencesCase document
+    maintenance.piecesAndCost.forEach((item) => {
+      piecesAndCost.push({
+        taxPrice: item.cost,
+        product: item.productId,
+        exchangeRate: item.exchangeRate,
+        buyingPrice: item.buyingPrice,
+        taxRate: item.taxRate,
+        taxs: item.taxs,
+        price: item.price,
+        qr: item.qr,
+        name: item.name,
+
+        quantity: item.quantity,
+      });
+    });
+    maintenance.paymentStatus = "paid";
+    // Save the manitencesCase document after accumulating changes
+    await maintenance.save();
+
+    try {
+      const order = await orderModel.create({
+        employee: req.user._id,
+        cartItems: piecesAndCost,
+        returnCartItem: piecesAndCost,
+        currencyCode: req.body.currency,
+        customarId: maintenance.customerId,
+        customarName: maintenance.customerName,
+        customarEmail: maintenance.customerEmail,
+        customarPhone: maintenance.customerPhone,
+        customarAddress: maintenance.customarAddress,
+        totalOrderPrice: req.body.total,
+        priceExchangeRate: req.body.total,
+        paidAt: formattedDate,
+        onefinancialFunds: req.body.financialFundsId,
+        counter: "mt-" + nextCounter,
+        exchangeRate: req.body.exchangeRate || 1,
+        paid: "paid",
+      });
+      await ReportsSalesModel.create({
+        customer: maintenance.customerName,
+        orderId: order._id,
+        date: formattedDate,
+        fund: req.body.financialFundsId,
+        amount: req.body.total,
+        cartItems: piecesAndCost,
+        type: "mt",
+        counter: nextCounterReports,
+        paymentType: "Single Fund",
+        employee: req.user._id,
+      });
+
+      const financialFund = await FinancialFundsModel.findById(
+        req.body.financialFundsId
+      );
+
+      financialFund.fundBalance += req.body.total;
+      await financialFund.save();
+
+      await ReportsFinancialFundsModel.create({
+        date: formattedDate,
+        amount: req.body.total,
+        totalPriceAfterDiscount: req.body.total,
+        order: order._id,
+        type: "sales",
+        financialFundId: financialFund._id,
+        financialFundRest: financialFund.fundBalance,
+        exchangeRate: req.body.exchangeRate,
+      });
+
+      createInvoiceHistory(dbName, order._id, "create", req.user._id);
+      res.status(200).json({ message: order });
+    } catch (e) {
+      console.log(e);
+      res.status(500).json({ message: "An error occurred" });
+    }
+  } else {
+    res.status(500).json({ message: "This manitences Case paided" });
+  }
 });

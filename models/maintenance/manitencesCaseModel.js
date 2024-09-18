@@ -12,11 +12,13 @@ const manitencesCase = new mongoose.Schema(
     expectedAmount: String,
     amountDue: Number,
     explanition: String,
-    paymentStatus: String,
+    paymentStatus: { type: String, enum: ["paid", "unpaid"] },
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },
     deliveryDate: String,
-    customerCalling: [{ connect: String, date: Date, user: String, _id: false }],
+    customerCalling: [
+      { connect: String, date: Date, user: String, _id: false },
+    ],
     piecesAndCost: [
       {
         productId: String,
@@ -30,6 +32,7 @@ const manitencesCase = new mongoose.Schema(
         taxs: String,
         price: Number,
         prodcutType: String,
+        stockId: String,
         _id: false,
       },
     ],
