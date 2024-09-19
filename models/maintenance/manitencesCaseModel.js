@@ -8,7 +8,7 @@ const manitencesCase = new mongoose.Schema(
     userNotes: String,
     deviceProblem: String,
     deviceStatus: String,
-    userDesc: String,
+    emoloyeeDesc: String,
     expectedAmount: String,
     amountDue: Number,
     explanition: String,
@@ -16,6 +16,7 @@ const manitencesCase = new mongoose.Schema(
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },
     deliveryDate: String,
+    deviceReceptionDate: String,
     customerCalling: [
       { connect: String, date: Date, user: String, _id: false },
     ],

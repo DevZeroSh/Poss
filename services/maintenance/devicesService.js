@@ -155,6 +155,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     paymentStatus: "unpaid",
     backpack: req.body.backpack,
     charger: req.body.charger,
+    deviceReceptionDate: formattedDate,
   });
 
   await deviceHistoryModel.create({

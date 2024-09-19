@@ -133,6 +133,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   const nextCounter = (await manitencesCaseModel.countDocuments()) + 1;
 
   req.body.counter = "case " + nextCounter;
+  req.body.deviceReceptionDate = formattedDate;
   const createed = await manitencesCaseModel.create(req.body);
 
   await deviceHistoryModel.create({
