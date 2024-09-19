@@ -368,3 +368,32 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "This manitences Case paided" });
   }
 });
+
+exports.getCaseByDeviceId = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+  const deviceModel = db.model("Device", devicesSchema);
+
+  const { id } = req.params;
+  const device = await deviceModel.findById(id);
+  const pageSize = req.query.limit || 25;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await deviceModel.countDocuments();
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const manitencesCase = await manitencesCaseModel
+    .find({ deviceId: id })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.status(200).json({
+    status: "true",
+    results: manitencesCase.length,
+    Pages: totalPages,
+    data: { manitencesCase, device },
+  });
+});

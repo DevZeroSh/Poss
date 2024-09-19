@@ -89,7 +89,7 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
 exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
+  db.model("manitUser", manitenaceUserSchema);
   const deviceModel = db.model("Device", devicesSchema);
   const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
 
@@ -98,7 +98,8 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const findDevice = await deviceModel.findById(id);
   const history = await deviceHistoryModel
     .find({ devicesId: id })
-    .sort({ date: -1 });
+    .sort({ date: -1 })
+    .populate({ path: "userId" });
   if (!findDevice) {
     return next(new ApiError(`No Devices By this ID ${id}`));
   }
