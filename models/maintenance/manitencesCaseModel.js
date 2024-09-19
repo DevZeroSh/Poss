@@ -18,6 +18,7 @@ const manitencesCase = new mongoose.Schema(
     charger: { type: Boolean, default: false },
     deliveryDate: String,
     deviceReceptionDate: String,
+    problemType:String,
     customerCalling: [
       { connect: String, date: Date, user: String, _id: false },
     ],

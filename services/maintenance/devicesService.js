@@ -157,7 +157,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     charger: req.body.charger,
     deviceReceptionDate: formattedDate,
     manitencesStatus: req.body.manitencesStatus,
-    s,
+    problemType: req.body.problemType,
   });
 
   await deviceHistoryModel.create({
