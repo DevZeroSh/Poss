@@ -8,7 +8,7 @@ const manitencesCase = new mongoose.Schema(
     userNotes: String,
     deviceProblem: String,
     deviceStatus: String,
-    emoloyeeDesc: String,
+    employeeDesc: String,
     expectedAmount: String,
     amountDue: Number,
     explanition: String,

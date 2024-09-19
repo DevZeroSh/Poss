@@ -150,7 +150,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     userNotes: req.body.userNotes,
     deviceProblem: req.body.deviceProblem,
     deviceStatus: req.body.deviceStatus,
-    userDesc: req.body.userDesc,
+    employeeDesc: req.body.employeeDesc,
     expectedAmount: req.body.expectedAmount,
     paymentStatus: "unpaid",
     backpack: req.body.backpack,
