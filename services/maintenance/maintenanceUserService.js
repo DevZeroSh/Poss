@@ -75,6 +75,7 @@ exports.getOneManitenaceUser = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ message: "success", data: manitUser });
 });
+
 // @desc post Manitenace User
 // @route post /api/manituser
 exports.createManitenaceUser = asyncHandler(async (req, res, next) => {
@@ -92,6 +93,7 @@ exports.createManitenaceUser = asyncHandler(async (req, res, next) => {
     data: createed,
   });
 });
+
 // @desc delete Manitenace User
 // @route delete /api/manituser/id
 exports.deleteManitenaceUser = asyncHandler(async (req, res, next) => {

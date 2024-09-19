@@ -4,10 +4,10 @@ const mongoose = require("mongoose");
 const devicesSchema = require("../../models/maintenance/devicesModel");
 const manitencesCaseSchema = require("../../models/maintenance/manitencesCaseModel");
 const devicesHitstorySchema = require("../../models/maintenance/devicesHistoryModel");
+const manitenaceUserSchema = require("../../models/maintenance/manitenaceUserModel");
 
 // @desc Get All Devices
 // @route get /api/device
-// @accsess public
 exports.getDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -30,10 +30,10 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
 
   const device = await deviceModel
     .find(query)
+    .populate({ path: "userId" })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize);
-
   res.status(200).json({
     status: "true",
     results: device.length,
@@ -44,7 +44,6 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
 
 // @desc put update Devices
 // @route put /api/device/:id
-// @accsess public
 exports.updateDevices = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -85,7 +84,6 @@ exports.updateDevices = asyncHandler(async (req, res, next) => {
 });
 // @desc Get one Devices
 // @route get /api/device/id
-// @accsess public
 exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -107,7 +105,6 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
 });
 // @desc post Devices
 // @route post /api/device
-// @accsess public
 exports.createDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -137,7 +134,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     date: formattedDate,
     counter: "case " + nextCounter,
     histoyType: "create",
-    deviceStatus: req.body.deviceStatus,
+    manitencesStatus: req.body.manitencesStatus,
     desc: "Created Device",
   });
   const nextCounterCase = (await manitencesCaseModel.countDocuments()) + 1;
@@ -156,6 +153,8 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     backpack: req.body.backpack,
     charger: req.body.charger,
     deviceReceptionDate: formattedDate,
+    manitencesStatus: req.body.manitencesStatus,
+    s,
   });
 
   await deviceHistoryModel.create({
@@ -169,7 +168,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
   });
 
   res.status(200).json({
-    success: "success",
+    status: "success",
     message: "devices inserted",
     data: createed,
     deviceCase: createedCase,
@@ -177,7 +176,6 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
 });
 // @desc delete delete Devices
 // @route delete /api/device/id
-// @accsess privet
 exports.deleteDevice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -191,4 +189,31 @@ exports.deleteDevice = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`not Fund for device with id ${id}`));
   }
   res.status(200).json({ success: "success", message: "devices has deleted" });
+});
+
+exports.getDevicesByUserID = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const { id } = req.params;
+  const deviceModel = db.model("Device", devicesSchema);
+  const pageSize = req.query.limit || 25;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await deviceModel.countDocuments();
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const device = await deviceModel
+    .find({ userId: id })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.status(200).json({
+    status: "true",
+    results: device.length,
+    Pages: totalPages,
+    data: device,
+  });
 });

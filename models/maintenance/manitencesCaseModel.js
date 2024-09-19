@@ -12,6 +12,7 @@ const manitencesCase = new mongoose.Schema(
     expectedAmount: String,
     amountDue: Number,
     explanition: String,
+    manitencesStatus: String,
     paymentStatus: { type: String, enum: ["paid", "unpaid"] },
     backpack: { type: Boolean, default: false },
     charger: { type: Boolean, default: false },

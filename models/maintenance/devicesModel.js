@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const devicesSchema = new mongoose.Schema(
   {
-    userId: String,
+    userId: { type: mongoose.Schema.ObjectId, ref: "manitUser" },
     serialNumber: String,
     deviceType: String,
     deviceModel: String,

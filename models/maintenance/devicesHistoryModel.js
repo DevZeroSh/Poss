@@ -6,7 +6,7 @@ const devicesHitstorySchema = new mongoose.Schema(
     employeeName: String,
     date: String,
     histoyType: String,
-    deviceStatus: String,
+    manitencesStatus: String,
     counter: String,
     desc: String,
   },
