@@ -13,6 +13,8 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const deviceModel = db.model("Device", devicesSchema);
+  db.model("manitUser", manitenaceUserSchema);
+
   const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
@@ -196,6 +198,8 @@ exports.getDevicesByUserID = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const { id } = req.params;
+  db.model("manitUser", manitenaceUserSchema);
+
   const deviceModel = db.model("Device", devicesSchema);
   const pageSize = req.query.limit || 25;
   const page = parseInt(req.query.page) || 1;
