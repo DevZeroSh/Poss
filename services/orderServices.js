@@ -1422,7 +1422,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
 
   const newOrderData = {
     cartItems: cartItems,
-    priceExchangeRate: totalOrderPrice,
+    totalPriceExchangeRate: totalOrderPrice,
     date: formattedDate,
     type: "bills",
     totalOrderPrice: totalOrderPrice,
