@@ -147,7 +147,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   });
 
   res.status(200).json({
-    success: "success",
+    status: "success",
     message: "Manitenace Case  inserted",
     data: createed,
   });

@@ -1370,12 +1370,11 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
 
   // Find orders where paidAt matches the specified date and type is 'pos'
   const orders = await salsePos.find({
-    date: {
+    paidAt: {
       $gte: specificDateString,
     },
     type: "pos",
   });
-  console.log(orders);
   const cartItems = [];
   const fish = [];
   let totalOrderPrice = 0;
@@ -1496,7 +1495,7 @@ const margeOrderRefundFish = asyncHandler(async (databaseName) => {
 
   // Find orders where paidAt matches the specified date and type is 'pos'
   const orders = await salsePos.find({
-    date: {
+    paidAt: {
       $gte: specificDateString,
     },
   });
