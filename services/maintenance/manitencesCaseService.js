@@ -13,6 +13,10 @@ const productSchema = require("../../models/productModel");
 const stockSchema = require("../../models/stockModel");
 const financialFundsSchema = require("../../models/financialFundsModel");
 const { createInvoiceHistory } = require("../invoiceHistoryService");
+const { createProductMovement } = require("../../utils/productMovement");
+const {
+  createActiveProductsValue,
+} = require("../../utils/activeProductsValue");
 
 // @desc  Get All Manitenace Case
 // @route Get /api/manitCase
@@ -183,62 +187,56 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   db.model("Stock", stockSchema);
 
   // Find the product by ID
-  const chaker = await manitencesCaseModel.findById(id);
-  if (chaker.paymentStatus !== "paid") {
-    const product = await productModel.findById({
-      _id: piecesAndCost.productId,
-    });
-    if (!product) {
-      return next(new ApiError("Product not found", 400));
-    }
-    // Prepare data to be added to the piecesAndCost array
-    const data = {
-      productId: product._id,
-      taxPrice: piecesAndCost.taxPrice || product.taxPrice,
-      name: product.name,
-      qr: product.qr,
-      quantity: Number(piecesAndCost.quantity),
-      exchangeRate: Number(piecesAndCost.exchangeRate),
-      buyingPrice: Number(piecesAndCost.buyingPrice),
-      prodcutType: product.type,
-      taxRate: piecesAndCost?.taxRate || 0,
-      taxs: piecesAndCost?.taxsId || 0,
-      price: Number(piecesAndCost.price),
-    };
-    const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
-      id,
-      { $push: { piecesAndCost: data } },
-      { new: true }
-    );
-
-    if (product.type !== "Service") {
-      const stock = product.stocks.find(
-        (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
-      );
-      if (!stock) {
-        return next(new ApiError("Stock not found", 400));
-      }
-
-      if (stock.productQuantity < piecesAndCost.quantity) {
-        return next(new ApiError("Insufficient stock quantity", 400));
-      }
-      product;
-
-      stock.productQuantity -= piecesAndCost.quantity;
-      product.quantity -= piecesAndCost.quantity;
-      product.activeCount -= piecesAndCost.quantity;
-      await product.save();
-    }
-    res.status(200).json({
-      status: "success",
-      message: "Product added to manitences Case and stock updated",
-      data: updatedDevice,
-    });
-  } else {
-    res.status(500).json({
-      message: "that case is paided",
-    });
+  const product = await productModel.findById({
+    _id: piecesAndCost.productId,
+  });
+  if (!product) {
+    return next(new ApiError("Product not found", 400));
   }
+  // Prepare data to be added to the piecesAndCost array
+  const data = {
+    productId: product._id,
+    taxPrice: piecesAndCost.taxPrice || product.taxPrice,
+    name: product.name,
+    qr: product.qr,
+    quantity: Number(piecesAndCost.quantity),
+    exchangeRate: Number(piecesAndCost.exchangeRate),
+    buyingPrice: Number(piecesAndCost.buyingPrice),
+    prodcutType: product.type,
+    taxRate: piecesAndCost?.taxRate || 0,
+    taxs: piecesAndCost?.taxsId || 0,
+    price: Number(piecesAndCost.price),
+    stockId: piecesAndCost.stockId,
+  };
+  const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
+    id,
+    { $push: { piecesAndCost: data } },
+    { new: true }
+  );
+
+  if (product.type !== "Service") {
+    const stock = product.stocks.find(
+      (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+    );
+    if (!stock) {
+      return next(new ApiError("Stock not found", 400));
+    }
+
+    if (stock.productQuantity < piecesAndCost.quantity) {
+      return next(new ApiError("Insufficient stock quantity", 400));
+    }
+    product;
+
+    stock.productQuantity -= piecesAndCost.quantity;
+    product.quantity -= piecesAndCost.quantity;
+    product.activeCount -= piecesAndCost.quantity;
+    await product.save();
+  }
+  res.status(200).json({
+    status: "success",
+    message: "Product added to manitences Case and stock updated",
+    data: updatedDevice,
+  });
 });
 
 // @desc put convet to Sales Invoice
@@ -275,50 +273,53 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
+
   const { id } = req.params;
   const maintenance = await manitencesCaseModel.findById(id);
+  let piecesAndCost = maintenance.piecesAndCost.map((item) => ({
+    taxPrice: item.taxPrice,
+    product: item.productId,
+    exchangeRate: item.exchangeRate,
+    buyingPrice: item.buyingPrice,
+    taxRate: item.taxRate,
+    taxs: item.taxs,
+    price: item.price,
+    qr: item.qr,
+    name: item.name,
+    quantity: item.quantity,
+    stockId: item.stockId,
+  }));
 
-  let piecesAndCost = [];
-  if (maintenance.paymentStatus !== "paid") {
-    // Accumulate changes to the manitencesCase document
-    maintenance.piecesAndCost.forEach((item) => {
-      piecesAndCost.push({
-        taxPrice: item.taxPrice,
-        product: item.productId,
-        exchangeRate: item.exchangeRate,
-        buyingPrice: item.buyingPrice,
-        taxRate: item.taxRate,
-        taxs: item.taxs,
-        price: item.price,
-        qr: item.qr,
-        name: item.name,
-        quantity: item.quantity,
-      });
+  // Update maintenance payment status in one operation
+  maintenance.paymentStatus = "paid";
+  await maintenance.save();
+
+  const financialFund = await FinancialFundsModel.findById(
+    req.body.financialFundsId
+  );
+
+  try {
+    const order = await orderModel.create({
+      employee: req.user._id,
+      cartItems: piecesAndCost,
+      returnCartItem: piecesAndCost,
+      currencyCode: req.body.currency,
+      customarId: maintenance.customerId,
+      customarName: maintenance.customerName,
+      customarEmail: maintenance.customerEmail,
+      customarPhone: maintenance.customerPhone,
+      customarAddress: maintenance.customarAddress,
+      totalOrderPrice: req.body.total,
+      totalPriceExchangeRate: req.body.priceExchangeRate || req.body.total,
+      date: req.body.date || formattedDate,
+      onefinancialFunds: req.body.financialFundsId,
+      counter: "mt-" + nextCounter,
+      exchangeRate: req.body.exchangeRate || 1,
+      paid: "paid",
     });
-    maintenance.paymentStatus = "paid";
-    // Save the manitencesCase document after accumulating changes
-    await maintenance.save();
 
-    try {
-      const order = await orderModel.create({
-        employee: req.user._id,
-        cartItems: piecesAndCost,
-        returnCartItem: piecesAndCost,
-        currencyCode: req.body.currency,
-        customarId: maintenance.customerId,
-        customarName: maintenance.customerName,
-        customarEmail: maintenance.customerEmail,
-        customarPhone: maintenance.customerPhone,
-        customarAddress: maintenance.customarAddress,
-        totalOrderPrice: req.body.total,
-        totalPriceExchangeRate: req.body.priceExchangeRate || req.body.total,
-        date: req.body.date || formattedDate,
-        onefinancialFunds: req.body.financialFundsId,
-        counter: "mt-" + nextCounter,
-        exchangeRate: req.body.exchangeRate || 1,
-        paid: "paid",
-      });
-      await ReportsSalesModel.create({
+    await Promise.all([
+      ReportsSalesModel.create({
         customer: maintenance.customerName,
         orderId: order._id,
         date: formattedDate,
@@ -329,16 +330,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         counter: nextCounterReports,
         paymentType: "Single Fund",
         employee: req.user._id,
-      });
+      }),
 
-      const financialFund = await FinancialFundsModel.findById(
-        req.body.financialFundsId
-      );
-
-      financialFund.fundBalance += req.body.total;
-      await financialFund.save();
-
-      await ReportsFinancialFundsModel.create({
+      ReportsFinancialFundsModel.create({
         date: formattedDate,
         amount: req.body.total,
         totalPriceAfterDiscount: req.body.total,
@@ -347,8 +341,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         financialFundId: financialFund._id,
         financialFundRest: financialFund.fundBalance,
         exchangeRate: req.body.exchangeRate,
-      });
-      await deviceHistoryModel.create({
+      }),
+
+      deviceHistoryModel.create({
         devicesId: id,
         employeeName: req.user.name,
         date: formattedDate,
@@ -356,15 +351,71 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         histoyType: "Delivered",
         deviceStatus: req.body.deviceStatus,
         desc: req.body.desc,
-      });
-      createInvoiceHistory(dbName, order._id, "create", req.user._id);
-      res.status(200).json({ message: order });
-    } catch (e) {
-      console.log(e);
-      res.status(500).json({ message: "An error occurred" });
+      }),
+    ]);
+
+    financialFund.fundBalance += req.body.total;
+    await financialFund.save();
+
+    await Promise.all(
+      piecesAndCost.map(async (item) => {
+        const product = await productModel.findOne({ qr: item.qr });
+        if (product) {
+          createProductMovement(
+            product._id,
+            product.quantity - item.quantity,
+            item.quantity,
+            "out",
+            "sales",
+            dbName
+          );
+        }
+      })
+    );
+    // Batch update products
+    const bulkProductOperations = piecesAndCost.map((item) => ({
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        update: {
+          $inc: {
+            "stocks.$.productQuantity": -item.quantity,
+            quantity: -item.quantity,
+            activeCount: -item.quantity,
+          },
+        },
+      },
+    }));
+
+    if (bulkProductOperations.length > 0) {
+      await productModel.bulkWrite(bulkProductOperations);
     }
-  } else {
-    res.status(500).json({ message: "This manitences Case paided" });
+
+    // Process ActiveProductsValue in parallel
+    await Promise.all(
+      piecesAndCost.map(async (item) => {
+        const product = await productModel.findOne({ qr: item.qr });
+        if (product && product.type !== "Service") {
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: product.currency._id,
+          });
+          if (existingRecord) {
+            existingRecord.activeProductsCount -= item.quantity;
+            existingRecord.activeProductsValue -=
+              item.buyingPrice * item.quantity;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(0, 0, product.currency._id, dbName);
+          }
+        }
+      })
+    );
+
+    createInvoiceHistory(dbName, order._id, "create", req.user._id);
+
+    res.status(200).json({ message: order });
+  } catch (e) {
+    console.log(e);
+    res.status(500).json({ message: "An error occurred" });
   }
 });
 
