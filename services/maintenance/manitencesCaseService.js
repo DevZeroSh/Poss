@@ -214,24 +214,24 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     { new: true }
   );
 
-  if (product.type !== "Service") {
-    const stock = product.stocks.find(
-      (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
-    );
-    if (!stock) {
-      return next(new ApiError("Stock not found", 400));
-    }
+  // if (product.type !== "Service") {
+  //   const stock = product.stocks.find(
+  //     (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
+  //   );
+  //   if (!stock) {
+  //     return next(new ApiError("Stock not found", 400));
+  //   }
 
-    if (stock.productQuantity < piecesAndCost.quantity) {
-      return next(new ApiError("Insufficient stock quantity", 400));
-    }
-    product;
+  //   if (stock.productQuantity < piecesAndCost.quantity) {
+  //     return next(new ApiError("Insufficient stock quantity", 400));
+  //   }
+  //   product;
 
-    stock.productQuantity -= piecesAndCost.quantity;
-    product.quantity -= piecesAndCost.quantity;
-    product.activeCount -= piecesAndCost.quantity;
-    await product.save();
-  }
+  //   stock.productQuantity -= piecesAndCost.quantity;
+  //   product.quantity -= piecesAndCost.quantity;
+  //   product.activeCount -= piecesAndCost.quantity;
+  //   await product.save();
+  // }
   res.status(200).json({
     status: "success",
     message: "Product added to manitences Case and stock updated",
