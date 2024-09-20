@@ -292,7 +292,6 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         price: item.price,
         qr: item.qr,
         name: item.name,
-
         quantity: item.quantity,
       });
     });
