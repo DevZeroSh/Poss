@@ -226,7 +226,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       counter: nextCounterPayment,
     });
     customars.total += totalOrderPrice;
-    await customars.save();
     await order.save();
   } else {
     customars.total += totalOrderPrice;
@@ -248,7 +247,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     } else {
       customars.TotalUnpaid += total;
     }
-    await customars.save();
 
     order = await orderModel.create({
       employee: req.user._id,
@@ -377,6 +375,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     ...productMovementPromises,
     ...activeProductsValueUpdates,
   ]);
+  await customars.save();
 
   const history = createInvoiceHistory(
     dbName,
@@ -892,7 +891,6 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       await orderCustomer.save();
       customers.total += totalPurchasePriceMainCurrency;
     }
-    await customers.save();
   } else {
     console.log(customers);
     console.log(orderCustomer);
@@ -906,27 +904,27 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       customers.total += totalOrderPrice;
       customers.TotalUnpaid += totalOrderPrice;
     }
-    await customers.save();
+    const newInvoiceData = {
+      employee: req.user._id,
+      cartItems: cartItems,
+      returnCartItem: cartItems,
+      date: date || formattedDate,
+      customarId: customarId,
+      customarName: customarName,
+      customarEmail: customarEmail,
+      customarPhone: customarPhone,
+      customarAddress: customarAddress,
+      currencyCode,
+      exchangeRate,
+      totalPriceExchangeRate: priceExchangeRate,
+      totalOrderPrice: totalOrderPrice,
+      paid: "unpaid",
+      description,
+      currencyId,
+      shippingPrice: req.body.shippingPrice,
+    };
   }
-  const newInvoiceData = {
-    employee: req.user._id,
-    cartItems: cartItems,
-    returnCartItem: cartItems,
-    date: date || formattedDate,
-    customarId: customarId,
-    customarName: customarName,
-    customarEmail: customarEmail,
-    customarPhone: customarPhone,
-    customarAddress: customarAddress,
-    currencyCode,
-    exchangeRate,
-    totalPriceExchangeRate: priceExchangeRate,
-    totalOrderPrice: totalOrderPrice,
-    paid: "unpaid",
-    description,
-    currencyId,
-    shippingPrice: req.body.shippingPrice,
-  };
+
   newOrderInvoice = await orderModel.updateOne({ _id: id }, newInvoiceData, {
     new: true,
   });
@@ -945,6 +943,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     paymentType: "Single Fund",
     employee: req.user._id,
   });
+  await customers.save();
   const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
   res.status(200).json({
     status: "true",

@@ -47,9 +47,14 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize)
-    .populate({ path: "userId", select: "userName userPhone " })
-    .populate({ path: "deviceId" });
-
+    .populate({ path: "deviceId" })
+    .populate({
+      path: "deviceId",
+      populate: {
+        path: "userId",
+        select: "userName userPhone", // Select only the needed fields
+      },
+    });
   res.status(200).json({
     status: "true",
     results: manitCase.length,
