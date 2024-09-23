@@ -110,7 +110,8 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const manitCase = await manitencesCaseModel
     .findById(id)
     .populate({
-      path: "userId",
+      path: "userId", 
+      
     })
     .populate({ path: "deviceId" });
   if (!manitCase) {
