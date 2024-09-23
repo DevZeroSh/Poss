@@ -99,7 +99,7 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
   const history = await deviceHistoryModel
     .find({ devicesId: id })
     .sort({ date: -1 })
-    .populate({ path: "userId" });
+ 
   if (!findDevice) {
     return next(new ApiError(`No Devices By this ID ${id}`));
   }
@@ -128,7 +128,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
 
   const nextCounter = (await deviceModel.countDocuments()) + 1;
 
-  req.body.counter = "device " + nextCounter;
+  req.body.counter = nextCounter;
   const createed = await deviceModel.create(req.body);
 
   await deviceHistoryModel.create({

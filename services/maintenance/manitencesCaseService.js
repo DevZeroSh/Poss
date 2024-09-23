@@ -210,7 +210,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   };
   const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
     id,
-    { $push: { piecesAndCost: data } },
+    { amountDue: req.body.amountDue, $push: { piecesAndCost: data } },
     { new: true }
   );
 
@@ -309,8 +309,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
       customarEmail: maintenance.customerEmail,
       customarPhone: maintenance.customerPhone,
       customarAddress: maintenance.customarAddress,
-      totalOrderPrice: req.body.total,
-      totalPriceExchangeRate: req.body.priceExchangeRate || req.body.total,
+      totalOrderPrice: req.body.amountDue,
+      totalPriceExchangeRate: req.body.priceExchangeRate || req.body.amountDue,
       date: req.body.date || formattedDate,
       onefinancialFunds: req.body.financialFundsId,
       counter: "mt-" + nextCounter,
@@ -334,8 +334,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
 
       ReportsFinancialFundsModel.create({
         date: formattedDate,
-        amount: req.body.total,
-        totalPriceAfterDiscount: req.body.total,
+        amount: req.body.amountDue,
+        totalPriceAfterDiscount: req.body.amountDue,
         order: order._id,
         type: "sales",
         financialFundId: financialFund._id,
@@ -354,7 +354,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
       }),
     ]);
 
-    financialFund.fundBalance += req.body.total;
+    financialFund.fundBalance += req.body.amountDue;
     await financialFund.save();
 
     await Promise.all(

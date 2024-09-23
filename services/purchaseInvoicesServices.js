@@ -680,7 +680,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     newPurchaseInvoice.reportsBalanceId = reports.id;
     await newPurchaseInvoice.save();
     await financialFund.save();
-    paymentText = "payment-sup";
+    
     await paymentModel.create({
       supplierId: suppliersId,
       supplierName: supplierName,
@@ -1493,7 +1493,6 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       purchase.reportsBalanceId = reports.id;
       await purchase.save();
       await financialFund.save();
-      paymentText = "payment-sup";
 
       await paymentModel.create({
         supplierId: suppliersId,

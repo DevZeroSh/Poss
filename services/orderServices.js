@@ -75,7 +75,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     date_ob.getMonth() + 1
   )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
     date_ob.getMinutes()
-  )}:${padZero(date_ob.getSeconds())}`;
+  )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
 
   if (!cartItems || cartItems.length === 0) {
     return next(new ApiError("The cart is empty", 400));
@@ -281,16 +281,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       date: date || formattedDate,
     });
   }
-  await createPaymentHistory(
-    "invoice",
-    formattedDate,
-    totalOrderPrice,
-    customars.TotalUnpaid,
-    "customer",
-    customarId,
-    "in-" + nextCounter,
-    dbName
-  );
+
   const bulkOption = cartItems
     .filter((item) => item.type !== "Service")
     .map((item) => ({
@@ -394,7 +385,16 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     req.user._id,
     formattedDate
   );
-
+  await createPaymentHistory(
+    "invoice",
+    date || formattedDate,
+    totalOrderPrice,
+    customars.TotalUnpaid,
+    "customer",
+    customarId,
+    "in-" + nextCounter,
+    dbName
+  );
   if (paid === "paid") {
     await createPaymentHistory(
       "payment",
@@ -933,7 +933,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const salesReports = await ReportsSalesModel.findOneAndDelete({
     orderId: newOrderInvoice._id,
   });
-  console.log(salesReports)
+  console.log(salesReports);
   await ReportsSalesModel.create({
     customer: customarName,
     orderId: newOrderInvoice._id,
