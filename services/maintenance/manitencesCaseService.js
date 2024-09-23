@@ -111,7 +111,6 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
     .findById(id)
     .populate({
       path: "userId",
-      select: "userName userPhone",
     })
     .populate({ path: "deviceId" });
   if (!manitCase) {
