@@ -101,7 +101,8 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
 exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
+  db.model("manitUser", manitenaceUserSchema);
+  db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
   const { id } = req.params;
@@ -428,7 +429,7 @@ exports.getCaseByDeviceId = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   const deviceModel = db.model("Device", devicesSchema);
-
+  db.model("manitUser", manitenaceUserSchema);
   const { id } = req.params;
   const device = await deviceModel.findById(id);
   const pageSize = req.query.limit || 25;

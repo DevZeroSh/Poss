@@ -775,13 +775,12 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const formattedDate = getFormattedDate();
   const originalItems = orders.cartItems;
   const updatedItems = req.body.cartItems;
-  const bulkStockUpdatesOriginal = [];
   const bulkStockUpdates = [];
   const bulkProductUpdatesOriginal = [];
   const bulkProductUpdatesNew = [];
 
   //change the items
-  originalItems.forEach((item) => {
+  await originalItems.forEach((item) => {
     bulkProductUpdatesOriginal.push({
       updateOne: {
         filter: { qr: item.qr },
@@ -790,7 +789,19 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
         },
       },
     });
-    bulkStockUpdatesOriginal.push({
+    const product = productModel.findOne({ qr: item.qr });
+
+    if (product && product.type !== "Service") {
+      createProductMovement(
+        item.product,
+        product.quantity,
+        item.quantity,
+        "in",
+        "sales",
+        dbName
+      );
+    }
+    bulkStockUpdates.push({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stockId },
         update: {
@@ -810,6 +821,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
         },
       },
     });
+
     bulkStockUpdates.push({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stockId },
