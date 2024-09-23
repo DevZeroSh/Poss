@@ -32,10 +32,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const skip = (page - 1) * pageSize;
   let query = {};
   if (req.query.keyword) {
-    query.$or = [
-      { CaseName: { $regex: req.query.keyword, $options: "i" } },
-      { CasePhone: { $regex: req.query.keyword, $options: "i" } },
-    ];
+    query.$or = [{ counter: { $regex: req.query.keyword, $options: "i" } }];
   }
 
   const totalItems = await manitencesCaseModel.countDocuments(query);
@@ -49,11 +46,8 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
     .limit(pageSize)
     .populate({ path: "deviceId" })
     .populate({
-      path: "deviceId",
-      populate: {
-        path: "userId",
-        select: "userName userPhone", // Select only the needed fields
-      },
+      path: "userId",
+      select: "userName userPhone",
     });
   res.status(200).json({
     status: "true",
@@ -112,8 +106,13 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
 
-  const manitCase = await manitencesCaseModel.findById(id);
-
+  const manitCase = await manitencesCaseModel
+    .findById(id)
+    .populate({
+      path: "userId",
+      select: "userName userPhone",
+    })
+    .populate({ path: "deviceId" });
   if (!manitCase) {
     return next(new ApiError(`No manitences Case By this ID ${id}`));
   }

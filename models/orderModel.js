@@ -80,7 +80,7 @@ const orderSchema = new mongoose.Schema(
     paid: {
       type: String,
       default: "unpaid",
-      enum: ["paid", "unpaid"],
+      enum: ["unpaid", "paid"],
     },
     shippingPrice: { type: String, default: "" },
     totalRemainderMainCurrency: { type: Number, default: 0 },

@@ -21,8 +21,11 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   let query = {};
   if (req.query.keyword) {
     query.$or = [
-      { customerName: { $regex: req.query.keyword, $options: "i" } },
-      { customerPhone: { $regex: req.query.keyword, $options: "i" } },
+      { deviceModel: { $regex: req.query.keyword, $options: "i" } },
+      { serialNumber: { $regex: req.query.keyword, $options: "i" } },
+      { userName: { $regex: req.query.keyword, $options: "i" } },
+      { userPhone: { $regex: req.query.keyword, $options: "i" } },
+      { counter: { $regex: req.query.keyword, $options: "i" } },
     ];
   }
 

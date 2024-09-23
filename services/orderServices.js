@@ -775,6 +775,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const formattedDate = getFormattedDate();
   const originalItems = orders.cartItems;
   const updatedItems = req.body.cartItems;
+  const bulkStockUpdatesOriginal = [];
   const bulkStockUpdates = [];
   const bulkProductUpdatesOriginal = [];
   const bulkProductUpdatesNew = [];
@@ -789,7 +790,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
         },
       },
     });
-    bulkStockUpdates.push({
+    bulkStockUpdatesOriginal.push({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stockId },
         update: {
@@ -806,7 +807,6 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
         filter: { qr: item.qr },
         update: {
           $inc: { quantity: -item.quantity, activeCount: -item.quantity },
-          $set: { buyingprice: item.buyingPrice },
         },
       },
     });
@@ -830,17 +830,15 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
 
   let newOrderInvoice;
   //
-  const nextCounterReports = ReportsSalesModel.countDocuments().then(
-    (count) => count + 1
-  );
+
   const orderCustomer = await customersModel.findById(orders.customarId);
 
   const customers = await customersModel.findById(customarId);
-
+  let newInvoiceData;
   if (paid === "paid") {
     const financialFund = await FinancialFundsModel.findById(onefinancialFunds);
     financialFund.fundBalance += fundPriceExchangeRate;
-    const newInvoiceData = {
+    newInvoiceData = {
       employee: req.user._id,
       cartItems: cartItems,
       returnCartItem: cartItems,
@@ -892,8 +890,6 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       customers.total += totalPurchasePriceMainCurrency;
     }
   } else {
-    console.log(customers);
-    console.log(orderCustomer);
     if (currencyId === orders.currencyId) {
       customers.TotalUnpaid += totalOrderPrice - totalPriceBefor;
       customers.total += totalOrderPrice - totalPriceBefor;
@@ -904,7 +900,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       customers.total += totalOrderPrice;
       customers.TotalUnpaid += totalOrderPrice;
     }
-    const newInvoiceData = {
+    newInvoiceData = {
       employee: req.user._id,
       cartItems: cartItems,
       returnCartItem: cartItems,
@@ -929,17 +925,17 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     new: true,
   });
   const salesReports = await ReportsSalesModel.findOneAndDelete({
-    orderId: newOrderInvoice._id,
+    orderId: id,
   });
   console.log(salesReports);
   await ReportsSalesModel.create({
     customer: customarName,
-    orderId: newOrderInvoice._id,
-    date: date || formattedDate,
+    orderId: id,
+    date: date.toString() || formattedDate.toString(),
     fund: onefinancialFunds,
     amount: totalOrderPrice,
     cartItems: cartItems,
-    counter: nextCounterReports,
+    counter: salesReports.counter.toString(),
     paymentType: "Single Fund",
     employee: req.user._id,
   });
