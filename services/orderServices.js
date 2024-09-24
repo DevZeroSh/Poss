@@ -905,11 +905,12 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       description,
       currencyId,
       shippingPrice: req.body.shippingPrice,
+      payments: [],
     };
-    newOrderInvoice = await orderModel.updateOne({ _id: id }, newInvoiceData, {
+    newOrderInvoice = await orderModel.findByIdAndUpdate(id, newInvoiceData, {
       new: true,
     });
-    orders.payments.push({
+    newInvoiceData.payments.push({
       payment: totalOrderPrice,
       paymentMainCurrency: fundPriceExchangeRate,
       financialFunds: financialFund.fundName,
@@ -938,9 +939,11 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     }
     await customers.save();
   } else {
-    if (currencyId === orders.currencyId) {
-      customers.TotalUnpaid += totalOrderPrice - totalPriceBefor;
-      customers.total += totalOrderPrice - totalPriceBefor;
+    if (customarId === orders.customarId) {
+      const test = totalOrderPrice - totalPriceBefor;
+      console.log(test)
+      customers.TotalUnpaid += test;
+      customers.total += test;
     } else {
       orderCustomer.total -= totalPriceBefor;
       orderCustomer.TotalUnpaid -= totalPriceBefor;
