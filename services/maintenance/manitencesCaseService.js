@@ -110,8 +110,7 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const manitCase = await manitencesCaseModel
     .findById(id)
     .populate({
-      path: "userId", 
-      
+      path: "userId",
     })
     .populate({ path: "deviceId" });
   if (!manitCase) {
@@ -191,55 +190,33 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   db.model("Stock", stockSchema);
 
-  // Find the product by ID
-  const product = await productModel.findById({
-    _id: piecesAndCost.productId,
-  });
-  if (!product) {
-    return next(new ApiError("Product not found", 400));
-  }
-  // Prepare data to be added to the piecesAndCost array
-  const data = {
-    productId: product._id,
-    taxPrice: piecesAndCost.taxPrice || product.taxPrice,
-    name: product.name,
-    qr: product.qr,
-    quantity: Number(piecesAndCost.quantity),
-    exchangeRate: Number(piecesAndCost.exchangeRate),
-    buyingPrice: Number(piecesAndCost.buyingPrice),
-    prodcutType: product.type,
-    taxRate: piecesAndCost?.taxRate || 0,
-    taxs: piecesAndCost?.taxsId || 0,
-    price: Number(piecesAndCost.price),
-    stockId: piecesAndCost.stockId,
-  };
+  const data = piecesAndCost.map((item) => ({
+    productId: item.productId,
+    taxPrice: item.taxPrice,
+    name: item.name,
+    qr: item.qr,
+    quantity: Number(item.quantity),
+    exchangeRate: Number(item.exchangeRate),
+    buyingPrice: Number(item.buyingPrice),
+    prodcutType: item.prodcutType,
+    taxRate: item?.taxRate || 0,
+    taxs: item?.taxsId || 0,
+    price: Number(item.price),
+    stockId: item.stockId,
+  }));
+
   const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
     id,
-    { amountDue: req.body.amountDue, $push: { piecesAndCost: data } },
+    {
+      amountDue: req.body.amountDue,
+      $push: { piecesAndCost: { $each: data } },
+    },
     { new: true }
   );
 
-  // if (product.type !== "Service") {
-  //   const stock = product.stocks.find(
-  //     (stock) => stock.stockId.toString() === piecesAndCost.stockId.toString()
-  //   );
-  //   if (!stock) {
-  //     return next(new ApiError("Stock not found", 400));
-  //   }
-
-  //   if (stock.productQuantity < piecesAndCost.quantity) {
-  //     return next(new ApiError("Insufficient stock quantity", 400));
-  //   }
-  //   product;
-
-  //   stock.productQuantity -= piecesAndCost.quantity;
-  //   product.quantity -= piecesAndCost.quantity;
-  //   product.activeCount -= piecesAndCost.quantity;
-  //   await product.save();
-  // }
   res.status(200).json({
     status: "success",
-    message: "Product added to manitences Case and stock updated",
+    message: "Products added to manitences Case and stock updated",
     data: updatedDevice,
   });
 });
