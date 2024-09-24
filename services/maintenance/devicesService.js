@@ -15,7 +15,7 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   const deviceModel = db.model("Device", devicesSchema);
   db.model("manitUser", manitenaceUserSchema);
 
-  const pageSize = req.query.limit || 25;
+  const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   let query = {};

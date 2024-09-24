@@ -10,7 +10,7 @@ exports.getManitenaceUser = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const manitUserModel = db.model("manitUser", manitenaceUserSchema);
-  const pageSize = req.query.limit || 25;
+  const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   let query = {};

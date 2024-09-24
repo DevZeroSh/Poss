@@ -34,6 +34,7 @@ const { default: axios } = require("axios");
 const stockSchema = require("../models/stockModel");
 const refundPosSalesSchema = require("../models/refundPosSales");
 const PaymentSchema = require("../models/paymentModel");
+const PaymentHistorySchema = require("../models/paymentHistoryModel");
 
 // @desc    Create cash order from the dashboard
 // @route   POST /api/salesDashbord
@@ -731,7 +732,14 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const paymentModel = db.model("Payment", PaymentSchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
   const customersModel = db.model("Customar", customarSchema);
+  const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
+  const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
 
   db.model("Currency", currencySchema);
   db.model("Variant", variantSchema);
@@ -775,66 +783,94 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const formattedDate = getFormattedDate();
   const originalItems = orders.cartItems;
   const updatedItems = req.body.cartItems;
-  const bulkStockUpdates = [];
-  const bulkProductUpdatesOriginal = [];
-  const bulkProductUpdatesNew = [];
 
   //change the items
-  await originalItems.forEach((item) => {
-    bulkProductUpdatesOriginal.push({
-      updateOne: {
-        filter: { qr: item.qr },
-        update: {
-          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
-        },
-      },
-    });
-    const product = productModel.findOne({ qr: item.qr });
+  const bulkUpdateActiveProducts = async (items, operationType) => {
+    const updates = items.map(async (item) => {
+      const product = await productModel.findOne({ qr: item.qr });
+      if (product && product.type !== "Service") {
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: product.currency._id,
+        });
 
-    if (product && product.type !== "Service") {
-      createProductMovement(
-        item.product,
-        product.quantity,
-        item.quantity,
-        "in",
-        "sales",
-        dbName
-      );
-    }
-    bulkStockUpdates.push({
+        if (existingRecord) {
+          console.log(item);
+          if (operationType === "increment") {
+            existingRecord.activeProductsCount += item.quantity;
+            existingRecord.activeProductsValue +=
+              product.buyingprice * item.quantity;
+          } else if (operationType === "decrement") {
+            existingRecord.activeProductsCount -= item.quantity;
+            existingRecord.activeProductsValue -=
+              product.buyingprice * item.quantity;
+          }
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(0, 0, product.currency._id, dbName);
+        }
+
+        // Create product movement
+        createProductMovement(
+          product._id,
+          product.quantity,
+          item.quantity,
+          operationType === "increment" ? "in" : "out",
+          operationType === "increment" ? "sales" : "purchase",
+          dbName
+        );
+      }
+    });
+
+    await Promise.all(updates); // Ensure all updates happen in parallel
+  };
+
+  // Bulk updates for original items
+  await bulkUpdateActiveProducts(originalItems, "increment");
+
+  // Bulk updates for updated items
+  await bulkUpdateActiveProducts(updatedItems, "decrement");
+
+  // Prepare bulk updates for products and stocks
+  const bulkProductUpdatesOriginal = originalItems.map((item) => ({
+    updateOne: {
+      filter: { qr: item.qr },
+      update: {
+        $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+      },
+    },
+  }));
+
+  const bulkProductUpdatesNew = updatedItems.map((item) => ({
+    updateOne: {
+      filter: { qr: item.qr },
+      update: {
+        $inc: { quantity: -item.quantity, activeCount: -item.quantity },
+      },
+    },
+  }));
+
+  const bulkStockUpdates = [
+    ...originalItems.map((item) => ({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stockId },
-        update: {
-          $inc: { "stocks.$.productQuantity": +item.quantity },
-        },
+        update: { $inc: { "stocks.$.productQuantity": +item.quantity } },
       },
-    });
-  });
-
-  // Applying the quantities of updated items
-  updatedItems.forEach((item) => {
-    bulkProductUpdatesNew.push({
-      updateOne: {
-        filter: { qr: item.qr },
-        update: {
-          $inc: { quantity: -item.quantity, activeCount: -item.quantity },
-        },
-      },
-    });
-
-    bulkStockUpdates.push({
+    })),
+    ...updatedItems.map((item) => ({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stockId },
-        update: {
-          $inc: { "stocks.$.productQuantity": -item.quantity },
-        },
+        update: { $inc: { "stocks.$.productQuantity": -item.quantity } },
       },
-    });
-  });
+    })),
+  ];
+
+  // Perform bulk writes
   try {
-    await productModel.bulkWrite(bulkProductUpdatesOriginal);
-    await productModel.bulkWrite(bulkProductUpdatesNew);
-    await productModel.bulkWrite(bulkStockUpdates);
+    await Promise.all([
+      productModel.bulkWrite(bulkProductUpdatesOriginal),
+      productModel.bulkWrite(bulkProductUpdatesNew),
+      productModel.bulkWrite(bulkStockUpdates),
+    ]);
   } catch (error) {
     console.error("Error during bulk updates:", error);
     return next(new ApiError("Bulk update failed" + error, 500));
@@ -893,14 +929,14 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     });
     newOrderInvoice.reportsBalanceId = reports.id;
     await newOrderInvoice.save();
-    if (suppliersId === purchase.suppliersId) {
-      customers.total +=
-        totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
+    if (customarId === orders.customarId) {
+      customers.total += totalOrderPrice - totalPriceBefor;
     } else {
-      orderCustomer.total -= totalPurchasePriceMainCurrencyBefor;
+      orderCustomer.total -= totalPriceBefor;
       await orderCustomer.save();
-      customers.total += totalPurchasePriceMainCurrency;
+      customers.total += totalOrderPrice;
     }
+    await customers.save();
   } else {
     if (currencyId === orders.currencyId) {
       customers.TotalUnpaid += totalOrderPrice - totalPriceBefor;
@@ -912,6 +948,8 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       customers.total += totalOrderPrice;
       customers.TotalUnpaid += totalOrderPrice;
     }
+    await customers.save();
+
     newInvoiceData = {
       employee: req.user._id,
       cartItems: cartItems,
@@ -925,7 +963,9 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       currencyCode,
       exchangeRate,
       totalPriceExchangeRate: priceExchangeRate,
+      totalRemainder: priceExchangeRate,
       totalOrderPrice: totalOrderPrice,
+      totalRemainderMainCurrency: totalOrderPrice,
       paid: "unpaid",
       description,
       currencyId,
@@ -939,7 +979,6 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const salesReports = await ReportsSalesModel.findOneAndDelete({
     orderId: id,
   });
-  console.log(salesReports);
   await ReportsSalesModel.create({
     customer: customarName,
     orderId: id,
@@ -951,7 +990,34 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     paymentType: "Single Fund",
     employee: req.user._id,
   });
-  await customers.save();
+  await PaymentHistoryModel.deleteMany({
+    invoiceNumber: orders.counter,
+  });
+  await createPaymentHistory(
+    "invoice",
+    date || formattedDate,
+    totalOrderPrice,
+    customers.TotalUnpaid,
+    "customer",
+    customarId,
+    orders.counter,
+    dbName
+  );
+  if (paid === "paid") {
+    await createPaymentHistory(
+      "payment",
+      date || formattedDate,
+      totalOrderPrice,
+      customers.TotalUnpaid,
+      "customer",
+      customarId,
+      orders.counter,
+      dbName,
+      description,
+      nextCounterPayment
+    );
+  }
+
   const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
   res.status(200).json({
     status: "true",

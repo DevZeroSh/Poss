@@ -27,7 +27,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
-  const pageSize = req.query.limit || 25;
+  const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   let query = {};
