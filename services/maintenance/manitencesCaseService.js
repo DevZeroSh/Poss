@@ -187,7 +187,6 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { piecesAndCost } = req.body;
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-  const productModel = db.model("Product", productSchema);
   db.model("Stock", stockSchema);
 
   const data = piecesAndCost.map((item) => ({
