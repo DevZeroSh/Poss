@@ -122,7 +122,7 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-  const totalItems = await deviceModel.countDocuments();
+  const totalItems = await maintenacesHistoryModel.countDocuments();
 
   const totalPages = Math.ceil(totalItems / pageSize);
   const casehistory = await maintenacesHistoryModel
