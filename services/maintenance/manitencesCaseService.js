@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const manitencesCaseSchema = require("../../models/maintenance/manitencesCaseModel");
 const manitenaceUserSchema = require("../../models/maintenance/manitenaceUserModel");
 const devicesSchema = require("../../models/maintenance/devicesModel");
-const devicesHitstorySchema = require("../../models/maintenance/devicesHistoryModel");
+const caseHitstorySchema = require("../../models/maintenance/caseHistoryModel");
 const reportsFinancialFundsSchema = require("../../models/reportsFinancialFunds");
 const ActiveProductsValueModel = require("../../models/activeProductsValueModel");
 const ReportsSalesSchema = require("../../models/reportsSalesModel");
@@ -63,7 +63,7 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -84,14 +84,13 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
   if (!manitCase) {
     return next(new ApiError(`No Diveces with this id ${id}`));
   }
-  await deviceHistoryModel.create({
+  await caseHistoryModel.create({
     devicesId: id,
     employeeName: req.user.name,
     date: formattedDate,
     counter: manitCase.counter,
     histoyType: "update",
     deviceStatus: req.body.deviceStatus,
-    desc: req.body.desc,
   });
   res.status(200).json({ success: "success", data: manitCase });
 });
@@ -104,7 +103,10 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   db.model("manitUser", manitenaceUserSchema);
   db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-
+  const maintenacesHistoryModel = db.model(
+    "maintenacesHistory",
+    caseHitstorySchema
+  );
   const { id } = req.params;
 
   const manitCase = await manitencesCaseModel
@@ -117,7 +119,26 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No manitences Case By this ID ${id}`));
   }
 
-  res.status(200).json({ message: "success", data: manitCase });
+  const pageSize = req.query.limit || 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await deviceModel.countDocuments();
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const casehistory = await maintenacesHistoryModel
+    .find({ _id: id })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res
+    .status(200)
+    .json({
+      message: "success",
+      Pages: totalPages,
+      data: manitCase,
+      history: casehistory,
+    });
 });
 // @desc post Manitenace Case
 // @route post /api/manitCase
@@ -125,7 +146,10 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
+  const caseHistoryModel = db.model(
+    "maintenacesHistoryModel",
+    caseHitstorySchema
+  );
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -144,14 +168,13 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   req.body.deviceReceptionDate = formattedDate;
   const createed = await manitencesCaseModel.create(req.body);
 
-  await deviceHistoryModel.create({
+  await caseHistoryModel.create({
     devicesId: createed.id,
     employeeName: req.user.name,
     date: formattedDate,
     counter: "case " + nextCounter,
     histoyType: "create",
     deviceStatus: req.body.deviceStatus,
-    desc: "Created case",
   });
 
   res.status(200).json({
@@ -188,6 +211,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
   const { piecesAndCost } = req.body;
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   db.model("Stock", stockSchema);
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
 
   const data = piecesAndCost.map((item) => ({
     productId: item.productId,
@@ -212,12 +236,19 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
-
-  res.status(200).json({
-    status: "success",
-    message: "Products added to manitences Case and stock updated",
-    data: updatedDevice,
-  });
+  caseHistoryModel.create({
+    devicesId: id,
+    employeeName: req.user.name,
+    date: formattedDate,
+    counter: maintenance.counter,
+    histoyType: "update pieces",
+    deviceStatus: req.body.deviceStatus,
+  }),
+    res.status(200).json({
+      status: "success",
+      message: "Products added to manitences Case and stock updated",
+      data: updatedDevice,
+    });
 });
 exports.addCalling = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -225,6 +256,7 @@ exports.addCalling = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { customerCalling } = req.body;
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -248,11 +280,19 @@ exports.addCalling = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
-  res.status(200).json({
-    status: "success",
-    message: "Customer Calling has been added",
-    data: updatedDevice,
-  });
+  caseHistoryModel.create({
+    devicesId: id,
+    employeeName: req.user.name,
+    date: formattedDate,
+    counter: maintenance.counter,
+    histoyType: "update contact",
+    deviceStatus: req.body.deviceStatus,
+  }),
+    res.status(200).json({
+      status: "success",
+      message: "Customer Calling has been added",
+      data: updatedDevice,
+    });
 });
 // @desc put convet to Sales Invoice
 // @route put /api/manitcase/convert/id
@@ -272,7 +312,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
-  const deviceHistoryModel = db.model("DeviceHistory", devicesHitstorySchema);
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
 
   const nextCounter = (await orderModel.countDocuments()) + 1;
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
@@ -358,14 +398,13 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         exchangeRate: req.body.exchangeRate,
       }),
 
-      deviceHistoryModel.create({
+      caseHistoryModel.create({
         devicesId: id,
         employeeName: req.user.name,
         date: formattedDate,
         counter: maintenance.counter,
         histoyType: "Delivered",
         deviceStatus: req.body.deviceStatus,
-        desc: req.body.desc,
       }),
     ]);
 
