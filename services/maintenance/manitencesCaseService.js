@@ -208,7 +208,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     id,
     {
       amountDue: req.body.amountDue,
-      $push: { piecesAndCost: { $each: data } },
+      $set: { piecesAndCost: { $each: data } },
     },
     { new: true }
   );
@@ -219,7 +219,41 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     data: updatedDevice,
   });
 });
+exports.addCalling = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const { id } = req.params;
+  const { customerCalling } = req.body;
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+  const newCallingEntry = {
+    connect: customerCalling.connect,
+    date: formattedDate,
+    user: req.user.name,
+  };
+  const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
+    id,
+    {
+      $push: { customerCalling: newCallingEntry },
+    },
+    { new: true }
+  );
+  res.status(200).json({
+    status: "success",
+    message: "Customer Calling has been added",
+    data: updatedDevice,
+  });
+});
 // @desc put convet to Sales Invoice
 // @route put /api/manitcase/convert/id
 exports.convertToSales = asyncHandler(async (req, res, next) => {
