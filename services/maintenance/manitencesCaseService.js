@@ -251,7 +251,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     devicesId: id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter: maintenance.counter,
+    counter: updatedDevice.counter,
     histoyType: "update pieces",
     deviceStatus: req.body.deviceStatus,
   }),
