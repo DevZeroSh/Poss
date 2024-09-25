@@ -131,14 +131,12 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(pageSize);
 
-  res
-    .status(200)
-    .json({
-      message: "success",
-      Pages: totalPages,
-      data: manitCase,
-      history: casehistory,
-    });
+  res.status(200).json({
+    message: "success",
+    Pages: totalPages,
+    data: manitCase,
+    history: casehistory,
+  });
 });
 // @desc post Manitenace Case
 // @route post /api/manitCase
@@ -236,6 +234,19 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
+
   caseHistoryModel.create({
     devicesId: id,
     employeeName: req.user.name,
