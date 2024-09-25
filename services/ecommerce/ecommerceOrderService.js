@@ -51,11 +51,10 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // 1) Get cart depend on cartId
   const { id } = req.params;
   const cart = await CartModel.findById(id);
-  console.log(cart);
   if (!cart) {
     return next(new ApiError(`There is no such cart with id ${id}`, 404));
   }
-
+  console.log(req.user._id);
   // 2) Get order price depend on cart price "Check if coupon apply"
   const cartPrice = cart.totalPriceAfterDiscount
     ? cart.totalPriceAfterDiscount
@@ -196,8 +195,9 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
 });
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
-  req.filterObj = {
-    customar: req.user._id,
+  console.log(req.user);
+  req.filter = {
+    user: req.user._id,
   };
   next();
 });
@@ -212,9 +212,13 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
   const pageSize = 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-  let mongooseQuery = orderModel.find();
+  let query = {
+    customar: req.user._id,
+  };
+  let mongooseQuery = orderModel.find(query);
+
   if (req.query.keyword) {
-    const query = {
+    query = {
       $and: [
         { archives: { $ne: true } },
         {
@@ -232,9 +236,7 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
     .populate({
       path: "cartItems.product",
     })
-    .populate({
-      path: "customar",
-    });
+
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
   const totalItems = await orderModel.countDocuments();

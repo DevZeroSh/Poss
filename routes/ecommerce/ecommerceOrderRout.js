@@ -22,7 +22,6 @@ ecommerceOrderRouter
   .route("/")
   .get(
     authService.ecommerceProtect,
-    filterOrderForLoggedUser,
     findAllOrderforCustomer
   );
 ecommerceOrderRouter
