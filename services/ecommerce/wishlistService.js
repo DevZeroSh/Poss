@@ -115,9 +115,15 @@ exports.getLoggedUserWishlist = asyncHandler(async (req, res, next) => {
   db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
-  db.model("Currency", currencySchema);
+  const CurrencyModel = db.model("Currency", currencySchema);
 
-  const user = await UserModel.findById(req.user._id).populate("wishlist");
+  const user = await UserModel.findById(req.user._id).populate({
+    path: "wishlist", 
+    populate: {
+      path: "currency",
+      model: CurrencyModel, 
+    },
+  });
 
   res.status(200).json({
     status: "success",
