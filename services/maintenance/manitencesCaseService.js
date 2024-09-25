@@ -103,10 +103,8 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   db.model("manitUser", manitenaceUserSchema);
   db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-  const maintenacesHistoryModel = db.model(
-    "maintenacesHistory",
-    caseHitstorySchema
-  );
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
+
   const { id } = req.params;
 
   const manitCase = await manitencesCaseModel
@@ -122,11 +120,13 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
   const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-  const totalItems = await maintenacesHistoryModel.countDocuments();
+  const totalItems = await caseHistoryModel.countDocuments();
 
   const totalPages = Math.ceil(totalItems / pageSize);
-  const casehistory = await maintenacesHistoryModel
-    .find({ _id: id })
+  const casehistory = await caseHistoryModel
+    .find({
+      counter: manitCase.counter,
+    })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize);
@@ -247,7 +247,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
 
-  caseHistoryModel.create({
+  await caseHistoryModel.create({
     devicesId: id,
     employeeName: req.user.name,
     date: formattedDate,
@@ -291,11 +291,11 @@ exports.addCalling = asyncHandler(async (req, res, next) => {
     },
     { new: true }
   );
-  caseHistoryModel.create({
+  await caseHistoryModel.create({
     devicesId: id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter: maintenance.counter,
+    counter: updatedDevice.counter,
     histoyType: "update contact",
     deviceStatus: req.body.deviceStatus,
   }),
@@ -409,7 +409,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         exchangeRate: req.body.exchangeRate,
       }),
 
-      caseHistoryModel.create({
+      await caseHistoryModel.create({
         devicesId: id,
         employeeName: req.user.name,
         date: formattedDate,
