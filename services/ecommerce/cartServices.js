@@ -55,7 +55,9 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
   const { qr, quantity, taxRate } = req.body;
 
   // Find the product associated with the provided QR code
-  const product = await productModel.findOne({ qr: qr });
+  const product = await productModel
+    .findOne({ qr: qr })
+    .populate({ path: "currency" });
   if (!product) {
     return res.status(404).json({
       status: "Error",
@@ -66,6 +68,13 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     product.ecommercePriceAftereDiscount > 0
       ? product.ecommercePriceAftereDiscount
       : product.ecommercePrice;
+
+  const price =
+    taxPrice *
+    (Array.isArray(product?.currency)
+      ? product.currency[0]?.exchangeRate
+      : product?.currency?.exchangeRate);
+
   // 1) Get Cart for the logged-in user
   let cart = await CartModel.findOne({ customar: req.user._id });
   if (!cart) {
@@ -75,7 +84,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       cartItems: [
         {
           product: product,
-          taxPrice,
+          taxPrice: price,
           name: product.name,
           qr: product.qr,
           quantity: quantity,
@@ -95,7 +104,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
     if (productIndex > -1) {
       const cartItem = cart.cartItems[productIndex];
       cartItem.quantity++;
-      cartItem.taxPrice = taxPrice;
+      cartItem.taxPrice = price;
 
       cart.cartItems[productIndex] = cartItem;
     } else {

@@ -1296,9 +1296,12 @@ exports.getEcommerceProductFeatured = async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
+  db.model("Currency", currencySchema);
 
   try {
-    const product = await productModel.find({ featured: true });
+    const product = await productModel
+      .find({ featured: true })
+      .populate({ path: "currency" });
     const setImageURL = (doc) => {
       if (doc.imagesArray) {
         const imageList = doc.imagesArray.map((imageObj) => {
@@ -1385,9 +1388,12 @@ exports.getEcommerceProductSponsored = async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const productModel = db.model("Product", productSchema);
+  db.model("Currency", currencySchema);
 
   try {
-    const product = await productModel.find({ sponsored: true });
+    const product = await productModel
+      .find({ sponsored: true })
+      .populate({ path: "currency" });
     const setImageURL = (doc) => {
       if (doc.imagesArray) {
         const imageList = doc.imagesArray.map((imageObj) => {

@@ -245,7 +245,6 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         info: "view fund reports",
       },
 
-  
       {
         title: "company info",
         desc: "Company",
@@ -329,6 +328,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       googleAuthClientID: "",
       googleAuthClientSecret: "",
       facebookAuthAppID: "",
+      redirectUri: "",
     });
 
     //make res
