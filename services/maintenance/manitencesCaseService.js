@@ -90,7 +90,7 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
     date: formattedDate,
     counter: manitCase.counter,
     histoyType: "update",
-    deviceStatus: req.body.deviceStatus,
+    manitencesStatus: req.body.manitencesStatus,
   });
   res.status(200).json({ success: "success", data: manitCase });
 });

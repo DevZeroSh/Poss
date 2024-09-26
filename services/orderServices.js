@@ -941,7 +941,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   } else {
     if (customarId === orders.customarId) {
       const test = totalOrderPrice - totalPriceBefor;
-      console.log(test)
+      console.log(test);
       customers.TotalUnpaid += test;
       customers.total += test;
     } else {
@@ -1095,11 +1095,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         },
       };
 
-      if (item.refundLocattion === "Damaged") {
-        updateOperation.updateOne.update.$inc.deactivateCount = +item.quantity;
-      } else {
-        updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
-      }
+      updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
 
       return updateOperation;
     });
@@ -1107,37 +1103,35 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     await productModel.bulkWrite(bulkOption, {});
     await orderModel.bulkWrite(bulkOption, {});
     req.body.cartItems.map(async (item) => {
-      if (item.refundLocation !== "Damaged") {
-        try {
-          const { currency: itemCurrency } = await productModel.findOne({
-            qr: item.qr,
-          });
-          const existingRecord = await ActiveProductsValue.findOne({
-            currency: itemCurrency,
-          });
-          let totalCount = 0;
-          let totalValue = 0;
+      try {
+        const { currency: itemCurrency } = await productModel.findOne({
+          qr: item.qr,
+        });
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: itemCurrency,
+        });
+        let totalCount = 0;
+        let totalValue = 0;
 
-          const itemValue = item.buyingPrice * item.quantity;
-          totalValue += itemValue;
-          totalCount += item.quantity;
+        const itemValue = item.buyingPrice * item.quantity;
+        totalValue += itemValue;
+        totalCount += item.quantity;
 
-          if (existingRecord) {
-            existingRecord.activeProductsCount += totalCount;
-            existingRecord.activeProductsValue += totalValue;
-            await existingRecord.save();
-          } else {
-            await createActiveProductsValue(
-              totalCount,
-              totalValue,
-              itemCurrency,
-              dbName
-            );
-          }
-        } catch (err) {
-          console.log("OrderServices 1190");
-          console.log(err.message);
+        if (existingRecord) {
+          existingRecord.activeProductsCount += totalCount;
+          existingRecord.activeProductsValue += totalValue;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(
+            totalCount,
+            totalValue,
+            itemCurrency,
+            dbName
+          );
         }
+      } catch (err) {
+        console.log("OrderServices 1190");
+        console.log(err.message);
       }
     });
 
