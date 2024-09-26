@@ -232,10 +232,60 @@ exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
     mongooseQuery = mongooseQuery.find(query);
   }
   sortQuery = { createdAt: -1 };
-  mongooseQuery = mongooseQuery
-    .populate({
-      path: "cartItems.product",
-    })
+  mongooseQuery = mongooseQuery.populate({
+    path: "cartItems.product",
+  });
+
+  mongooseQuery = mongooseQuery.sort(sortQuery);
+
+  const totalItems = await orderModel.countDocuments();
+
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Apply pagination
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+  const order = await mongooseQuery;
+  res.status(200).json({
+    status: "success",
+    results: order.length,
+    Pages: totalPages,
+
+    data: order,
+  });
+});
+
+exports.findAllOrders = asyncHandler(async (req, res, netx) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("Product", productSchema);
+  db.model("Users", E_user_Schema);
+
+  const pageSize = 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  let mongooseQuery = orderModel.find();
+
+  if (req.query.keyword) {
+    query = {
+      $and: [
+        { archives: { $ne: true } },
+        {
+          $or: [
+            { name: { $regex: req.query.keyword, $options: "i" } },
+            { qr: { $regex: req.query.keyword, $options: "i" } },
+          ],
+        },
+      ],
+    };
+    mongooseQuery = mongooseQuery.find(query);
+  }
+  sortQuery = { createdAt: -1 };
+  mongooseQuery = mongooseQuery.populate({
+    path: "cartItems.product",
+  });
 
   mongooseQuery = mongooseQuery.sort(sortQuery);
 
@@ -297,6 +347,16 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
   if (!order) {
     return next(new ApiError(`No order found for ${id}`));
   }
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}`;
 
   // Update orderStatus for each item in cartItems
   req.body.cartItems.forEach(async (item) => {
@@ -305,6 +365,7 @@ exports.UpdateEcommersOrder = asyncHandler(async (req, res, next) => {
     );
     if (index !== -1) {
       order.cartItems[index].orderStatus = item?.orderStatus[index];
+      order.cartItems[index].statusUpdatedAt = formattedDate;
     }
   });
 
@@ -338,6 +399,14 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
         .json({ error: "Invalid order data: missing cartItems" });
     }
 
+    const ts = Date.now();
+    const date_ob = new Date(ts);
+    const formattedDate = `${date_ob.getFullYear()}-${padZero(
+      date_ob.getMonth() + 1
+    )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+      date_ob.getMinutes()
+    )}:${padZero(date_ob.getSeconds())}`;
+
     // Update the orderStatus for each cart item based on the provided updates
     updates.forEach((update) => {
       const itemIndex = order.cartItems.findIndex(
@@ -345,6 +414,8 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
       );
       if (itemIndex !== -1) {
         order.cartItems[itemIndex].orderStatus = update.orderStatus;
+        // Use the correct timestamp here
+        order.cartItems[itemIndex].orderStatus.updatedAt = formattedDate;
       }
     });
 

@@ -10,20 +10,18 @@ const {
   customarChangeOrderStatus,
   createOrderDashboard,
   convertEcommersOrderToInvoice,
+  findAllOrders,
 } = require("../../services/ecommerce/ecommerceOrderService");
 
 const ecommerceOrderRouter = express.Router();
 ecommerceOrderRouter
   .route("/ecommerceOrder")
-  .get(authService.protect, findAllOrderforCustomer)
+  .get(authService.protect, findAllOrders)
   .post(authService.protect, createOrderDashboard);
 
 ecommerceOrderRouter
   .route("/")
-  .get(
-    authService.ecommerceProtect,
-    findAllOrderforCustomer
-  );
+  .get(authService.ecommerceProtect, findAllOrderforCustomer);
 ecommerceOrderRouter
   .route("/:id")
   .get(authService.ecommerceProtect, filterOneOrderForLoggedUser)

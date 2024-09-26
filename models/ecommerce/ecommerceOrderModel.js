@@ -24,6 +24,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
         taxRate: Number,
         totalPriceAfterDiscount: Number,
         taxs: Number,
+        statusUpdatedAt: String,
         orderStatus: {
           type: String,
           enum: [
