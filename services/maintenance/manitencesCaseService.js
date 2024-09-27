@@ -412,7 +412,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         totalPriceAfterDiscount: req.body.amountDue,
         order: order._id,
         type: "sales",
-        financialFundId: financialFund._id,
+        financialFundId: financialFund,
         financialFundRest: financialFund.fundBalance,
         exchangeRate: req.body.exchangeRate,
       }),
