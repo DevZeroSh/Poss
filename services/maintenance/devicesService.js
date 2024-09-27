@@ -15,65 +15,59 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   const deviceModel = db.model("Device", devicesSchema);
   const manitUserModel = db.model("manitUser", manitenaceUserSchema);
 
-  const pageSize = parseInt(req.query.limit) || 20;
+  const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
 
   let query = {};
+  let userIds = [];
+
+  // If a keyword is provided, search in device fields
   if (req.query.keyword) {
     query.$or = [
       { deviceModel: { $regex: req.query.keyword, $options: "i" } },
       { serialNumber: { $regex: req.query.keyword, $options: "i" } },
       { counter: { $regex: req.query.keyword, $options: "i" } },
     ];
+
+    // Search for users with matching userName OR userPhone and get their IDs
+    const users = await manitUserModel.find({
+      $or: [
+        { userName: { $regex: req.query.keyword, $options: "i" } },
+        { userPhone: { $regex: req.query.keyword, $options: "i" } },
+      ],
+    }, '_id');
+    
+    userIds = users.map(user => user._id);
   }
 
-  // Use aggregation for searching in the referenced manitUser model
-  const pipeline = [
-    {
-      $lookup: {
-        from: "manitusers",
-        localField: "userId",
-        foreignField: "_id",
-        as: "userId",
-      },
-    },
-    {
-      $unwind: "$userId",
-    },
-    {
-      $match: {
-        ...query,
-        ...(req.query.keyword && {
-          "userId.userName": { $regex: req.query.keyword, $options: "i" },
-          "userId.userPhone": { $regex: req.query.keyword, $options: "i" },
-        }),
-      },
-    },
-    {
-      $skip: skip,
-    },
-    {
-      $limit: pageSize,
-    },
-    {
-      $sort: { createdAt: -1 },
-    },
-  ];
-
-  // Execute the aggregation
-  const devices = await deviceModel.aggregate(pipeline);
+  // If userIds are found, include them in the query
+  if (userIds.length > 0) {
+    query.$or.push({ userId: { $in: userIds } });
+  }
 
   const totalItems = await deviceModel.countDocuments(query);
   const totalPages = Math.ceil(totalItems / pageSize);
 
+  const device = await deviceModel
+    .find(query)
+    .populate({ path: "userId", select: "userName userPhone" }) // Populate relevant fields
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
   res.status(200).json({
     status: "true",
-    results: devices.length,
+    results: device.length,
     Pages: totalPages,
-    data: devices,
+    data: device,
   });
 });
+
+
+
+
+
 
 // @desc put update Devices
 // @route put /api/device/:id
