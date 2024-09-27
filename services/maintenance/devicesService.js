@@ -64,11 +64,6 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   });
 });
 
-
-
-
-
-
 // @desc put update Devices
 // @route put /api/device/:id
 exports.updateDevices = asyncHandler(async (req, res, next) => {

@@ -371,7 +371,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     req.body.financialFundsId
   );
-
+console.log(req.body)
   try {
     const order = await orderModel.create({
       employee: req.user._id,
