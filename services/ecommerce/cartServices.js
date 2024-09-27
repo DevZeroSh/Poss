@@ -36,6 +36,7 @@ const calclatTotalCartPriceAfterDiscont = (coupon, cart) => {
   }
   cart.totalPriceAfterDiscount = totalPriceAfterDiscount;
 };
+
 //@desc Add product to Cart
 //@route GEt /api/cart
 //@accsess private/User
@@ -111,7 +112,7 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
       // Product does not exist in the cart, so add it
       cart.cartItems.push({
         product: product,
-        taxPrice,
+        taxPrice: price,
         name: product.name,
         qr: product.qr,
         quantity: quantity,
@@ -142,14 +143,16 @@ exports.addProductToCart = asyncHandler(async (req, res, next) => {
 //@desc Get logged user Cart
 //@route Get /api/cart
 //@accsess private/User
-
 exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const CartModel = db.model("Cart", cartSchema);
+  db.model("Product", productSchema);
   db.model("Users", E_user_Schema);
 
-  const cart = await CartModel.findOne({ customar: req.user._id });
+  const cart = await CartModel.findOne({ customar: req.user._id }).populate({
+    path: "cartItems.product",
+  });
   const setImageURL = (doc) => {
     if (doc.image) {
       const imageUrl = `${process.env.BASE_URL}/product/${doc.image}`;
@@ -171,7 +174,6 @@ exports.getLoggedUserCart = asyncHandler(async (req, res, next) => {
 //@desc Remove specific Cart item
 //@route Delete /api/cart:itemId
 //@accsess private/User
-
 exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -196,7 +198,6 @@ exports.removeSpecifcCartItem = asyncHandler(async (req, res, next) => {
 //@desc Clear specific user Item
 //@route Delete /api/cart:itemId
 //@accsess private/User
-
 exports.clearCart = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -206,10 +207,10 @@ exports.clearCart = asyncHandler(async (req, res, next) => {
 
   res.status(200).send();
 });
+
 //@desc Update specific cart Item Quantity
 //@route Put /api/cart:itemId
 //@accsess private/User
-
 exports.updateCartItemQuantity = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
