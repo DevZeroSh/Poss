@@ -26,8 +26,6 @@ const stockSchema = require("../models/stockModel");
 const PaymentSchema = require("../models/paymentModel");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 
-
-
 //Fixed Ourchse invoice
 exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -156,7 +154,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     newPurchaseInvoice.reportsBalanceId = reports.id;
     await newPurchaseInvoice.save();
     await financialFund.save();
-    
+
     await paymentModel.create({
       supplierId: suppliersId,
       supplierName: supplierName,
@@ -668,8 +666,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         supplier.total += totalPurchasePriceMainCurrency;
       }
       await supplier.save();
-    } 
-    else {
+    } else {
       if (suppliersId === purchase.suppliersId) {
         supplier.TotalUnpaid +=
           totalPurchasePriceMainCurrency - totalPurchasePriceMainCurrencyBefor;
@@ -1075,7 +1072,7 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
   db.model("Stock", stockSchema);
 
   const { id } = req.params;
-
+  console.log(id);
   // 1) find prucseInvices
   const purchaseInvoices = await PurchaseInvoicesModel.findById(id);
   const supplier = await SupplierModel.findOne({
@@ -1153,24 +1150,26 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
         }
       });
       // 5) minus balance form Fund and delete archives Reports in Supplier
-      const reportsBalanceId =
-        await ReportsFinancialFundsModel.findByIdAndUpdate(
-          {
-            _id: purchaseInvoices.reportsBalanceId,
-          },
-          { archives: true },
+      if (purchaseInvoices.reportsBalanceId) {
+        const reportsBalanceId =
+          await ReportsFinancialFundsModel.findByIdAndUpdate(
+            {
+              _id: purchaseInvoices.reportsBalanceId,
+            },
+            { archives: true },
+            { new: true }
+          );
+        const financialFund = await FinancialFundsModel.findById(
+          reportsBalanceId.financialFundId
+        );
+
+        // Update the fund balance
+        await FinancialFundsModel.findOneAndUpdate(
+          { _id: reportsBalanceId.financialFundId },
+          { fundBalance: financialFund.fundBalance - reportsBalanceId.amount },
           { new: true }
         );
-      const financialFund = await FinancialFundsModel.findById(
-        reportsBalanceId.financialFundId
-      );
-
-      // Update the fund balance
-      await FinancialFundsModel.findOneAndUpdate(
-        { _id: reportsBalanceId.financialFundId },
-        { fundBalance: financialFund.fundBalance - reportsBalanceId.amount },
-        { new: true }
-      );
+      }
       purchaseInvoices.type = "cancel";
       await purchaseInvoices.save();
       res.status(200).json({ message: "cancel is success" });

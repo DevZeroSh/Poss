@@ -73,7 +73,7 @@ const orderSchema = new mongoose.Schema(
     description: String,
     type: {
       type: String,
-      enum: ["normal", "bills", "openBalance", "ecommerce"],
+      enum: ["normal", "bills", "openBalance", "ecommerce", "cancel"],
       default: "normal",
     },
     fish: [String],
@@ -90,6 +90,8 @@ const orderSchema = new mongoose.Schema(
         payment: Number,
         paymentMainCurrency: Number,
         financialFunds: String,
+        financialFundsId: String,
+
         financialFundsCurrencyCode: String,
         date: String,
         _id: false,

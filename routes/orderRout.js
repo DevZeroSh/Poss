@@ -7,6 +7,7 @@ const {
   getOneReturnOrder,
   DashBordSalse,
   editOrderInvoice,
+  canceledOrder,
 } = require("../services/orderServices");
 
 const authService = require("../services/authService");
@@ -25,6 +26,9 @@ OrderRout.route("/").get(findAllOrder); //.post(createCashOrder);
 // OrderRout.route("/funds").post(createCashOrderMultipelFunds);
 OrderRout.route("/salesDashbord").post(DashBordSalse);
 
-OrderRout.route("/:id").get(findOneOrder).put(editOrderInvoice);
+OrderRout.route("/:id")
+  .get(findOneOrder)
+  .put(editOrderInvoice)
+  .delete(canceledOrder);
 
 module.exports = OrderRout;

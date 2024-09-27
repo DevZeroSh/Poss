@@ -13,37 +13,66 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const deviceModel = db.model("Device", devicesSchema);
-  db.model("manitUser", manitenaceUserSchema);
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
 
-  const pageSize = req.query.limit || 20;
+  const pageSize = parseInt(req.query.limit) || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
+
   let query = {};
   if (req.query.keyword) {
     query.$or = [
       { deviceModel: { $regex: req.query.keyword, $options: "i" } },
       { serialNumber: { $regex: req.query.keyword, $options: "i" } },
-      { userName: { $regex: req.query.keyword, $options: "i" } },
       { userPhone: { $regex: req.query.keyword, $options: "i" } },
       { counter: { $regex: req.query.keyword, $options: "i" } },
     ];
   }
 
-  const totalItems = await deviceModel.countDocuments(query);
+  // Use aggregation for searching in the referenced manitUser model
+  const pipeline = [
+    {
+      $lookup: {
+        from: "manitusers",
+        localField: "userId",
+        foreignField: "_id",
+        as: "userDetails",
+      },
+    },
+    {
+      $unwind: "$userDetails",
+    },
+    {
+      $match: {
+        ...query,
+        ...(req.query.keyword && {
+          "userDetails.userName": { $regex: req.query.keyword, $options: "i" },
+          "userDetails.userPhone": { $regex: req.query.keyword, $options: "i" },
+        }),
+      },
+    },
+    {
+      $skip: skip,
+    },
+    {
+      $limit: pageSize,
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+  ];
 
+  // Execute the aggregation
+  const devices = await deviceModel.aggregate(pipeline);
+
+  const totalItems = await deviceModel.countDocuments(query);
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  const device = await deviceModel
-    .find(query)
-    .populate({ path: "userId" })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(pageSize);
   res.status(200).json({
     status: "true",
-    results: device.length,
+    results: devices.length,
     Pages: totalPages,
-    data: device,
+    data: devices,
   });
 });
 

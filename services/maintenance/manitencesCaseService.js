@@ -32,7 +32,15 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const skip = (page - 1) * pageSize;
   let query = {};
   if (req.query.keyword) {
-    query.$or = [{ counter: { $regex: req.query.keyword, $options: "i" } }];
+    query.$or = [
+      {
+        counter: { $regex: req.query.keyword, $options: "i" },
+        admin: { $regex: req.query.keyword, $options: "i" },
+        deviceProblem: { $regex: req.query.keyword, $options: "i" },
+        caseStatus: { $regex: req.query.keyword, $options: "i" },
+        manitencesStatus: { $regex: req.query.keyword, $options: "i" },
+      },
+    ];
   }
 
   const totalItems = await manitencesCaseModel.countDocuments(query);
@@ -216,13 +224,13 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     taxPrice: item.taxPrice,
     name: item.name,
     qr: item.qr,
-    quantity: Number(item.quantity),
-    exchangeRate: Number(item.exchangeRate),
-    buyingPrice: Number(item.buyingPrice),
+    quantity: Number(item.quantity) || 1,
+    exchangeRate: Number(item.exchangeRate) || 1,
+    buyingPrice: Number(item.buyingPrice) || 0,
     prodcutType: item.prodcutType,
     taxRate: item?.taxRate || 0,
     taxs: item?.taxsId || 0,
-    price: Number(item.price),
+    price: Number(item.price) || 0,
     stockId: item.stockId,
   }));
 
