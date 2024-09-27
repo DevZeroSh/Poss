@@ -24,7 +24,6 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
     query.$or = [
       { deviceModel: { $regex: req.query.keyword, $options: "i" } },
       { serialNumber: { $regex: req.query.keyword, $options: "i" } },
-      { userPhone: { $regex: req.query.keyword, $options: "i" } },
       { counter: { $regex: req.query.keyword, $options: "i" } },
     ];
   }
@@ -36,18 +35,18 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
         from: "manitusers",
         localField: "userId",
         foreignField: "_id",
-        as: "userDetails",
+        as: "userId",
       },
     },
     {
-      $unwind: "$userDetails",
+      $unwind: "$userId",
     },
     {
       $match: {
         ...query,
         ...(req.query.keyword && {
-          "userDetails.userName": { $regex: req.query.keyword, $options: "i" },
-          "userDetails.userPhone": { $regex: req.query.keyword, $options: "i" },
+          "userId.userName": { $regex: req.query.keyword, $options: "i" },
+          "userId.userPhone": { $regex: req.query.keyword, $options: "i" },
         }),
       },
     },
