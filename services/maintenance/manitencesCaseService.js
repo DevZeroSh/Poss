@@ -369,17 +369,19 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     req.body.financialFundsId
   );
+  const client = await findById(maintenance.userId);
+  console.log(maintenance);
   try {
     const order = await orderModel.create({
       employee: req.user._id,
       cartItems: piecesAndCost,
       returnCartItem: piecesAndCost,
       currencyCode: req.body.currency,
-      customarId: maintenance.customerId,
-      customarName: maintenance.customerName,
-      customarEmail: maintenance.customerEmail,
-      customarPhone: maintenance.customerPhone,
-      customarAddress: maintenance.customarAddress,
+      customarId: client.userName,
+      customarName: client.customerName || "",
+      customarEmail: client.userEmail,
+      customarPhone: client.userPhone,
+      customarAddress: client.customarAddress,
       totalOrderPrice: req.body.amountDue,
       totalPriceExchangeRate: req.body.priceExchangeRate || req.body.amountDue,
       date: req.body.date || formattedDate,

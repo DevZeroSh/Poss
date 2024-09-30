@@ -94,7 +94,7 @@ exports.getOneDevice = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
 
-  const findDevice = await deviceModel.findById(id);
+  const findDevice = await deviceModel.findById(id).populate("userId");
 
   if (!findDevice) {
     return next(new ApiError(`No Devices By this ID ${id}`));
