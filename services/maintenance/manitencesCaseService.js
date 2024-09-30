@@ -23,28 +23,41 @@ const {
 exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  db.model("manitUser", manitenaceUserSchema);
-  db.model("Device", devicesSchema);
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
+  const deviceModel = db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
-  const pageSize = req.query.limit || 20;
+  const pageSize = parseInt(req.query.limit) || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
+
   let query = {};
+  let deviceIds = [];
+
   if (req.query.keyword) {
-    query.$or = [
+    // Search in the Device collection
+    const devices = await deviceModel.find(
       {
-        counter: { $regex: req.query.keyword, $options: "i" },
-        admin: { $regex: req.query.keyword, $options: "i" },
-        deviceProblem: { $regex: req.query.keyword, $options: "i" },
-        caseStatus: { $regex: req.query.keyword, $options: "i" },
-        manitencesStatus: { $regex: req.query.keyword, $options: "i" },
+        $or: [{ counter: { $regex: req.query.keyword, $options: "i" } }],
       },
+      "_id"
+    );
+
+    // Get device IDs from the results
+    deviceIds = devices.map((device) => device._id);
+
+    // Add keyword searches for manitencesCase fields and `deviceId`
+    query.$or = [
+      { counter: { $regex: req.query.keyword, $options: "i" } },
+      { admin: { $regex: req.query.keyword, $options: "i" } },
+      { problemType: { $regex: req.query.keyword, $options: "i" } },
+      { manitencesStatus: { $regex: req.query.keyword, $options: "i" } },
+
+      { deviceId: { $in: deviceIds } },
     ];
   }
 
   const totalItems = await manitencesCaseModel.countDocuments(query);
-
   const totalPages = Math.ceil(totalItems / pageSize);
 
   const manitCase = await manitencesCaseModel
@@ -52,11 +65,14 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize)
-    .populate({ path: "deviceId" })
+    .populate({
+      path: "deviceId",
+    })
     .populate({
       path: "userId",
       select: "userName userPhone",
     });
+
   res.status(200).json({
     status: "true",
     results: manitCase.length,
@@ -151,10 +167,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
-  const caseHistoryModel = db.model(
-    "maintenacesHistoryModel",
-    caseHitstorySchema
-  );
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
