@@ -331,6 +331,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
   const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
 
   const nextCounter = (await orderModel.countDocuments()) + 1;
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
@@ -369,19 +370,21 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     req.body.financialFundsId
   );
-  const client = await findById(maintenance.userId);
-  console.log(maintenance);
+  if (req.body.customer === false) {
+    const client = await manitUserModel.findById(maintenance.userId);
+  }
+  console.log(req.body);
   try {
     const order = await orderModel.create({
       employee: req.user._id,
       cartItems: piecesAndCost,
       returnCartItem: piecesAndCost,
       currencyCode: req.body.currency,
-      customarId: client.userName,
-      customarName: client.customerName || "",
-      customarEmail: client.userEmail,
-      customarPhone: client.userPhone,
-      customarAddress: client.customarAddress,
+      customarId: req.body.customerId || client.userName,
+      customarName: req.body.customerName || client.userName || "",
+      customarEmail: req.body.customerEmail || client.userEmail,
+      customarPhone: req.body.customerPhone || client.userPhone,
+      customarAddress: req.body.customerAddress || client.customarAddress,
       totalOrderPrice: req.body.amountDue,
       totalPriceExchangeRate: req.body.priceExchangeRate || req.body.amountDue,
       date: req.body.date || formattedDate,
