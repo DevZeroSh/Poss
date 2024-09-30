@@ -31,14 +31,17 @@ exports.getDevices = asyncHandler(async (req, res, next) => {
     ];
 
     // Search for users with matching userName OR userPhone and get their IDs
-    const users = await manitUserModel.find({
-      $or: [
-        { userName: { $regex: req.query.keyword, $options: "i" } },
-        { userPhone: { $regex: req.query.keyword, $options: "i" } },
-      ],
-    }, '_id');
-    
-    userIds = users.map(user => user._id);
+    const users = await manitUserModel.find(
+      {
+        $or: [
+          { userName: { $regex: req.query.keyword, $options: "i" } },
+          { userPhone: { $regex: req.query.keyword, $options: "i" } },
+        ],
+      },
+      "_id"
+    );
+
+    userIds = users.map((user) => user._id);
   }
 
   // If userIds are found, include them in the query
@@ -148,6 +151,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     manitencesStatus: req.body.manitencesStatus,
     problemType: req.body.problemType,
     counter: "case " + nextCounterCase,
+    manitencesStatus: "Received",
   });
 
   await maintenacesHistoryModel.create({

@@ -171,6 +171,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
 
   req.body.counter = "case " + nextCounter;
   req.body.deviceReceptionDate = formattedDate;
+  req.body.manitencesStatus = "Received";
   const createed = await manitencesCaseModel.create(req.body);
 
   await caseHistoryModel.create({
@@ -370,8 +371,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const financialFund = await FinancialFundsModel.findById(
     req.body.financialFundsId
   );
+  let client;
   if (req.body.customer === false) {
-    const client = await manitUserModel.findById(maintenance.userId);
+    client = await manitUserModel.findById(maintenance.userId);
   }
   console.log(req.body);
   try {
@@ -380,11 +382,11 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
       cartItems: piecesAndCost,
       returnCartItem: piecesAndCost,
       currencyCode: req.body.currency,
-      customarId: req.body.customerId || client.userName,
-      customarName: req.body.customerName || client.userName || "",
-      customarEmail: req.body.customerEmail || client.userEmail,
-      customarPhone: req.body.customerPhone || client.userPhone,
-      customarAddress: req.body.customerAddress || client.customarAddress,
+      customarId: req.body.customerId || maintenance?.userId || "",
+      customarName: req.body.customerName || client?.userName || "",
+      customarEmail: req.body.customerEmail || client?.userEmail || "",
+      customarPhone: req.body.customerPhone || client?.userPhone || "",
+      customarAddress: req.body.customerAddress || client?.address || "",
       totalOrderPrice: req.body.amountDue,
       totalPriceExchangeRate: req.body.priceExchangeRate || req.body.amountDue,
       date: req.body.date || formattedDate,
