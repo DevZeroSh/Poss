@@ -115,7 +115,7 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
     histoyType: "update",
     manitencesStatus: req.body.manitencesStatus,
   });
-  res.status(200).json({ success: "success", data: manitCase });
+  res.status(200).json({ status: "success", data: manitCase });
 });
 
 // @desc Get one Manitenace Case
