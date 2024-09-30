@@ -180,9 +180,9 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
 
-  const nextCounter = (await manitencesCaseModel.countDocuments()) + 1;
-
-  req.body.counter = "case " + nextCounter;
+  const milliseconds = ts
+  console.log(milliseconds);
+  req.body.counter = "case " + milliseconds;
   req.body.deviceReceptionDate = formattedDate;
   req.body.manitencesStatus = "Received";
   const createed = await manitencesCaseModel.create(req.body);
@@ -191,7 +191,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
     devicesId: createed.id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter: "case " + nextCounter,
+    counter: "case " + milliseconds,
     histoyType: "create",
     deviceStatus: req.body.deviceStatus,
   });
