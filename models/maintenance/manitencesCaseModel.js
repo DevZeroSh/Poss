@@ -10,7 +10,7 @@ const manitencesCase = new mongoose.Schema(
     deviceStatus: String,
     employeeDesc: String,
     expectedAmount: String,
-    amountDue: Number,
+    amountDue: { type: Number, default: 0 },
     explanition: String,
     manitencesStatus: String,
     paymentStatus: { type: String, enum: ["paid", "unpaid"] },

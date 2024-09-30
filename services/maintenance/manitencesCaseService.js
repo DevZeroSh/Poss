@@ -85,7 +85,6 @@ exports.updateManitenaceCase = asyncHandler(async (req, res, next) => {
   )}:${padZero(date_ob.getSeconds())}`;
 
   const { id } = req.params;
-
   const manitCase = await manitencesCaseModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });
@@ -349,7 +348,10 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   )}:${padZero(date_ob.getSeconds())}`;
 
   const { id } = req.params;
-  const maintenance = await manitencesCaseModel.findById(id);
+  const maintenance = await manitencesCaseModel.findByIdAndUpdate(id, {
+    manitencesStatus: "Delivered",
+    paymentStatus: "paid",
+  });
   let piecesAndCost = maintenance.piecesAndCost.map((item) => ({
     taxPrice: item.taxPrice,
     product: item.productId,
@@ -364,14 +366,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     stockId: item.stockId,
   }));
 
-  // Update maintenance payment status in one operation
-  maintenance.paymentStatus = "paid";
-  await maintenance.save();
-
   const financialFund = await FinancialFundsModel.findById(
     req.body.financialFundsId
   );
-console.log(req.body)
   try {
     const order = await orderModel.create({
       employee: req.user._id,
