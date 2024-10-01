@@ -122,7 +122,8 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
             "https://api2.smartinb.ai:4001/api/allusers/",
             {
               userEmail: req.body.email,
-              companySubscribtionId: req.body.subscribtion,
+
+              subscribtion: req.body.subscribtion,
               userType: req.body.userType,
             }
           );
