@@ -180,7 +180,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
 
-  const milliseconds = ts
+  const milliseconds = ts;
   req.body.counter = milliseconds;
   req.body.deviceReceptionDate = formattedDate;
   req.body.manitencesStatus = "Received";
@@ -190,7 +190,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
     devicesId: createed.id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter:  milliseconds,
+    counter: milliseconds,
     histoyType: "create",
     deviceStatus: req.body.deviceStatus,
   });
@@ -534,5 +534,51 @@ exports.getCaseByDeviceId = asyncHandler(async (req, res, next) => {
     results: manitencesCase.length,
     Pages: totalPages,
     data: { manitencesCase, device },
+  });
+});
+
+exports.getOneManitenaceCaseForUser = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  db.model("manitUser", manitenaceUserSchema);
+  db.model("Device", devicesSchema);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+  const caseHistoryModel = db.model("maintenacesHistory", caseHitstorySchema);
+
+  const caseNumber = req.params.counter;
+
+  const manitCase = await manitencesCaseModel
+    .findOne({ counter: caseNumber })
+    .populate({
+      path: "userId",
+    })
+    .populate({ path: "deviceId" });
+  if (!manitCase) {
+    return next(
+      new ApiError(`No manitences Case By this case Number ${caseNumber}`)
+    );
+  }
+
+  const pageSize = req.query.limit || 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await caseHistoryModel.countDocuments({
+    counter: manitCase.counter,
+  });
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const casehistory = await caseHistoryModel
+    .find({
+      counter: manitCase.counter,
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.status(200).json({
+    message: "success",
+    Pages: totalPages,
+    data: manitCase,
+    history: casehistory,
   });
 });
