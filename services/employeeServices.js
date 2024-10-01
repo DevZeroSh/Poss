@@ -67,9 +67,9 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
           const createUserOnServer = await axios.post(
             "https://api2.smartinb.ai:4001/api/allusers/",
             {
-              name: req.body.name,
+              name: req.body.companyName,
               userEmail: req.body.email,
-              subscribtion: req.body.subscribtion,
+              companySubscribtionId: req.body.subscribtion,
               userType: req.body.userType,
             }
           );
@@ -115,21 +115,19 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
       //Create the employee
 
       // //insert the user on the main server
-
+      req.body.companySubscribtionId = req.body.subscribtion;
       if (req.body.userType && req.body.userType === "normal") {
         try {
           const createUserOnServer = await axios.post(
             "https://api2.smartinb.ai:4001/api/allusers/",
             {
               userEmail: req.body.email,
-              subscribtion: req.body.subscribtion,
+              companySubscribtionId: req.body.subscribtion,
               userType: req.body.userType,
             }
           );
           //Continue here
-        } catch (error) {
-          console.log(error);
-        }
+        } catch (error) {}
       }
       const employee = await employeeModel.create(req.body);
       res.status(201).json({
@@ -137,11 +135,8 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
         message: "Employee Inserted",
         data: employee,
       });
-    } catch (error) {
-      return next(new ApiError("There is an error in sending email", 500));
-    }
+    } catch (error) {}
   } else {
-    return next(new ApiError("There is an error in email format", 500));
   }
 });
 

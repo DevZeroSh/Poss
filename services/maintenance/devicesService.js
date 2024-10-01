@@ -146,6 +146,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     paymentStatus: "unpaid",
     backpack: req.body.backpack,
     charger: req.body.charger,
+    cable: req.body.cable,
     deviceReceptionDate: formattedDate,
     manitencesStatus: req.body.manitencesStatus,
     problemType: req.body.problemType,

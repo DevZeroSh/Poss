@@ -288,6 +288,18 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
         desc: "HR",
         info: "This will give you full permissions on the FingerPrint Reports page only",
       },
+
+      {
+        title: "Maintenance Reception",
+        desc: "Maintenance",
+        info: "The maintenance department at the reception enters customers, cases and devices",
+      },
+
+      {
+        title: "Maintenance Technical",
+        desc: "Maintenance",
+        info: "The technician who sets the parts, prices, and invoice",
+      },
     ];
 
     const mainDashboardRoles = await roleDashboardModel.insertMany(
