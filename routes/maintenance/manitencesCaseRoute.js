@@ -14,18 +14,18 @@ const {
 } = require("../../services/maintenance/manitencesCaseService");
 
 const manitCaseRout = express.Router();
-manitCaseRout.use(authService.protect);
 
-manitCaseRout.route("/").get(getManitenaceCase).post(createManitenaceCase);
-manitCaseRout.route("/addproduct/:id").put(addProductInManitencesCase)
-manitCaseRout.route("/addcalling/:id").put(addCalling)
-manitCaseRout.route("/convert/:id").put(convertToSales)
-manitCaseRout.route("/devicecases/:id").get(getCaseByDeviceId)
+
+manitCaseRout.route("/").get(authService.protect,getManitenaceCase).post(authService.protect,createManitenaceCase);
+manitCaseRout.route("/addproduct/:id").put(authService.protect,addProductInManitencesCase)
+manitCaseRout.route("/addcalling/:id").put(authService.protect,addCalling)
+manitCaseRout.route("/convert/:id").put(authService.protect,convertToSales)
+manitCaseRout.route("/devicecases/:id").get(authService.protect,getCaseByDeviceId)
 
 manitCaseRout
   .route("/:id")
   .get(getOneManitenaceCase)
-  .put(updateManitenaceCase)
-  .delete(deleteManitenaceCase);
+  .put(authService.protect,updateManitenaceCase)
+  .delete(authService.protect,deleteManitenaceCase);
 
 module.exports = manitCaseRout;

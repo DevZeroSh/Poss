@@ -130,10 +130,9 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
 
   const nextCounter = (await deviceModel.countDocuments()) + 1;
 
+  const milliseconds = ts;
   req.body.counter = nextCounter;
   const createed = await deviceModel.create(req.body);
-
-  const nextCounterCase = (await manitencesCaseModel.countDocuments()) + 1;
 
   const createedCase = await manitencesCaseModel.create({
     userId: req.body.userId,
@@ -150,7 +149,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     deviceReceptionDate: formattedDate,
     manitencesStatus: req.body.manitencesStatus,
     problemType: req.body.problemType,
-    counter: "case " + nextCounterCase,
+    counter: milliseconds,
     manitencesStatus: "Received",
   });
 
@@ -158,7 +157,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     devicesId: createed.id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter: "case " + nextCounter,
+    counter: milliseconds,
     histoyType: "create",
     deviceStatus: req.body.deviceStatus,
   });
