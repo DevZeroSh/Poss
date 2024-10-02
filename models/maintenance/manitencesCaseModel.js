@@ -24,6 +24,7 @@ const manitencesCase = new mongoose.Schema(
     customerCalling: [
       { connect: String, date: Date, user: String, _id: false },
     ],
+    caseCounter: String,
     piecesAndCost: [
       {
         productId: String,

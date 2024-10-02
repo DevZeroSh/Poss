@@ -49,6 +49,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
     // Add keyword searches for manitencesCase fields and `deviceId`
     query.$or = [
       { counter: { $regex: req.query.keyword, $options: "i" } },
+      { caseCounter: { $regex: req.query.keyword, $options: "i" } },
       { admin: { $regex: req.query.keyword, $options: "i" } },
       { problemType: { $regex: req.query.keyword, $options: "i" } },
       { manitencesStatus: { $regex: req.query.keyword, $options: "i" } },
@@ -179,9 +180,12 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
   )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}`;
+  const nextCounter = (await manitencesCaseModel.countDocuments()) + 1;
 
   const milliseconds = ts;
   req.body.counter = milliseconds;
+  req.body.caseCounter = 7100 + nextCounter;
+
   req.body.deviceReceptionDate = formattedDate;
   req.body.manitencesStatus = "Received";
   const createed = await manitencesCaseModel.create(req.body);
@@ -190,7 +194,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
     devicesId: createed.id,
     employeeName: req.user.name,
     date: formattedDate,
-    counter: milliseconds,
+    counter: req.body.caseCounter,
     histoyType: "create",
     deviceStatus: req.body.deviceStatus,
   });
@@ -431,7 +435,9 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         financialFundId: financialFund,
         financialFundRest: financialFund.fundBalance,
         exchangeRate:
-          req.body.exchangeRate || financialFund?.fundCurrency?.exchangeRate || 1,
+          req.body.exchangeRate ||
+          financialFund?.fundCurrency?.exchangeRate ||
+          1,
       }),
 
       await caseHistoryModel.create({

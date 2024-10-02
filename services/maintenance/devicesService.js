@@ -133,6 +133,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
   const milliseconds = ts;
   req.body.counter = nextCounter;
   const createed = await deviceModel.create(req.body);
+  const nextCounterCase = (await manitencesCaseModel.countDocuments()) + 1;
 
   const createedCase = await manitencesCaseModel.create({
     userId: req.body.userId,
@@ -152,6 +153,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     problemType: req.body.problemType,
     counter: milliseconds,
     manitencesStatus: "Received",
+    caseCounter: 7100 + nextCounterCase,
   });
 
   await maintenacesHistoryModel.create({
