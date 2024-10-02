@@ -1268,6 +1268,12 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
   await customersModel.findByIdAndUpdate(canceled.customarId, {
     TotalUnpaid: -total,
   });
+  const history = createInvoiceHistory(
+    dbName,
+    id,
+    "cancel",
+    req.user._id
+  );
   res.status(200).json({
     status: "true",
     message: "Order Canceled successfully",
@@ -1368,7 +1374,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   const newOrderData = {
     cartItems: cartItems,
     totalPriceExchangeRate: totalOrderPrice,
-    paidAt: formattedDate,
+    date: formattedDate,
     type: "bills",
     totalOrderPrice: totalOrderPrice,
     counter: "in " + nextCounter,

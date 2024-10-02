@@ -85,7 +85,7 @@ exports.createSupplier = asyncHandler(async (req, res, next) => {
     finalPriceMainCurrency: req.body.TotalUnpaid,
     totalPriceWitheOutTax: req.body.TotalUnpaid,
     employee: req.user._id,
-    counter: nextCounter,
+    invoiceNumber: nextCounter,
     invoiceCurrencyExchangeRate: 1,
     date: req.body.date,
     totalRemainder: req.body.TotalUnpaid,

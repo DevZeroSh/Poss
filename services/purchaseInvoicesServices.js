@@ -1072,7 +1072,6 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
   db.model("Stock", stockSchema);
 
   const { id } = req.params;
-  console.log(id);
   // 1) find prucseInvices
   const purchaseInvoices = await PurchaseInvoicesModel.findById(id);
   const supplier = await SupplierModel.findOne({
@@ -1170,6 +1169,7 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
           { new: true }
         );
       }
+      const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
       purchaseInvoices.type = "cancel";
       await purchaseInvoices.save();
       res.status(200).json({ message: "cancel is success" });

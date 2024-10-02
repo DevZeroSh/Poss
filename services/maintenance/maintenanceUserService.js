@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../../utils/apiError");
 const mongoose = require("mongoose");
 const manitenaceUserSchema = require("../../models/maintenance/manitenaceUserModel");
+const xlsx = require("xlsx");
 
 // @desc  Get All Manitenace User
 // @route Get /api/manituser
@@ -111,4 +112,47 @@ exports.deleteManitenaceUser = asyncHandler(async (req, res, next) => {
   res
     .status(200)
     .json({ success: "success", message: "Manitenace User has deleted" });
+});
+
+exports.importClint = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
+
+  const { buffer } = req.file;
+
+  let csvData;
+  if (
+    req.file.originalname.endsWith(".csv") ||
+    req.file.mimetype === "text/csv"
+  ) {
+    // Use csvtojson to convert CSV buffer to JSON array
+    csvData = await csvtojson().fromString(buffer.toString());
+  } else if (
+    req.file.originalname.endsWith(".xlsx") ||
+    req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    // Use xlsx library to convert XLSX buffer to JSON array
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheet_name_list = workbook.SheetNames;
+    csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+  } else {
+    return res.status(400).json({ error: "Unsupported file type" });
+  }
+  const currentCount = await manitUserModel.countDocuments();
+
+  // Assign sequential numbers to each client
+  csvData = csvData.map((client, index) => {
+    client.counter = currentCount + index + 1;
+    return client;
+  });
+  const insertedProducts = await manitUserModel.insertMany(csvData, {
+    ordered: false,
+  });
+
+
+  res.status(200)
+  // Process csvData further as needed, such as saving it to the database
 });
