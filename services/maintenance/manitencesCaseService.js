@@ -430,7 +430,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         type: "sales",
         financialFundId: financialFund,
         financialFundRest: financialFund.fundBalance,
-        exchangeRate: req.body.exchangeRate,
+        exchangeRate:
+          req.body.exchangeRate || financialFund?.fundCurrency?.exchangeRate || 1,
       }),
 
       await caseHistoryModel.create({

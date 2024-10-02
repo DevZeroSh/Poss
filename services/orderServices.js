@@ -1233,7 +1233,7 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   const canceled = await orderModel.findByIdAndUpdate(id, { type: "cancel" });
-
+  console.log(canceled)
   const bulkProductCancel = canceled.cartItems.map((item) => ({
     updateOne: {
       filter: { qr: item.qr, "stocks.stockId": item.stockId },
