@@ -23,7 +23,7 @@ const {
 exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  db.model("manitUser", manitenaceUserSchema);
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
   const deviceModel = db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
@@ -33,6 +33,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
 
   let query = {};
   let deviceIds = [];
+  let usersId = [];
 
   if (req.query.keyword) {
     // Search in the Device collection
@@ -42,9 +43,15 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
       },
       "_id"
     );
-
+    const users = await manitUserModel.find(
+      {
+        $or: [{ userName: { $regex: req.query.keyword, $options: "i" } }],
+      },
+      "_id"
+    );
     // Get device IDs from the results
     deviceIds = devices.map((device) => device._id);
+    usersId = users.map((user) => user._id);
 
     // Add keyword searches for manitencesCase fields and `deviceId`
     query.$or = [
@@ -55,6 +62,7 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
       { manitencesStatus: { $regex: req.query.keyword, $options: "i" } },
 
       { deviceId: { $in: deviceIds } },
+      { userId: { $in: usersId } },
     ];
   }
 
