@@ -7,11 +7,15 @@ const {
   getDevices,
   updateDevices,
   deleteDevice,
+  importDevice,
 } = require("../../services/maintenance/devicesService");
+const multer = require("multer");
+const upload = multer();
 
 const devicesRout = express.Router();
 
 devicesRout.route("/").get(getDevices).post(authService.protect, createDevice);
+devicesRout.route("/test").post(upload.single("file"), importDevice);
 
 devicesRout
   .route("/:id")

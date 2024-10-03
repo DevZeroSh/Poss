@@ -91,9 +91,9 @@ const orderSchema = new mongoose.Schema(
         paymentMainCurrency: Number,
         financialFunds: String,
         financialFundsId: String,
-
         financialFundsCurrencyCode: String,
         date: String,
+        paymentID: String,
         _id: false,
       },
     ],

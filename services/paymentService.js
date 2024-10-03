@@ -98,7 +98,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
   const description = req.body.description;
-
+  let tes1t = [];
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
 
@@ -205,7 +205,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       }
 
       remainingPayment -= paymentAmount;
-
+      tes1t.push(sale._id.toString());
       return {
         updateOne: {
           filter: { _id: sale._id },
@@ -215,11 +215,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     });
 
     await salesrModel.bulkWrite(bulkUpdateOperations);
-
     financialFunds.fundBalance += parseFloat(req.body.total);
     paymentText = "payment-cut";
     await customer.save();
-
     await createPaymentHistory(
       "payment",
       formattedDate,
@@ -308,10 +306,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     );
   }
 
+  console.log(tes1t);
+  req.body.payid = tes1t;
   req.body.date = formattedDate;
   await financialFunds.save();
   const payment = await paymentModel.create(req.body);
-
+  payment.save();
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
     amount: req.body.total,

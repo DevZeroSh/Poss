@@ -5,6 +5,7 @@ const devicesSchema = require("../../models/maintenance/devicesModel");
 const manitencesCaseSchema = require("../../models/maintenance/manitencesCaseModel");
 const caseHitstorySchema = require("../../models/maintenance/caseHistoryModel");
 const manitenaceUserSchema = require("../../models/maintenance/manitenaceUserModel");
+const xlsx = require("xlsx");
 
 // @desc Get All Devices
 // @route get /api/device
@@ -153,7 +154,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     problemType: req.body.problemType,
     counter: milliseconds,
     manitencesStatus: "Received",
-    caseCounter: 7100 + nextCounterCase,
+    caseCounter: nextCounterCase,
   });
 
   await maintenacesHistoryModel.create({
@@ -216,4 +217,88 @@ exports.getDevicesByUserID = asyncHandler(async (req, res, next) => {
     Pages: totalPages,
     data: device,
   });
+});
+
+exports.importDevice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const deviceModel = db.model("Device", devicesSchema);
+  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
+  const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
+
+  const { buffer } = req.file;
+
+  let csvData;
+  if (
+    req.file.originalname.endsWith(".csv") ||
+    req.file.mimetype === "text/csv"
+  ) {
+    // Use csvtojson to convert CSV buffer to JSON array
+    csvData = await csvtojson().fromString(buffer.toString());
+  } else if (
+    req.file.originalname.endsWith(".xlsx") ||
+    req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    // Use xlsx library to convert XLSX buffer to JSON array
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheet_name_list = workbook.SheetNames;
+    csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+  } else {
+    return res.status(400).json({ error: "Unsupported file type" });
+  }
+
+  try {
+    const csvDataWithUsers = await Promise.all(
+      csvData.map(async (client, index) => {
+        const user = await manitUserModel.findOne({
+          userPhone: client.userPhone,
+        });
+        client.userId = user ? user._id.toString() : null;
+        client.counter = index + 1;
+
+        if (client.userId) {
+          // Insert device first
+          const createdDevice = await deviceModel.create(client);
+
+          // Create associated maintenance case
+          const createdCase = await manitencesCaseModel.create({
+            userId: client.userId,
+            deviceId: createdDevice._id,
+            admin: client.admin,
+            userNotes: client.userNotes,
+            deviceProblem: client.deviceProblem,
+            deviceStatus: client.deviceStatus,
+            employeeDesc: client.employeeDesc,
+            expectedAmount: client.expectedAmount,
+            paymentStatus: "unpaid",
+            deviceReceptionDate: client.date,
+            manitencesStatus: client.manitencesStatus,
+            problemType: client.problemType,
+            counter: Date.now(),
+            caseCounter: index, // Increment case counter
+          });
+        }
+
+        return client; // Return the modified client with userId and possibly maintenance case
+      })
+    );
+
+    // Filter out clients that didn't have a userId and therefore weren't processed
+    const validData = csvDataWithUsers.filter((client) => client.userId);
+
+    // Filter out clients without a userId
+
+    res.status(200).json({
+      status: "success",
+      message: `${validData.length} devices and associated maintenance cases created successfully.`,
+      data: validData,
+    });
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ error: "An error occurred while importing devices." });
+  }
 });
