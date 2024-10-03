@@ -1233,7 +1233,7 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   const canceled = await orderModel.findByIdAndUpdate(id, { type: "cancel" });
-  console.log(canceled)
+  console.log(canceled);
   const bulkProductCancel = canceled.cartItems.map((item) => ({
     updateOne: {
       filter: { qr: item.qr, "stocks.stockId": item.stockId },
@@ -1268,12 +1268,7 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
   await customersModel.findByIdAndUpdate(canceled.customarId, {
     TotalUnpaid: -total,
   });
-  const history = createInvoiceHistory(
-    dbName,
-    id,
-    "cancel",
-    req.user._id
-  );
+  const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
   res.status(200).json({
     status: "true",
     message: "Order Canceled successfully",

@@ -23,7 +23,7 @@ const {
 exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const manitUserModel = db.model("manitUser", manitenaceUserSchema);
+  db.model("manitUser", manitenaceUserSchema);
   const deviceModel = db.model("Device", devicesSchema);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 

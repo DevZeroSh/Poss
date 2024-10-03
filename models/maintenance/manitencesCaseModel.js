@@ -42,6 +42,7 @@ const manitencesCase = new mongoose.Schema(
         _id: false,
       },
     ],
+    technicalDesc: String,
     counter: String,
   },
   { timestamps: true }
