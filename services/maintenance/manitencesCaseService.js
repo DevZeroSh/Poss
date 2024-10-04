@@ -267,6 +267,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     id,
     {
       amountDue: req.body.amountDue,
+      technicalDesc: req.body.technicalDesc,
       $set: { piecesAndCost: data },
     },
     { new: true }
