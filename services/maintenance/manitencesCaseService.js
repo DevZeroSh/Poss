@@ -197,7 +197,7 @@ exports.createManitenaceCase = asyncHandler(async (req, res, next) => {
 
   const milliseconds = ts;
   req.body.counter = milliseconds;
-  req.body.caseCounter = nextCounter;
+  req.body.caseCounter = 1068 + nextCounter;
 
   req.body.deviceReceptionDate = formattedDate;
   req.body.manitencesStatus = "Received";

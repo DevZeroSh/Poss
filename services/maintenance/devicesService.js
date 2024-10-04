@@ -154,7 +154,7 @@ exports.createDevice = asyncHandler(async (req, res, next) => {
     problemType: req.body.problemType,
     counter: milliseconds,
     manitencesStatus: "Received",
-    caseCounter: nextCounterCase,
+    caseCounter: 1068 + nextCounterCase,
   });
 
   await maintenacesHistoryModel.create({
