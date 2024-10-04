@@ -65,7 +65,12 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
       { userId: { $in: usersId } },
     ];
   }
-
+  if (req.query.admin) {
+    query.admin = req.query.admin;
+  }
+  if (req.query.manitencesStatus) {
+    query.manitencesStatus = req.query.manitencesStatus;
+  }
   const totalItems = await manitencesCaseModel.countDocuments(query);
   const totalPages = Math.ceil(totalItems / pageSize);
 
