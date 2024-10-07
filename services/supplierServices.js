@@ -16,6 +16,7 @@ const {
 } = require("./paymentHistoryService");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
 const emoloyeeShcema = require("../models/employeeModel");
+const { Search } = require("../utils/search");
 
 //Create New Supplier
 //rol:Who has rol can create
@@ -116,11 +117,13 @@ exports.getSuppliers = asyncHandler(async (req, res, next) => {
   db.model("Unit", UnitSchema);
   db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
+  const { totalPages, mongooseQuery } = await Search(supplierModel, req);
 
-  const supplier = await supplierModel.find();
+  const supplier = await mongooseQuery;
 
   res.status(200).json({
     status: "true",
+    totalPages: totalPages,
     results: supplier.length,
     data: supplier,
   });

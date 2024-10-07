@@ -1,7 +1,7 @@
 const expressAsyncHandler = require("express-async-handler");
 
 exports.Search = expressAsyncHandler(async (model, req) => {
-  const pageSize = 20;
+  const pageSize = 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   // Search for product or qr

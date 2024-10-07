@@ -451,18 +451,11 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
 
   // Initialize the base query to exclude type "pos"
   let query = {
-    $and: [{ type: { $ne: "openBalance" } }],
+    type: { $ne: "openBalance" },
   };
   // Add keyword filter if provided
   if (req.query.keyword) {
-    query = {
-      $and: [
-        query,
-        {
-          $or: [{ counter: req.query.keyword }],
-        },
-      ],
-    };
+    query.$or = [{ counter: { $regex: req.query.keyword, $options: "i" } }];
   }
 
   let mongooseQuery = orderModel.find(query);
