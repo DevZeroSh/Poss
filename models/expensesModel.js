@@ -1,53 +1,41 @@
 const mongoose = require("mongoose");
 
 const expensesSchema = new mongoose.Schema({
-  expenseDate: {
-    type: Date,
-    require: true,
-  },
-  expenseClarification: String,
-  expenseQuantityBeforeKdv: {
+  invoiceName: String,
+  counter: {
     type: Number,
-    require: true,
+    default: 1,
   },
-  expenseQuantityAfterKdv: {
-    type: Number,
-    require: true,
-  },
-  expenseTotalMainCurrency: {
-    type: Number,
-    require: true,
-  },
+  expenseDate: Date,
   expenseCategory: {
     type: mongoose.Schema.ObjectId,
     ref: "ExpensesCategory",
   },
+  invoiceCurrencyId: String,
+  invoiceCurrencyCode: String,
+  expensePriceBeforeTax: Number,
+  expenseTax: String,
+  expensePriceAfterTax: Number,
+
+  expenseTotalMainCurrency: Number,
+  expenseTotalExchangeRate: Number,
+
+  expenseFinancialFund: String,
+  peymentDueDate: Date,
+
   paid: {
     type: String,
     default: "unpaid",
     enum: ["paid", "unpaid"],
   },
-  expenseTax: String,
-  expenseFinancialFund: String,
-  exchangeRate: Number,
-  priceExchangeRate: Number,
-  counter: {
-    type: Number,
-    default: 1,
-    unique: true,
-  },
-  expenseFile: [
-    {
-      type: String,
-    },
-  ],
+
+  expenseClarification: String,
+  expenseFile: String,
 });
 
 const setFileURL = (doc) => {
   if (doc.expenseFile && doc.expenseFile.length > 0) {
-    doc.expenseFile = doc.expenseFile.map((file) => {
-      return `${process.env.BASE_URL}/expenses/${file}`;
-    });
+    doc.expenseFile = `${process.env.BASE_URL}/expenses/${file}`;
   }
 };
 
