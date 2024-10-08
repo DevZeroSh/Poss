@@ -11,6 +11,8 @@ const expensesSchema = new mongoose.Schema({
     type: mongoose.Schema.ObjectId,
     ref: "ExpensesCategory",
   },
+  suppleirID:String,
+  suppleirName:String,
   invoiceCurrencyId: String,
   invoiceCurrencyCode: String,
   expensePriceBeforeTax: Number,
