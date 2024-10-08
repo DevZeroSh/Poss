@@ -416,7 +416,7 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const pageSize = req.query.limit || 25;
+  const pageSize = req.query.limit || 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   let query = { type: { $ne: "openingBalance" } };
@@ -770,15 +770,25 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const productModel = db.model("Product", productSchema);
-  const returnModel = db.model("ReturenPurchaseInvoice", returnPurchaseInvicesSchema);
+  const returnModel = db.model(
+    "ReturenPurchaseInvoice",
+    returnPurchaseInvicesSchema
+  );
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const ReportsFinancialFundsModel = db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
   const SupplierModel = db.model("Supplier", supplierSchema);
 
   // Helper function to format date
   const formatDate = (date) => {
     const padZero = (value) => (value < 10 ? `0${value}` : value);
-    return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}`;
+    return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(
+      date.getDate()
+    )} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(
+      date.getSeconds()
+    )}`;
   };
   const formattedDate = formatDate(new Date());
 
@@ -809,9 +819,13 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const nextCounter = (await returnModel.countDocuments()) + 1;
 
   for (const item of invoices) {
-    const { qr, quantity, buyingprice, taxRate, exchangeRate } = item;
+    const { qr, quantity, buyingprice, taxRate, exchangeRate, stockId } = item;
     const productDoc = await productModel.findOne({ qr });
-    if (!productDoc) return res.status(400).json({ status: "error", message: `Product not found or insufficient quantity for QR: ${qr}` });
+    if (!productDoc)
+      return res.status(400).json({
+        status: "error",
+        message: `Product not found or insufficient quantity for QR: ${qr}`,
+      });
 
     invoiceItems.push({
       product: productDoc._id,
@@ -821,6 +835,7 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
       taxRate,
       buyingprice,
       exchangeRate,
+      stockId,
     });
   }
 
@@ -843,17 +858,24 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     invoiceCurrencyId,
     invoiceCurrency,
     totalPurchasePrice,
-    invoiceNumber: nextCounter,
+    counter: nextCounter,
   });
 
   // Bulk product updates
-  const bulkOption = invoiceItems.map((item) => ({
+  const bulkUpdates = invoiceItems.map((item) => ({
     updateOne: {
-      filter: { _id: item.product, qr: item.qr },
-      update: { $inc: { quantity: -item.quantity, activeCount: -item.quantity } },
+      filter: { qr: item.qr, "stocks.stockId": item.stockId },
+      update: {
+        $inc: {
+          quantity: -item.quantity,
+          activeCount: -item.quantity,
+          "stocks.$.productQuantity": -item.quantity,
+        },
+      },
     },
   }));
-  await productModel.bulkWrite(bulkOption);
+
+  await productModel.bulkWrite(bulkUpdates);
 
   // Supplier updates
   const supplier = await SupplierModel.findById(suppliersId);
@@ -868,7 +890,9 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   // Handle financial fund updates
   if (paid !== "unpaid") {
-    const financialFund = await FinancialFundsModel.findById(invoiceFinancialFund);
+    const financialFund = await FinancialFundsModel.findById(
+      invoiceFinancialFund
+    );
     financialFund.fundBalance += priceExchangeRate;
     await ReportsFinancialFundsModel.create({
       date: new Date().toISOString(),
@@ -884,56 +908,71 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
   }
 
   // Update active product values and movement
-  const ActiveProductsValue = db.model("ActiveProductsValue", ActiveProductsValueModel);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
   const currencyTotals = {};
   for (const item of invoiceItems) {
     const product = await productModel.findOne({ qr: item.qr });
     if (product) {
       const currencyId = product.currency._id;
-      currencyTotals[currencyId] = currencyTotals[currencyId] || { totalCount: 0, totalValue: 0 };
-      currencyTotals[currencyId].totalValue += (item.buyingprice / item.exchangeRate) * item.quantity;
+      currencyTotals[currencyId] = currencyTotals[currencyId] || {
+        totalCount: 0,
+        totalValue: 0,
+      };
+      currencyTotals[currencyId].totalValue +=
+        (item.buyingprice / item.exchangeRate) * item.quantity;
       currencyTotals[currencyId].totalCount += item.quantity;
     }
   }
 
   for (const currencyId in currencyTotals) {
     const { totalCount, totalValue } = currencyTotals[currencyId];
-    const existingRecord = await ActiveProductsValue.findOne({ currency: currencyId });
+    const existingRecord = await ActiveProductsValue.findOne({
+      currency: currencyId,
+    });
     if (existingRecord) {
       existingRecord.activeProductsCount -= totalCount;
       existingRecord.activeProductsValue -= totalValue;
       await existingRecord.save();
     } else {
-      await createActiveProductsValue(totalCount, totalValue, currencyId, dbName);
+      await createActiveProductsValue(
+        totalCount,
+        totalValue,
+        currencyId,
+        dbName
+      );
     }
   }
 
   // Create invoice history and respond
-  const history = createInvoiceHistory(dbName, savedInvoice._id, "return", req.user._id);
+  const history = createInvoiceHistory(
+    dbName,
+    savedInvoice._id,
+    "return",
+    req.user._id
+  );
   res.status(201).json({ status: "success", data: savedInvoice, history });
 });
-
 
 exports.getReturnPurchase = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
   db.model("Employee", emoloyeeShcema);
-  db.model("Tax", TaxSchema);
-  db.model("Supplier", supplierSchema);
-  db.model("FinancialFunds", financialFundsSchema);
-  db.model("Currency", currencySchema);
+
   const returnModel = db.model(
     "ReturenPurchaseInvoice",
     returnPurchaseInvicesSchema
   );
 
-  const { totalPages, mongooseQuery } = Search(returnModel, req);
+  const { totalPages, mongooseQuery } = await Search(returnModel, req);
 
   const refund = await mongooseQuery;
   res.status(200).json({
     status: "success",
-    results: refund,
+    results: refund.length,
     Pages: totalPages,
     data: refund,
   });

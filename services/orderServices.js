@@ -830,117 +830,117 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc put Return
-// @route PUT /api/return
-// @access private
 exports.returnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  db.model("Employee", emoloyeeShcema);
-  db.model("Product", productSchema);
-  db.model("Currency", currencySchema);
-  db.model("Category", categorySchema);
-  db.model("brand", brandSchema);
-  db.model("Labels", labelsSchema);
-  db.model("Tax", TaxSchema);
-  db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
-  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const productModel = db.model("Product", productSchema);
-  const orderModel = db.model("returnOrder", returnOrderSchema);
-  const ReportsFinancialFundsModel = db.model(
-    "ReportsFinancialFunds",
-    reportsFinancialFundsSchema
-  );
-  const orderModelO = db.model("Orders", orderSchema);
 
-  let movementCreated = false;
+  // Define models
+  const models = {
+    Employee: db.model("Employee", emoloyeeShcema),
+    Product: db.model("Product", productSchema),
+    Currency: db.model("Currency", currencySchema),
+    Category: db.model("Category", categorySchema),
+    Brand: db.model("brand", brandSchema),
+    Labels: db.model("Labels", labelsSchema),
+    Tax: db.model("Tax", TaxSchema),
+    Unit: db.model("Unit", UnitSchema),
+    Variant: db.model("Variant", variantSchema),
+    Order: db.model("Orders", orderSchema),
+    FinancialFunds: db.model("FinancialFunds", financialFundsSchema),
+    ReturnOrder: db.model("returnOrder", returnOrderSchema),
+    ReportsFinancialFunds: db.model(
+      "ReportsFinancialFunds",
+      reportsFinancialFundsSchema
+    ),
+    ActiveProductsValue: db.model(
+      "ActiveProductsValue",
+      ActiveProductsValueModel
+    ),
+  };
+
+  const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
+
   const financialFundsId = req.body.onefinancialFunds;
-  const financialFunds = await FinancialFundsModel.findById(financialFundsId);
-  const ActiveProductsValue = db.model(
-    "ActiveProductsValue",
-    ActiveProductsValueModel
-  );
-
+  const financialFunds = await models.FinancialFunds.findById(financialFundsId);
   const orderId = req.body.orderId;
-  const orders = await orderModelO.findById(orderId);
+  const orders = await models.Order.findById(orderId);
 
-  function padZero(value) {
-    return value < 10 ? `0${value}` : value;
-  }
+  // Helper function to pad zero
+  const padZero = (value) => (value < 10 ? `0${value}` : value);
 
-  let data = Date.now();
-  let timeIsoString = new Date(data);
-  let date = padZero(timeIsoString.getDate());
-  let month = padZero(timeIsoString.getMonth() + 1);
-  let year = timeIsoString.getFullYear();
-  let hours = padZero(timeIsoString.getHours());
-  let minutes = padZero(timeIsoString.getMinutes());
-  let seconds = padZero(timeIsoString.getSeconds());
-  const formattedDate = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+  const currentDateTime = new Date();
+  const formattedDate = `${currentDateTime.getFullYear()}-${padZero(
+    currentDateTime.getMonth() + 1
+  )}-${padZero(currentDateTime.getDate())} ${padZero(
+    currentDateTime.getHours()
+  )}:${padZero(currentDateTime.getMinutes())}:${padZero(
+    currentDateTime.getSeconds()
+  )}`;
+
+  req.body.paidAt = formattedDate;
   req.body.employee = req.user._id;
+  const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
   try {
-    const order = await orderModel.create(req.body);
-    let bulkOption;
+    const order = await models.ReturnOrder.create(req.body);
 
-    bulkOption = req.body.cartItems.map((item) => {
-      const updateOperation = {
-        updateOne: {
-          filter: { _id: item._id },
-          update: {
-            $inc: {
-              quantity: +item.quantity,
-            },
+    const bulkUpdateOptions = req.body.cartItems.map((item) => ({
+      updateOne: {
+        filter: { _id: item._id },
+        update: {
+          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+        },
+      },
+    }));
+
+    await models.Product.bulkWrite(bulkUpdateOptions);
+    await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
+    const bulkUpdates = req.body.cartItems.map((item) => (
+      console.log(item),
+      {
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        update: {
+          $inc: {
+            "stocks.$.productQuantity": +item.quantity,
           },
         },
-      };
+      },
+    }));
 
-      updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
+    await models.Product.bulkWrite(bulkUpdates);
 
-      return updateOperation;
-    });
+    await Promise.all(
+      req.body.cartItems.map(async (item) => {
+        const product = await models.Product.findOne({ qr: item.qr });
+        if (product) {
+          const { currency: itemCurrency } = product;
+          const existingRecord = await models.ActiveProductsValue.findOne({
+            currency: itemCurrency,
+          });
 
-    await productModel.bulkWrite(bulkOption, {});
-    await orderModel.bulkWrite(bulkOption, {});
-    req.body.cartItems.map(async (item) => {
-      try {
-        const { currency: itemCurrency } = await productModel.findOne({
-          qr: item.qr,
-        });
-        const existingRecord = await ActiveProductsValue.findOne({
-          currency: itemCurrency,
-        });
-        let totalCount = 0;
-        let totalValue = 0;
+          const itemValue = item.buyingPrice * item.quantity;
 
-        const itemValue = item.buyingPrice * item.quantity;
-        totalValue += itemValue;
-        totalCount += item.quantity;
-
-        if (existingRecord) {
-          existingRecord.activeProductsCount += totalCount;
-          existingRecord.activeProductsValue += totalValue;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(
-            totalCount,
-            totalValue,
-            itemCurrency,
-            dbName
-          );
+          if (existingRecord) {
+            existingRecord.activeProductsCount += item.quantity;
+            existingRecord.activeProductsValue += itemValue;
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(
+              item.quantity,
+              itemValue,
+              itemCurrency,
+              dbName
+            );
+          }
         }
-      } catch (err) {
-        console.log("OrderServices 1190");
-        console.log(err.message);
-      }
-    });
+      })
+    );
 
     financialFunds.fundBalance -= req.body.priceExchangeRate;
     await financialFunds.save();
 
-    const timeIsoString1 = new Date().toISOString();
-    await ReportsFinancialFundsModel.create({
-      date: timeIsoString1,
+    await models.ReportsFinancialFunds.create({
+      date: currentDateTime.toISOString(),
       amount: req.body.totalOrderPrice,
       order: order._id,
       type: "refund-sales",
@@ -948,32 +948,36 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       financialFundRest: financialFunds.fundBalance,
       exchangeRate: req.body.priceExchangeRate,
     });
-    let test = [];
 
-    for (let i = 0; i < req.body.cartItems.length; i++) {
-      const incomingItem = req.body.cartItems[i];
-      //find qr for all arrays
-      const matchingIndex = orders.returnCartItem.findIndex(
-        (item) => item.qr === incomingItem.qr
-      );
+    const returnCartItemUpdates = req.body.cartItems
+      .map((incomingItem) => {
+        const matchingIndex = orders.returnCartItem.findIndex(
+          (item) => item.qr === incomingItem.qr
+        );
 
-      if (matchingIndex !== -1) {
-        const test1 = orders.returnCartItem[matchingIndex].quantity;
-        const t = test1 - incomingItem.quantity;
+        if (matchingIndex !== -1) {
+          const newQuantity =
+            orders.returnCartItem[matchingIndex].quantity -
+            incomingItem.quantity;
 
-        const updateOperation = {
-          updateOne: {
-            filter: { _id: orderId },
-            update: {
-              $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+          return {
+            updateOne: {
+              filter: { _id: orderId },
+              update: {
+                $set: {
+                  [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                },
+              },
             },
-          },
-        };
+          };
+        }
 
-        test.push(updateOperation);
-      }
-    }
-    await orderModelO.bulkWrite(test);
+        return null;
+      })
+      .filter(Boolean);
+
+    await models.Order.bulkWrite(returnCartItemUpdates);
+
     const history = createInvoiceHistory(
       dbName,
       orderId,
@@ -981,24 +985,18 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       req.user._id
     );
 
-    if (!movementCreated) {
-      for (let i = 0; i < req.body.cartItems.length; i++) {
-        const incomingItem = req.body.cartItems[i];
-        const { quantity } = await productModel.findOne({
-          qr: incomingItem.qr,
-        });
-        createProductMovement(
-          incomingItem._id,
-          quantity,
-          incomingItem.quantity,
-          "in",
-          "returnSales",
-          dbName
-        );
-        movementCreated = true;
-      }
-    }
-
+    await ReportsSalesModel.create({
+      customer: req.body.customarName,
+      orderId: order._id,
+      date: new Date().toISOString(),
+      fund: financialFundsId,
+      amount: req.body.totalOrderPrice,
+      cartItems: req.body.cartItems,
+      type: "refund-pos",
+      counter: nextCounterReports,
+      paymentType: "Single Fund",
+      employee: req.user._id,
+    });
     res.status(200).json({
       status: "success",
       message: "The product has been returned",
@@ -1007,80 +1005,73 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
+      const counterPrefix = req.body.counter.slice(0, 7);
+
       const nextCounter =
-        (await orderModel.countDocuments({
-          counter: new RegExp(`^${req.body.counter}-`),
+        (await models.ReturnOrder.countDocuments({
+          counter: new RegExp(`^${counterPrefix}-`),
         })) + 1;
 
+      console.log(nextCounter);
       req.body.counter = `${req.body.counter}-${nextCounter}`;
-      const order = await orderModel.create(req.body);
-      let bulkOption;
+      const order = await models.ReturnOrder.create(req.body);
 
-      bulkOption = req.body.cartItems.map((item) => {
-        const updateOperation = {
-          updateOne: {
-            filter: { _id: item._id },
-            update: {
-              $inc: {
-                quantity: +item.quantity,
-              },
+      const bulkUpdateOptions = req.body.cartItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item._id },
+          update: { $inc: { quantity: +item.quantity } },
+        },
+      }));
+
+      await models.Product.bulkWrite(bulkUpdateOptions);
+      await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
+      const bulkUpdates = req.body.cartItems.map((item) => (
+        console.log(item),
+        {
+        updateOne: {
+          filter: { qr: item.qr, "stocks.stockId": item.stockId },
+          update: {
+            $inc: {
+              "stocks.$.productQuantity": +item.quantity,
             },
           },
-        };
-
-        if (item.refundLocattion === "Damaged") {
-          updateOperation.updateOne.update.$inc.deactivateCount =
-            +item.quantity;
-        } else {
-          updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
-        }
-
-        return updateOperation;
-      });
-
-      await productModel.bulkWrite(bulkOption, {});
-      await orderModel.bulkWrite(bulkOption, {});
-
-      req.body.cartItems.map(async (item) => {
-        if (item.refundLocation !== "Damaged") {
-          try {
-            const { currency: itemCurrency } = await productModel.findOne({
-              qr: item.qr,
-            });
-            const existingRecord = await ActiveProductsValue.findOne({
+        },
+      }));
+  
+      await models.Product.bulkWrite(bulkUpdates);
+  
+      await Promise.all(
+        req.body.cartItems.map(async (item) => {
+          const product = await models.Product.findOne({ qr: item.qr });
+          if (product) {
+            const { currency: itemCurrency } = product;
+            const existingRecord = await models.ActiveProductsValue.findOne({
               currency: itemCurrency,
             });
-            let totalCount = 0;
-            let totalValue = 0;
 
             const itemValue = item.buyingPrice * item.quantity;
-            totalValue += itemValue;
-            totalCount += item.quantity;
+
             if (existingRecord) {
-              existingRecord.activeProductsCount += totalCount;
-              existingRecord.activeProductsValue += totalValue;
+              existingRecord.activeProductsCount += item.quantity;
+              existingRecord.activeProductsValue += itemValue;
               await existingRecord.save();
             } else {
               await createActiveProductsValue(
-                totalCount,
-                totalValue,
+                item.quantity,
+                itemValue,
                 itemCurrency,
                 dbName
               );
             }
-          } catch (err) {
-            console.log("OrderServices 1001");
-            console.log(err.message);
           }
-        }
-      });
+        })
+      );
 
       financialFunds.fundBalance -= req.body.priceExchangeRate;
       await financialFunds.save();
 
-      const timeIsoString1 = new Date().toISOString();
-      await ReportsFinancialFundsModel.create({
-        date: timeIsoString1,
+      await models.ReportsFinancialFunds.create({
+        date: currentDateTime.toISOString(),
         amount: req.body.totalOrderPrice,
         order: order._id,
         type: "refund-sales",
@@ -1089,57 +1080,53 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         exchangeRate: req.body.priceExchangeRate,
       });
 
-      let test = [];
+      const returnCartItemUpdates = req.body.cartItems
+        .map((incomingItem) => {
+          const matchingIndex = orders.returnCartItem.findIndex(
+            (item) => item.qr === incomingItem.qr
+          );
 
-      for (let i = 0; i < req.body.cartItems.length; i++) {
-        const incomingItem = req.body.cartItems[i];
-        //find qr for all arrays
-        const matchingIndex = orders.returnCartItem.findIndex(
-          (item) => item.qr === incomingItem.qr
-        );
+          if (matchingIndex !== -1) {
+            const newQuantity =
+              orders.returnCartItem[matchingIndex].quantity -
+              incomingItem.quantity;
 
-        if (matchingIndex !== -1) {
-          const test1 = orders.returnCartItem[matchingIndex].quantity;
-          const t = test1 - incomingItem.quantity;
-
-          const updateOperation = {
-            updateOne: {
-              filter: { _id: orderId },
-              update: {
-                $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+            return {
+              updateOne: {
+                filter: { _id: orderId },
+                update: {
+                  $set: {
+                    [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                  },
+                },
               },
-            },
-          };
+            };
+          }
 
-          test.push(updateOperation);
-        }
-      }
-      await orderModelO.bulkWrite(test);
+          return null;
+        })
+        .filter(Boolean);
+
+      await models.Order.bulkWrite(returnCartItemUpdates);
+
       const history = createInvoiceHistory(
         dbName,
         orderId,
         "return",
         req.user._id
       );
-
-      if (!movementCreated) {
-        for (let i = 0; i < req.body.cartItems.length; i++) {
-          const incomingItem = req.body.cartItems[i];
-          const { quantity } = await productModel.findOne({
-            qr: incomingItem.qr,
-          });
-          createProductMovement(
-            incomingItem._id,
-            quantity,
-            incomingItem.quantity,
-            "in",
-            "returnSales",
-            dbName
-          );
-          movementCreated = true;
-        }
-      }
-
+      await ReportsSalesModel.create({
+        customer: req.body.customarName,
+        orderId: order._id,
+        date: new Date().toISOString(),
+        fund: financialFundsId,
+        amount: req.body.totalOrderPrice,
+        cartItems: req.body.cartItems,
+        type: "refund-pos",
+        counter: nextCounterReports,
+        paymentType: "Single Fund",
+        employee: req.user._id,
+      });
       res.status(200).json({
         status: "success",
         message: "The product has been returned",
@@ -1801,4 +1788,312 @@ exports.createOrder = asyncHandler(async (req, res, next) => {
 //     data: order,
 //     history,
 //   });
+// });
+
+// @desc put Return
+// @route PUT /api/return
+// @access private
+// exports.returnOrder = asyncHandler(async (req, res, next) => {
+//   const dbName = req.query.databaseName;
+//   const db = mongoose.connection.useDb(dbName);
+//   db.model("Employee", emoloyeeShcema);
+//   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+//   const productModel = db.model("Product", productSchema);
+//   const orderModel = db.model("returnOrder", returnOrderSchema);
+//   const ReportsFinancialFundsModel = db.model(
+//     "ReportsFinancialFunds",
+//     reportsFinancialFundsSchema
+//   );
+//   const orderModelO = db.model("Orders", orderSchema);
+
+//   let movementCreated = false;
+//   const financialFundsId = req.body.onefinancialFunds;
+//   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
+//   const ActiveProductsValue = db.model(
+//     "ActiveProductsValue",
+//     ActiveProductsValueModel
+//   );
+
+//   const orderId = req.body.orderId;
+//   const orders = await orderModelO.findById(orderId);
+
+//   function padZero(value) {
+//     return value < 10 ? `0${value}` : value;
+//   }
+
+//   let data = Date.now();
+//   let timeIsoString = new Date(data);
+//   let date = padZero(timeIsoString.getDate());
+//   let month = padZero(timeIsoString.getMonth() + 1);
+//   let year = timeIsoString.getFullYear();
+//   let hours = padZero(timeIsoString.getHours());
+//   let minutes = padZero(timeIsoString.getMinutes());
+//   let seconds = padZero(timeIsoString.getSeconds());
+//   const formattedDate = `${year}-${month}-${date} ${hours}:${minutes}:${seconds}`;
+//   req.body.employee = req.user._id;
+//   try {
+//     const order = await orderModel.create(req.body);
+//     let bulkOption;
+
+//     bulkOption = req.body.cartItems.map((item) => {
+//       const updateOperation = {
+//         updateOne: {
+//           filter: { _id: item._id },
+//           update: {
+//             $inc: {
+//               quantity: +item.quantity,
+//             },
+//           },
+//         },
+//       };
+
+//       updateOperation.updateOne.update.$inc.activeCount = +item.quantity;
+
+//       return updateOperation;
+//     });
+
+//     await productModel.bulkWrite(bulkOption, {});
+//     await orderModel.bulkWrite(bulkOption, {});
+//     req.body.cartItems.map(async (item) => {
+//       try {
+//         const { currency: itemCurrency } = await productModel.findOne({
+//           qr: item.qr,
+//         });
+//         const existingRecord = await ActiveProductsValue.findOne({
+//           currency: itemCurrency,
+//         });
+//         let totalCount = 0;
+//         let totalValue = 0;
+
+//         const itemValue = item.buyingPrice * item.quantity;
+//         totalValue += itemValue;
+//         totalCount += item.quantity;
+
+//         if (existingRecord) {
+//           existingRecord.activeProductsCount += totalCount;
+//           existingRecord.activeProductsValue += totalValue;
+//           await existingRecord.save();
+//         } else {
+//           await createActiveProductsValue(
+//             totalCount,
+//             totalValue,
+//             itemCurrency,
+//             dbName
+//           );
+//         }
+//       } catch (err) {
+//         console.log("OrderServices 1190");
+//         console.log(err.message);
+//       }
+//     });
+
+//     financialFunds.fundBalance -= req.body.priceExchangeRate;
+//     await financialFunds.save();
+
+//     const timeIsoString1 = new Date().toISOString();
+//     await ReportsFinancialFundsModel.create({
+//       date: timeIsoString1,
+//       amount: req.body.totalOrderPrice,
+//       order: order._id,
+//       type: "refund-sales",
+//       financialFundId: financialFundsId,
+//       financialFundRest: financialFunds.fundBalance,
+//       exchangeRate: req.body.priceExchangeRate,
+//     });
+//     let test = [];
+
+//     for (let i = 0; i < req.body.cartItems.length; i++) {
+//       const incomingItem = req.body.cartItems[i];
+//       //find qr for all arrays
+//       const matchingIndex = orders.returnCartItem.findIndex(
+//         (item) => item.qr === incomingItem.qr
+//       );
+
+//       if (matchingIndex !== -1) {
+//         const test1 = orders.returnCartItem[matchingIndex].quantity;
+//         const t = test1 - incomingItem.quantity;
+
+//         const updateOperation = {
+//           updateOne: {
+//             filter: { _id: orderId },
+//             update: {
+//               $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+//             },
+//           },
+//         };
+
+//         test.push(updateOperation);
+//       }
+//     }
+//     await orderModelO.bulkWrite(test);
+//     const history = createInvoiceHistory(
+//       dbName,
+//       orderId,
+//       "return",
+//       req.user._id
+//     );
+
+//     if (!movementCreated) {
+//       for (let i = 0; i < req.body.cartItems.length; i++) {
+//         const incomingItem = req.body.cartItems[i];
+//         const prodcuts = await productModel.findOne({
+//           qr: incomingItem.qr,
+//         });
+//         console.log(incomingItem);
+//         createProductMovement(
+//           incomingItem._id,
+//           prodcuts.quantity,
+//           incomingItem.quantity,
+//           "in",
+//           "returnSales",
+//           dbName
+//         );
+//         movementCreated = true;
+//       }
+//     }
+
+//     res.status(200).json({
+//       status: "success",
+//       message: "The product has been returned",
+//       data: order,
+//       history,
+//     });
+//   } catch (error) {
+//     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
+//       const nextCounter =
+//         (await orderModel.countDocuments({
+//           counter: new RegExp(`^${req.body.counter}-`),
+//         })) + 1;
+
+//       req.body.counter = `${req.body.counter}-${nextCounter}`;
+//       const order = await orderModel.create(req.body);
+//       let bulkOption;
+
+//       bulkOption = req.body.cartItems.map((item) => {
+//         const updateOperation = {
+//           updateOne: {
+//             filter: { _id: item._id },
+//             update: {
+//               $inc: {
+//                 quantity: +item.quantity,
+//               },
+//             },
+//           },
+//         };
+//         return updateOperation;
+//       });
+
+//       await productModel.bulkWrite(bulkOption, {});
+//       await orderModel.bulkWrite(bulkOption, {});
+
+//       req.body.cartItems.map(async (item) => {
+//         try {
+//           const { currency: itemCurrency } = await productModel.findOne({
+//             qr: item.qr,
+//           });
+//           const existingRecord = await ActiveProductsValue.findOne({
+//             currency: itemCurrency,
+//           });
+//           let totalCount = 0;
+//           let totalValue = 0;
+
+//           const itemValue = item.buyingPrice * item.quantity;
+//           totalValue += itemValue;
+//           totalCount += item.quantity;
+//           if (existingRecord) {
+//             existingRecord.activeProductsCount += totalCount;
+//             existingRecord.activeProductsValue += totalValue;
+//             await existingRecord.save();
+//           } else {
+//             await createActiveProductsValue(
+//               totalCount,
+//               totalValue,
+//               itemCurrency,
+//               dbName
+//             );
+//           }
+//         } catch (err) {
+//           console.log("OrderServices 1001");
+//           console.log(err.message);
+//         }
+//       });
+
+//       financialFunds.fundBalance -= req.body.priceExchangeRate;
+//       await financialFunds.save();
+
+//       const timeIsoString1 = new Date().toISOString();
+//       await ReportsFinancialFundsModel.create({
+//         date: timeIsoString1,
+//         amount: req.body.totalOrderPrice,
+//         order: order._id,
+//         type: "refund-sales",
+//         financialFundId: financialFundsId,
+//         financialFundRest: financialFunds.fundBalance,
+//         exchangeRate: req.body.priceExchangeRate,
+//       });
+
+//       let test = [];
+
+//       for (let i = 0; i < req.body.cartItems.length; i++) {
+//         const incomingItem = req.body.cartItems[i];
+//         //find qr for all arrays
+//         const matchingIndex = orders.returnCartItem.findIndex(
+//           (item) => item.qr === incomingItem.qr
+//         );
+
+//         if (matchingIndex !== -1) {
+//           const test1 = orders.returnCartItem[matchingIndex].quantity;
+//           const t = test1 - incomingItem.quantity;
+
+//           const updateOperation = {
+//             updateOne: {
+//               filter: { _id: orderId },
+//               update: {
+//                 $set: { [`returnCartItem.${matchingIndex}.quantity`]: t },
+//               },
+//             },
+//           };
+
+//           test.push(updateOperation);
+//         }
+//       }
+//       await orderModelO.bulkWrite(test);
+//       const history = createInvoiceHistory(
+//         dbName,
+//         orderId,
+//         "return",
+//         req.user._id
+//       );
+
+//       if (!movementCreated) {
+//         for (let i = 0; i < req.body.cartItems.length; i++) {
+//           const incomingItem = req.body.cartItems[i];
+//           const product = await productModel.findOne({
+//             qr: incomingItem.qr,
+//           });
+//           console.log(product)
+
+//           createProductMovement(
+//             incomingItem._id,
+//             product.quantity,
+//             incomingItem.quantity,
+//             "in",
+//             "returnSales",
+//             dbName
+//           );
+//           movementCreated = true;
+//         }
+//       }
+
+//       res.status(200).json({
+//         status: "success",
+//         message: "The product has been returned",
+//         data: order,
+//         history,
+//       });
+//     } else {
+//       // Other errors, pass them to the error handler middleware
+//       next(error);
+//     }
+//   }
 // });
