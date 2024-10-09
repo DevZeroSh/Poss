@@ -74,6 +74,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const seconds = padZero(dateOb.getSeconds());
     return `${hours}:${minutes}:${seconds}`;
   };
+  const formatteTime = time();
   const {
     suppliersId,
     invoicesItems,
@@ -122,7 +123,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const newInvoiceData = {
       employee: req.user._id,
       invoicesItems: invoiceItems,
-      date: date + " " + time || formattedDate,
+      date: date + " " + formatteTime || formattedDate,
       suppliersId,
       supplierName,
       supplierPhone,
@@ -143,7 +144,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     };
     newPurchaseInvoice = await PurchaseInvoicesModel.create(newInvoiceData);
     const reports = await ReportsFinancialFundsModel.create({
-      date: date + " " + time || formattedDate,
+      date: date + " " + formatteTime || formattedDate,
       invoice: newPurchaseInvoice._id,
       amount: fundPricePurchaseInvocie,
       type: "purchase",
@@ -157,7 +158,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       paymentMainCurrency: totalPurchasePriceMainCurrency,
       financialFunds: financialFund.fundName,
       financialFundsCurrencyCode: req.body.invoiceFinancialFundCurrencyCode,
-      date: date + " " + time || formattedDate,
+      date: date + " " + formatteTime || formattedDate,
     });
     newPurchaseInvoice.reportsBalanceId = reports.id;
     await newPurchaseInvoice.save();
@@ -170,7 +171,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       totalMainCurrency: totalPurchasePriceMainCurrency,
       exchangeRate: financialFund.fundCurrency.exchangeRate,
       currencyCode: financialFund.fundCurrency.currencyCode,
-      date: date + " " + time || formattedDate,
+      date: date + " " + formatteTime || formattedDate,
       invoiceNumber: invoiceNumber,
       counter: nextCounterPayment,
     });
@@ -201,7 +202,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     }
     const newInvoiceData = {
       employee: req.user._id,
-      date: date + " " + time || formattedDate,
+      date: date + " " + formatteTime || formattedDate,
       invoicesItems: invoiceItems,
       suppliersId,
       supplierName,
@@ -333,7 +334,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   });
   await createPaymentHistory(
     "invoice",
-    date + " " + time || formattedDate,
+    date + " " + formatteTime || formattedDate,
     totalPurchasePriceMainCurrency,
     supplier.TotalUnpaid,
     "supplier",
@@ -344,7 +345,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
   if (paid === "paid") {
     await createPaymentHistory(
       "payment",
-      date + " " + time || formattedDate,
+      date + " " + formatteTime || formattedDate,
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
@@ -491,7 +492,10 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
   const SupplierModel = db.model("Supplier", supplierSchema);
   const paymentModel = db.model("Payment", PaymentSchema);
   const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
-
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
   const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
   const { id } = req.params;
   const purchase = await PurchaseInvoicesModel.findById(id);
@@ -733,6 +737,35 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       invoiceNumber,
       dbName
     );
+
+    invoicesItems.map(async (item) => {
+      const product = await productModel.findOne({ qr: item.qr });
+      if (product && product.type !== "Service") {
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: product.currency._id,
+        });
+        if (existingRecord) {
+          existingRecord.activeProductsCount +=
+            item.quantity - item.quantityBefor;
+          existingRecord.activeProductsValue +=
+            item.buyingpriceOringal * item.quantity -
+            item.buyingpriceOringalBefor * item.quantityBefor;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(0, 0, product.currency._id, dbName);
+        }
+
+        // Create product movement for each item
+        // createProductMovement(
+        //   product._id,
+        //   product.quantity,
+        //   item.quantity,
+        //   "in",
+        //   "purchase",
+        //   dbName
+        // );
+      }
+    });
 
     if (paid === "paid") {
       await createPaymentHistory(
