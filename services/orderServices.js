@@ -595,15 +595,10 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
 
         if (existingRecord) {
           console.log(item);
-          if (operationType === "increment") {
-            existingRecord.activeProductsCount += item.quantity;
-            existingRecord.activeProductsValue +=
-              product.buyingprice * item.quantity;
-          } else if (operationType === "decrement") {
-            existingRecord.activeProductsCount -= item.quantity;
-            existingRecord.activeProductsValue -=
-              product.buyingprice * item.quantity;
-          }
+          existingRecord.activeProductsCount += item.quantity;
+          existingRecord.activeProductsValue +=
+            product.buyingprice * item.quantity;
+
           await existingRecord.save();
         } else {
           await createActiveProductsValue(0, 0, product.currency._id, dbName);
@@ -894,18 +889,21 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
     await models.Product.bulkWrite(bulkUpdateOptions);
     await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
-    const bulkUpdates = req.body.cartItems.map((item) => (
-      console.log(item),
-      {
-      updateOne: {
-        filter: { qr: item.qr, "stocks.stockId": item.stockId },
-        update: {
-          $inc: {
-            "stocks.$.productQuantity": +item.quantity,
+    const bulkUpdates = req.body.cartItems.map(
+      (item) => (
+        console.log(item),
+        {
+          updateOne: {
+            filter: { qr: item.qr, "stocks.stockId": item.stockId },
+            update: {
+              $inc: {
+                "stocks.$.productQuantity": +item.quantity,
+              },
+            },
           },
-        },
-      },
-    }));
+        }
+      )
+    );
 
     await models.Product.bulkWrite(bulkUpdates);
 
@@ -1025,21 +1023,24 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
       await models.Product.bulkWrite(bulkUpdateOptions);
       await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
-      const bulkUpdates = req.body.cartItems.map((item) => (
-        console.log(item),
-        {
-        updateOne: {
-          filter: { qr: item.qr, "stocks.stockId": item.stockId },
-          update: {
-            $inc: {
-              "stocks.$.productQuantity": +item.quantity,
+      const bulkUpdates = req.body.cartItems.map(
+        (item) => (
+          console.log(item),
+          {
+            updateOne: {
+              filter: { qr: item.qr, "stocks.stockId": item.stockId },
+              update: {
+                $inc: {
+                  "stocks.$.productQuantity": +item.quantity,
+                },
+              },
             },
-          },
-        },
-      }));
-  
+          }
+        )
+      );
+
       await models.Product.bulkWrite(bulkUpdates);
-  
+
       await Promise.all(
         req.body.cartItems.map(async (item) => {
           const product = await models.Product.findOne({ qr: item.qr });
@@ -1198,7 +1199,11 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
   db.model("Employee", emoloyeeShcema);
   const productModel = db.model("Product", productSchema);
   const customersModel = db.model("Customar", customarSchema);
-
+  const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
   const padZero = (value) => (value < 10 ? `0${value}` : value);
 
   const currentDateTime = new Date();
@@ -1233,6 +1238,22 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
     return next(new ApiError("Bulk update failed" + error, 500));
   }
 
+  canceled.cartItems.map(async (item) => {
+    const product = await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      const existingRecord = await ActiveProductsValue.findOne({
+        currency: product.currency._id,
+      });
+      if (existingRecord) {
+        existingRecord.activeProductsCount += item.quantity;
+        existingRecord.activeProductsValue += item.buyingPrice * item.quantity;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(0, 0, product.currency._id, dbName);
+      }
+    }
+  });
+
   let total = 0;
   for (let index = 0; index < canceled.payments.length; index++) {
     const fund = await FinancialFundsModel.findOneAndUpdate(
@@ -1243,10 +1264,12 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
     );
     total += canceled.payments[index].paymentMainCurrency;
   }
-  console.log(total);
-
+  await PaymentHistoryModel.deleteMany({
+    invoiceNumber: canceled.counter,
+  });
   await customersModel.findByIdAndUpdate(canceled.customarId, {
     TotalUnpaid: -total,
+    total: -total,
   });
   const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
   res.status(200).json({
