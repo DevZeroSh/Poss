@@ -228,20 +228,15 @@ exports.importDevice = asyncHandler(async (req, res, next) => {
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
 
   const { buffer } = req.file;
-
   let csvData;
-  if (
-    req.file.originalname.endsWith(".csv") ||
-    req.file.mimetype === "text/csv"
-  ) {
-    // Use csvtojson to convert CSV buffer to JSON array
+
+  // Determine file type and convert to JSON array
+  if (req.file.originalname.endsWith(".csv") || req.file.mimetype === "text/csv") {
     csvData = await csvtojson().fromString(buffer.toString());
   } else if (
     req.file.originalname.endsWith(".xlsx") ||
-    req.file.mimetype ===
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    req.file.mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   ) {
-    // Use xlsx library to convert XLSX buffer to JSON array
     const workbook = xlsx.read(buffer, { type: "buffer" });
     const sheet_name_list = workbook.SheetNames;
     csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
@@ -250,55 +245,62 @@ exports.importDevice = asyncHandler(async (req, res, next) => {
   }
 
   try {
-    const csvDataWithUsers = await Promise.all(
-      csvData.map(async (client, index) => {
-        const user = await manitUserModel.findOne({
-          userPhone: client.userPhone,
+    // Fetch all users in a single query based on unique userPhone numbers from csvData
+    const userPhones = [...new Set(csvData.map((client) => client.userPhone))];
+    const users = await manitUserModel.find({ userPhone: { $in: userPhones } });
+
+    // Create a map of userPhone to userId
+    const userMap = users.reduce((acc, user) => {
+      acc[user.userPhone] = user._id.toString();
+      return acc;
+    }, {});
+
+    // Prepare device and maintenance case data
+    const devicesToInsert = [];
+    const casesToInsert = [];
+
+    csvData.forEach((client) => {
+      const userId = userMap[client.userPhone];
+      if (userId) {
+        client.userId = userId;
+        devicesToInsert.push(client); // Collect device data
+
+        casesToInsert.push({
+          userId,
+          admin: client.admin,
+          userNotes: client.userNotes,
+          deviceProblem: client.deviceProblem,
+          deviceStatus: client.deviceStatus,
+          employeeDesc: client.employeeDesc,
+          expectedAmount: client.expectedAmount,
+          paymentStatus: "unpaid",
+          deviceReceptionDate: client.date,
+          manitencesStatus: client.manitencesStatus,
+          problemType: client.problemType,
+          counter: client.counter,
+          caseCounter: client.counter,
         });
-        client.userId = user ? user._id.toString() : null;
-        client.counter = index + 1;
+      }
+    });
 
-        if (client.userId) {
-          // Insert device first
-          const createdDevice = await deviceModel.create(client);
+    // Insert devices in bulk
+    const createdDevices = await deviceModel.insertMany(devicesToInsert);
 
-          // Create associated maintenance case
-          const createdCase = await manitencesCaseModel.create({
-            userId: client.userId,
-            deviceId: createdDevice._id,
-            admin: client.admin,
-            userNotes: client.userNotes,
-            deviceProblem: client.deviceProblem,
-            deviceStatus: client.deviceStatus,
-            employeeDesc: client.employeeDesc,
-            expectedAmount: client.expectedAmount,
-            paymentStatus: "unpaid",
-            deviceReceptionDate: client.date,
-            manitencesStatus: client.manitencesStatus,
-            problemType: client.problemType,
-            counter: Date.now(),
-            caseCounter: index, // Increment case counter
-          });
-        }
+    // Link each maintenance case with its respective device
+    createdDevices.forEach((device, index) => {
+      casesToInsert[index].deviceId = device._id;
+    });
 
-        return client; // Return the modified client with userId and possibly maintenance case
-      })
-    );
-
-    // Filter out clients that didn't have a userId and therefore weren't processed
-    const validData = csvDataWithUsers.filter((client) => client.userId);
-
-    // Filter out clients without a userId
+    // Insert maintenance cases in bulk
+    await manitencesCaseModel.insertMany(casesToInsert);
 
     res.status(200).json({
       status: "success",
-      message: `${validData.length} devices and associated maintenance cases created successfully.`,
-      data: validData,
+      message: `${createdDevices.length} devices and associated maintenance cases created successfully.`,
+      data: createdDevices,
     });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ error: "An error occurred while importing devices." });
+    res.status(500).json({ error: "An error occurred while importing devices." });
   }
 });
