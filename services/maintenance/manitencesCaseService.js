@@ -45,7 +45,10 @@ exports.getManitenaceCase = asyncHandler(async (req, res, next) => {
     );
     const users = await manitUserModel.find(
       {
-        $or: [{ userName: { $regex: req.query.keyword, $options: "i" } }],
+        $or: [
+          { userName: { $regex: req.query.keyword, $options: "i" } },
+          { userPhone: { $regex: req.query.keyword, $options: "i" } },
+        ],
       },
       "_id"
     );
