@@ -95,6 +95,13 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
       financialFunds.save();
     }
   }
+  const history = createInvoiceHistory(
+    dbName,
+    expense._id,
+    "create",
+    req.user._id,
+    formattedDate
+  );
   res.status(200).json({ status: "success", data: expense });
 });
 
@@ -159,13 +166,9 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 // @route Put /api/expenses/:id
 // @access Private
 exports.updateExpense = asyncHandler(async (req, res, next) => {
-  const { id } = req.params;
-
-  const fundId = req.body.expenseFinancialFund;
-
   const dbName = req.query.databaseName;
-
   const db = mongoose.connection.useDb(dbName);
+
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const expensesModel = db.model("Expenses", expensesSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -173,48 +176,54 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
     reportsFinancialFundsSchema
   );
 
-  // Find the financial fund by ID
-  const financialFund = await FinancialFundsModel.findByIdAndUpdate(fundId);
-  if (!financialFund) {
-    return next(new ApiError(`Financial fund not found`, 404));
-  }
-  req.body.expenseFinancialFund = financialFund.fundName;
+  const { id } = req.params;
 
-  //const uploadedFiles = req.files.map((file) => `${file.filename}`);
-  const expense = await expensesModel.findByIdAndUpdate(
-    { _id: id },
-    {
-      paid: req.body.paid,
-      expenseFinancialFund: req.body.expenseFinancialFund,
-    },
-    { new: true }
-  );
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
+
+  const expense = await expensesModel.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
   if (!expense) {
     return next(new ApiError(`No expense for this id ${req.params.id}`, 404));
   }
+  if (req.body.paidStatus === "paid") {
+    const financialFunds = await FinancialFundsModel.findById(
+      req.body.finincalFund
+    );
 
-  financialFund.fundBalance -= req.body.expenseTotalExchangeRate;
-  // Save the updated financial fund
-  await financialFund.save();
+    financialFunds.fundBalance -= req.body.invoiceCurrencyTotal;
 
-  //Start create a record in reports financial fund table
-  let operationDate = req.body.payDate;
-  let amount = req.body.expenseTotalExchangeRate;
-  let expenseId = id;
-  let type = "expense";
-  let financialFundId = fundId;
-  let financialFundRest = financialFund.fundBalance;
+    if (financialFunds) {
+      ReportsFinancialFundsModel.create({
+        date: formattedDate,
+        amount: req.body.invoiceCurrencyTotal,
+        exchangeAmount: req.body.MainCurrencyTotal,
+        expense: expense._id,
+        type: "expense",
+        financialFundId: financialFunds._id,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.currencyExchangeRate,
+      });
+      financialFunds.save();
+    }
+  }
 
-  await ReportsFinancialFundsModel.create({
-    date: operationDate,
-    amount: expense.expenseQuantityAfterKdv,
-    exchangeRate: amount,
-    expense: expenseId,
-    type: type,
-    financialFundId: financialFundId,
-    financialFundRest: financialFundRest,
-  });
-  //End create a record in reports financial fund table
-
+  const history = createInvoiceHistory(
+    dbName,
+    id,
+    "edit",
+    req.user._id,
+    formattedDate
+  );
   res.status(200).json({ status: "true", message: "Expense updated" });
 });
