@@ -28,8 +28,8 @@ mountRoutes(app);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const privateKeyPath = path.join(__dirname, "../pvt.pem");
-const certificatePath = path.join(__dirname, "../cert.pem");
+const privateKeyPath = path.join(__dirname, "../pvt.key");
+const certificatePath = path.join(__dirname, "../cert.crt");
 const privateKey = fs.readFileSync(privateKeyPath, "utf8");
 const certificate = fs.readFileSync(certificatePath, "utf8");
 
