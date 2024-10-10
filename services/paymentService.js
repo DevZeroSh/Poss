@@ -109,6 +109,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
       suppliersId: req.body.supplierId,
+      type: { $ne: "cancel" },
     });
 
     const bulkUpdateOperations = purchases.map((purchase) => {
@@ -174,6 +175,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const sales = await salesrModel.find({
       paid: "unpaid",
       customarId: req.body.customerId,
+      type: { $ne: "cancel" },
     });
     const bulkUpdateOperations = sales.map((sale) => {
       const paymentAmount = Math.min(
@@ -232,7 +234,10 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     );
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById(req.body.supplierId);
-    const purchase = await PurchaseInvoicesModel.findById(req.body.purchaseId);
+    const purchase = await PurchaseInvoicesModel.findById({
+      _id: req.body.purchaseId,
+      type: { $ne: "cancel" },
+    });
 
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -=
@@ -270,7 +275,10 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   } else if (req.body.taker === "sales") {
-    const sales = await salesrModel.findById(req.body.salesId);
+    const sales = await salesrModel.findById({
+      _id: req.body.salesId,
+      type: { $ne: "cancel" },
+    });
     const customer = await customerModel.findById(req.body.customerId);
     paymentText = "payment-cut";
     customer.TotalUnpaid -= req.body.totalMainCurrency;

@@ -1206,65 +1206,75 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
 
-  const canceled = await orderModel.findByIdAndUpdate(id, { type: "cancel" });
-  console.log(canceled);
-  const bulkProductCancel = canceled.cartItems.map((item) => ({
-    updateOne: {
-      filter: { qr: item.qr, "stocks.stockId": item.stockId },
-      update: {
-        $inc: {
-          quantity: +item.quantity,
-          activeCount: +item.quantity,
-          "stocks.$.productQuantity": +item.quantity,
+  const canceled = await orderModel.findByIdAndUpdate(id, {
+    type: "cancel",
+    totalRemainderMainCurrency: 0,
+    totalRemainder: 0,
+  });
+  if (canceled.payments.length <= 0 && canceled.type !== "cancel") {
+    const bulkProductCancel = canceled.cartItems.map((item) => ({
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        update: {
+          $inc: {
+            quantity: +item.quantity,
+            activeCount: +item.quantity,
+            "stocks.$.productQuantity": +item.quantity,
+          },
         },
       },
-    },
-  }));
-  try {
-    await productModel.bulkWrite(bulkProductCancel);
-  } catch (error) {
-    console.error("Error during bulk updates:", error);
-    return next(new ApiError("Bulk update failed" + error, 500));
-  }
-
-  canceled.cartItems.map(async (item) => {
-    const product = await productModel.findOne({ qr: item.qr });
-    if (product && product.type !== "Service") {
-      const existingRecord = await ActiveProductsValue.findOne({
-        currency: product.currency._id,
-      });
-      if (existingRecord) {
-        existingRecord.activeProductsCount += item.quantity;
-        existingRecord.activeProductsValue += item.buyingPrice * item.quantity;
-        await existingRecord.save();
-      } else {
-        await createActiveProductsValue(0, 0, product.currency._id, dbName);
-      }
+    }));
+    try {
+      await productModel.bulkWrite(bulkProductCancel);
+    } catch (error) {
+      console.error("Error during bulk updates:", error);
+      return next(new ApiError("Bulk update failed" + error, 500));
     }
-  });
 
-  let total = 0;
-  for (let index = 0; index < canceled.payments.length; index++) {
-    const fund = await FinancialFundsModel.findOneAndUpdate(
-      {
-        fundName: canceled.payments[index].financialFunds,
-      },
-      { $inc: { fundBalance: +canceled.payments[index].payment } }
+    canceled.cartItems.map(async (item) => {
+      const product = await productModel.findOne({ qr: item.qr });
+      if (product && product.type !== "Service") {
+        const existingRecord = await ActiveProductsValue.findOne({
+          currency: product.currency._id,
+        });
+        if (existingRecord) {
+          existingRecord.activeProductsCount += item.quantity;
+          existingRecord.activeProductsValue +=
+            item.buyingPrice * item.quantity;
+          await existingRecord.save();
+        } else {
+          await createActiveProductsValue(0, 0, product.currency._id, dbName);
+        }
+      }
+    });
+
+    let total = 0;
+    for (let index = 0; index < canceled.payments.length; index++) {
+      const fund = await FinancialFundsModel.findOneAndUpdate(
+        {
+          fundName: canceled.payments[index].financialFunds,
+        },
+        { $inc: { fundBalance: +canceled.payments[index].payment } }
+      );
+      total += canceled.payments[index].paymentMainCurrency;
+    }
+    await PaymentHistoryModel.deleteMany({
+      invoiceNumber: canceled.counter,
+    });
+    await customersModel.findByIdAndUpdate(canceled.customarId, {
+      TotalUnpaid: -total,
+      total: -total,
+    });
+    const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
+    res.status(200).json({
+      status: "true",
+      message: "Order Canceled successfully",
+    });
+  } else {
+    return next(
+      new ApiError("Have a Payment pless delete the Payment or Canceled ", 500)
     );
-    total += canceled.payments[index].paymentMainCurrency;
   }
-  await PaymentHistoryModel.deleteMany({
-    invoiceNumber: canceled.counter,
-  });
-  await customersModel.findByIdAndUpdate(canceled.customarId, {
-    TotalUnpaid: -total,
-    total: -total,
-  });
-  const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
-  res.status(200).json({
-    status: "true",
-    message: "Order Canceled successfully",
-  });
 });
 
 // @desc    Post Marge Salse invoice

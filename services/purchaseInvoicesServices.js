@@ -1159,6 +1159,8 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
       });
       const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
       purchaseInvoices.type = "cancel";
+      purchaseInvoices.totalRemainderMainCurrency = 0;
+      purchaseInvoices.totalRemainder = 0;
       await purchaseInvoices.save();
       res.status(200).json({ message: "cancel is success" });
     } catch (e) {
