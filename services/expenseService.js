@@ -78,6 +78,9 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
     );
+
+    financialFunds.fundBalance -= req.body.invoiceCurrencyTotal;
+
     if (financialFunds) {
       ReportsFinancialFundsModel.create({
         date: formattedDate,
@@ -89,6 +92,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
         financialFundRest: financialFunds.fundBalance,
         exchangeRate: req.body.currencyExchangeRate,
       });
+      financialFunds.save();
     }
   }
   res.status(200).json({ status: "success", data: expense });
