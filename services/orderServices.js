@@ -585,45 +585,34 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const updatedItems = req.body.cartItems;
 
   //change the items
-  const bulkUpdateActiveProducts = async (items, operationType) => {
-    const updates = items.map(async (item) => {
-      const product = await productModel.findOne({ qr: item.qr });
-      if (product && product.type !== "Service") {
-        const existingRecord = await ActiveProductsValue.findOne({
-          currency: product.currency._id,
-        });
-
-        if (existingRecord) {
-          console.log(item);
-          existingRecord.activeProductsCount += item.quantity;
-          existingRecord.activeProductsValue +=
-            product.buyingprice * item.quantity;
-
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(0, 0, product.currency._id, dbName);
-        }
-
-        // Create product movement
-        createProductMovement(
-          product._id,
-          product.quantity,
-          item.quantity,
-          operationType === "increment" ? "in" : "out",
-          operationType === "increment" ? "sales" : "purchase",
-          dbName
-        );
+  cartItems.map(async (item) => {
+    const product = await productModel.findOne({ qr: item.qr });
+    if (product && product.type !== "Service") {
+      const existingRecord = await ActiveProductsValue.findOne({
+        currency: product.currency._id,
+      });
+      if (existingRecord) {
+        existingRecord.activeProductsCount -=
+          item.quantity - item.quantityBefor;
+        existingRecord.activeProductsValue -=
+          item.buyingPrice * item.quantity -
+          item.buyingPriceBefor * item.quantityBefor;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(0, 0, product.currency._id, dbName);
       }
-    });
 
-    await Promise.all(updates); // Ensure all updates happen in parallel
-  };
-
-  // Bulk updates for original items
-  await bulkUpdateActiveProducts(originalItems, "increment");
-
-  // Bulk updates for updated items
-  await bulkUpdateActiveProducts(updatedItems, "decrement");
+      // Create product movement for each item
+      // createProductMovement(
+      //   product._id,
+      //   product.quantity,
+      //   item.quantity,
+      //   "in",
+      //   "purchase",
+      //   dbName
+      // );
+    }
+  });
 
   // Prepare bulk updates for products and stocks
   const bulkProductUpdatesOriginal = originalItems.map((item) => ({
