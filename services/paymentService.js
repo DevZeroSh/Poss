@@ -383,3 +383,18 @@ exports.getOnePayment = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ status: "success", data: payment });
 });
+
+exports.deletePayment = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const paymentModel = db.model("Payment", paymentSchma);
+  const { id } = req.params;
+
+  const payment = await paymentModel.findByIdAndDelete(id);
+
+  if (!payment) {
+    return next(new ApiError(`No Payment with this id ${id}`));
+  }
+
+  res.status(204).json({ message: "deleted" });
+});

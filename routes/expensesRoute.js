@@ -3,7 +3,7 @@ const express = require("express");
 const authService = require("../services/authService");
 const {
   createExpenses,
-  uploadFiles,
+  uploadFile,
   getExpenses,
   getExpense,
   deleteExpense,
@@ -13,7 +13,7 @@ const {
 const expensesRoute = express.Router();
 
 expensesRoute.use(authService.protect);
-expensesRoute.route("/").post(uploadFiles, createExpenses).get(getExpenses);
+expensesRoute.route("/").post(uploadFile, createExpenses).get(getExpenses);
 expensesRoute.route("/:id").get(getExpense).put(updateExpense);
 // .delete(authService.allowedTo("expenses"), deleteExpense)
 

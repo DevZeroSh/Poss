@@ -12,8 +12,7 @@ const { Search } = require("../utils/search");
 
 const multerStorage = multer.diskStorage({
   filename: function (req, file, callback) {
-    /*Specify the filename for the uploaded file*/
-    //get file extension
+    // Specify the filename for the uploaded file
     const originalname = file.originalname;
     const lastDotIndex = originalname.lastIndexOf(".");
     const fileExtension =
@@ -44,94 +43,55 @@ const upload = multer({
   },
 });
 
-exports.uploadFiles = upload.any();
+// For uploading a single file
+exports.uploadFile = upload.single("expenseFile"); // 'file' is the field name expected in the form
 
 // @desc Create expenses
 // @route Post /api/expenses
 exports.createExpenses = asyncHandler(async (req, res, next) => {
-  try {
-    const dbName = req.query.databaseName;
-    const db = mongoose.connection.useDb(dbName);
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
 
-    const expensesModel = db.model("Expenses", expensesSchema);
-    const FinancialFundsModel = db.model(
-      "FinancialFunds",
-      financialFundsSchema
-    );
-    const TaxModel = db.model("Tax", TaxSchema);
-    const ReportsFinancialFundsModel = db.model(
-      "ReportsFinancialFunds",
-      reportsFinancialFundsSchema
-    );
-
-    const uploadedFiles = req.files.map((file) => `${file.filename}`);
-
-    const taxId = req.body.expenseTax;
-    //find the tax value using taxId
-    const taxValue = await TaxModel.findById(taxId);
-    if (!taxValue) {
-      return next(new ApiError(`tax value not found`, 404));
-    }
-    req.body.expenseTax = taxValue.tax;
-
-    if (req.body.paid == "paid") {
-      const fundId = req.body.expenseFinancialFund;
-
-      // Find the financial fund by ID
-      const financialFund = await FinancialFundsModel.findById(fundId);
-      if (!financialFund) {
-        return next(new ApiError(`Financial fund not found`, 404));
-      }
-
-      req.body.expenseFinancialFund = financialFund.fundName;
-      // Decrease the fundBalance
-      financialFund.fundBalance -= req.body.priceExchangeRate;
-      // Save the updated financial fund
-      await financialFund.save();
-
-      const nextCounter = (await expensesModel.countDocuments()) + 1;
-      let expense = await expensesModel.create({
-        ...req.body,
-        counter: nextCounter,
-        expenseFile: uploadedFiles,
-      });
-
-      //Start create a record in reports financial fund table
-      let operationDate = req.body.expenseDate;
-      let expenseId = expense._id;
-      let type = "expense";
-      let financialFundId = fundId;
-      let financialFundRest = financialFund.fundBalance;
-      await ReportsFinancialFundsModel.create({
-        date: operationDate,
-        amount: req.body.expenseQuantityAfterKdv,
-        exchangeRate: req.body.expenseTotalExchangeRate,
-        expense: expenseId,
-        type: type,
-        financialFundId: financialFundId,
-        financialFundRest: financialFundRest,
-      });
-      //End create a record in reports financial fund table
-      res
-        .status(201)
-        .json({ status: "true", message: "Expense inserted", data: expense });
-    } else {
-      req.body.expenseFinancialFund = "Unpaid";
-      const nextCounter = (await expensesModel.countDocuments()) + 1;
-      let expense = await expensesModel.create({
-        ...req.body,
-        counter: nextCounter,
-        expenseFile: uploadedFiles,
-      });
-      res
-        .status(201)
-        .json({ status: "true", message: "Expense inserted", data: expense });
-    }
-  } catch (error) {
-    // If an error occurs, handle it and do not change anything
-    console.error("Error creating expense:", error);
-    return next(new ApiError("Error creating expense", 500));
+  const expensesModel = db.model("Expenses", expensesSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const TaxModel = db.model("Tax", TaxSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
   }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
+  const nextCounter = (await expensesModel.countDocuments()) + 1;
+  req.body.counter = nextCounter;
+  const expense = await expensesModel.create(req.body);
+
+  if (req.body.paidStatus === "paid") {
+    const financialFunds = await FinancialFundsModel.findById(
+      req.body.finincalFund
+    );
+    if (financialFunds) {
+      ReportsFinancialFundsModel.create({
+        date: formattedDate,
+        amount: req.body.invoiceCurrencyTotal,
+        exchangeAmount: req.body.MainCurrencyTotal,
+        expense: expense._id,
+        type: "expense",
+        financialFundId: financialFunds._id,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.currencyExchangeRate,
+      });
+    }
+  }
+  res.status(200).json({ status: "success", data: expense });
 });
 
 //Get All Expenses
@@ -145,7 +105,7 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
   // Search for product or qr
   const { totalPages, mongooseQuery } = await Search(expensesModel, req);
 
-  const expenses = await mongooseQuery.sort({expenseDate: -1 });
+  const expenses = await mongooseQuery.sort({ expenseDate: -1 });
   res.status(200).json({
     status: "true",
     Pages: totalPages,

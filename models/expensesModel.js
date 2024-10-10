@@ -1,38 +1,26 @@
 const mongoose = require("mongoose");
 
 const expensesSchema = new mongoose.Schema({
-  invoiceName: String,
-  counter: {
-    type: Number,
-    default: 1,
-  },
+  expenseName: String,
   expenseDate: Date,
-  expenseCategory: {
-    type: mongoose.Schema.ObjectId,
-    ref: "ExpensesCategory",
-  },
-  suppleirID:String,
-  suppleirName:String,
-  invoiceCurrencyId: String,
-  invoiceCurrencyCode: String,
-  expensePriceBeforeTax: Number,
-  expenseTax: String,
-  expensePriceAfterTax: Number,
-
-  expenseTotalMainCurrency: Number,
-  expenseTotalExchangeRate: Number,
-
-  expenseFinancialFund: String,
-  peymentDueDate: Date,
-
-  paid: {
-    type: String,
-    default: "unpaid",
-    enum: ["paid", "unpaid"],
-  },
-
-  expenseClarification: String,
+  expenseCategoryId: String,
+  expenseCategory: String,
+  supplierId: String,
+  supplierName: String,
+  invoiceCurrencyTotal: Number,
+  currencyCode: String,
+  currencyExchangeRate: String,
+  Tax: String,
+  TaxId: String,
+  MainCurrencyTotal: Number,
+  paymentStatus: { type: String, default: "Pending" },
+  paymentDate: Date,
+  finincalFund: String,
+  employeeID: Number,
+  employeeName: Number,
+  expenseClarification: Number,
   expenseFile: String,
+  counter: String,
 });
 
 const setFileURL = (doc) => {
