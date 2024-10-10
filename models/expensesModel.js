@@ -20,7 +20,7 @@ const expensesSchema = new mongoose.Schema({
   employeeName: Number,
   expenseClarification: Number,
   expenseFile: String,
-  counter: String,
+  counter: { type: String, default: 0, unique: true },
 });
 
 const setFileURL = (doc) => {
