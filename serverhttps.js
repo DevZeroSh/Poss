@@ -26,29 +26,16 @@ if (process.env.NODE_ENV === "development") {
 // Mount Routes
 mountRoutes(app);
 app.use(globalError);
-
 const PORT = process.env.PORT || 8080;
 
-// SSL files
-const SSLCertificateKeyFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/pvt.pem",
-  "utf8"
-);
-const SSLCertificateFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/fullchain.pem",
-  "utf8"
-);
-const SSLCertificateChainFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/SectigoRSADomainValidationSecureServerCA.pem",  // Chain file path
-  "utf8"
-);
+const privateKeyPath = path.join(__dirname, "../pv.key");
+const certificatePath = path.join(__dirname, "../certificata.crt");
+const caficatePath = path.join(__dirname, "../ca.crt");
+const privateKey = fs.readFileSync(privateKeyPath, "utf8");
+const certificate = fs.readFileSync(certificatePath, "utf8");
+const caficate = fs.readFileSync(caficatePath, "utf8");
 
-// Include the intermediate certificate in the `ca` field
-const credentials = { 
-  key: SSLCertificateKeyFile, 
-  cert: SSLCertificateFile, 
-  ca: SSLCertificateChainFile // Chain certificate
-};
+const credentials = { key: privateKey, cert: certificate, ca: caficate };
 
 const httpsServer = https.createServer(credentials, app);
 

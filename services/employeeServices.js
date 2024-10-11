@@ -65,7 +65,7 @@ exports.createEmployee = asyncHandler(async (req, res, next) => {
       if (req.body.userType && req.body.userType === "normal") {
         try {
           const createUserOnServer = await axios.post(
-            "http://localhost:4001/api/allusers/",
+            "https://api2smartinb.ai:4001/api/allusers/",
             {
               name: req.body.companyName,
               userEmail: req.body.email,
@@ -119,7 +119,7 @@ exports.createEmployeeInPos = asyncHandler(async (req, res, next) => {
       if (req.body.userType && req.body.userType === "normal") {
         try {
           const createUserOnServer = await axios.post(
-            "http://localhost:4001/api/allusers/",
+            "https://api2smartinb.ai:4001/api/allusers/",
             {
               userEmail: req.body.email,
 
