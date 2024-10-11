@@ -34,17 +34,14 @@ const SSLCertificateKeyFile = fs.readFileSync(
 const SSLCertificateFile = fs.readFileSync(
   "/etc/letsencrypt/live/api2.smartinb.ai/cert.crt"
 );
-const SSLCertificateChainFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/intermadate.crt"
-);
+
 
 // Read SSL files
 const privateKey = fs.readFileSync(SSLCertificateKeyFile, "utf8");
 const certificate = fs.readFileSync(SSLCertificateFile, "utf8");
-const intermediate = fs.readFileSync(SSLCertificateChainFile, "utf8");
 
 // Include the intermediate certificate in the `ca` field
-const credentials = { key: privateKey, cert: certificate, ca: intermediate };
+const credentials = { key: privateKey, cert: certificate };
 
 const httpsServer = https.createServer(credentials, app);
 
