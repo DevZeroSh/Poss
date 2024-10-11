@@ -28,12 +28,26 @@ mountRoutes(app);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const privateKeyPath = path.join(__dirname, "../pvt.key");
-const certificatePath = path.join(__dirname, "../cert.crt");
-const privateKey = fs.readFileSync(privateKeyPath, "utf8");
-const certificate = fs.readFileSync(certificatePath, "utf8");
+const SSLCertificateKeyFile = path.join(
+  __dirname,
+  "/etc/letsencrypt/live/api2.smartinb.ai/pvt.key"
+);
+const SSLCertificateFile = path.join(
+  __dirname,
+  "/etc/letsencrypt/live/api2.smartinb.ai/cert.crt"
+);
+const SSLCertificateChainFile = path.join(
+  __dirname,
+  "/etc/letsencrypt/live/api2.smartinb.ai/intermediate.crt"
+);
 
-const credentials = { key: privateKey, cert: certificate };
+// Read SSL files
+const privateKey = fs.readFileSync(SSLCertificateKeyFile, "utf8");
+const certificate = fs.readFileSync(SSLCertificateFile, "utf8");
+const intermediate = fs.readFileSync(SSLCertificateChainFile, "utf8");
+
+// Include the intermediate certificate in the `ca` field
+const credentials = { key: privateKey, cert: certificate, ca: intermediate };
 
 const httpsServer = https.createServer(credentials, app);
 
