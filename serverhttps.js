@@ -35,7 +35,7 @@ const SSLCertificateFile = fs.readFileSync(
   "/etc/letsencrypt/live/api2.smartinb.ai/cert.crt"
 );
 const SSLCertificateChainFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/intermediate.crt"
+  "/etc/letsencrypt/live/api2.smartinb.ai/intermadate.crt"
 );
 
 // Read SSL files
