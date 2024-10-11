@@ -80,7 +80,7 @@ paytrRouter.post("/paytr-token", async (req, res) => {
 
   try {
     const response = await axios.post(
-      "http://www.paytr.com/odeme/api/get-token",
+      "https://www.paytr.com/odeme/api/get-token",
       data,
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
