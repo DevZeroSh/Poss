@@ -35,7 +35,7 @@ const SSLCertificateKeyFile = fs.readFileSync(
   "utf8"
 );
 const SSLCertificateFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/cert.pem",
+  "/etc/letsencrypt/live/api2.smartinb.ai/fullchain.pem",
   "utf8"
 );
 const SSLCertificateChainFile = fs.readFileSync(
