@@ -9,6 +9,7 @@ const financialFundsSchema = require("../models/financialFundsModel");
 const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const { Search } = require("../utils/search");
+const { createInvoiceHistory } = require("./invoiceHistoryService");
 
 const multerStorage = multer.diskStorage({
   filename: function (req, file, callback) {
@@ -94,6 +95,9 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
       });
       financialFunds.save();
     }
+    req.body.totalRemainderMainCurrency = 0;
+    req.body.totalRemainder = 0;
+    expense.save();
   }
   const history = createInvoiceHistory(
     dbName,

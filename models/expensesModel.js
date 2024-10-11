@@ -20,6 +20,8 @@ const expensesSchema = new mongoose.Schema({
   employeeName: Number,
   expenseClarification: Number,
   expenseFile: String,
+  totalRemainderMainCurrency: { type: Number, default: 0 },
+  totalRemainder: { type: Number, default: 0 },
   counter: { type: String, default: 0, unique: true },
 });
 
