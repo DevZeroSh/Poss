@@ -29,19 +29,16 @@ app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
 const SSLCertificateKeyFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/pvt.key"
+  "/etc/letsencrypt/live/api2.smartinb.ai/pvt.pem",
+  "utf8"
 );
 const SSLCertificateFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/cert.crt"
+  "/etc/letsencrypt/live/api2.smartinb.ai/cert.pem",
+  "utf8"
 );
 
-
-// Read SSL files
-const privateKey = fs.readFileSync(SSLCertificateKeyFile, "utf8");
-const certificate = fs.readFileSync(SSLCertificateFile, "utf8");
-
 // Include the intermediate certificate in the `ca` field
-const credentials = { key: privateKey, cert: certificate };
+const credentials = { key: SSLCertificateKeyFile, cert: SSLCertificateFile };
 
 const httpsServer = https.createServer(credentials, app);
 
