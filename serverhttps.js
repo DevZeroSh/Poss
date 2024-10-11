@@ -39,7 +39,7 @@ const SSLCertificateFile = fs.readFileSync(
   "utf8"
 );
 const SSLCertificateChainFile = fs.readFileSync(
-  "/etc/letsencrypt/live/api2.smartinb.ai/chain.pem",  // Chain file path
+  "/etc/letsencrypt/live/api2.smartinb.ai/SectigoRSADomainValidationSecureServerCA.crt",  // Chain file path
   "utf8"
 );
 
