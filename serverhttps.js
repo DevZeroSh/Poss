@@ -28,16 +28,13 @@ mountRoutes(app);
 app.use(globalError);
 const PORT = process.env.PORT || 8080;
 
-const SSLCertificateKeyFile = path.join(
-  __dirname,
+const SSLCertificateKeyFile = fs.readFileSync(
   "/etc/letsencrypt/live/api2.smartinb.ai/pvt.key"
 );
-const SSLCertificateFile = path.join(
-  __dirname,
+const SSLCertificateFile = fs.readFileSync(
   "/etc/letsencrypt/live/api2.smartinb.ai/cert.crt"
 );
-const SSLCertificateChainFile = path.join(
-  __dirname,
+const SSLCertificateChainFile = fs.readFileSync(
   "/etc/letsencrypt/live/api2.smartinb.ai/intermediate.crt"
 );
 
