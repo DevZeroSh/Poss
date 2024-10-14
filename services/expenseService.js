@@ -44,9 +44,7 @@ const upload = multer({
   },
 });
 
-// For uploading a single file
-exports.uploadFile = upload.single("expenseFile"); // 'file' is the field name expected in the form
-
+exports.uploadFile = upload.single("expenseFile");
 // @desc Create expenses
 // @route Post /api/expenses
 exports.createExpenses = asyncHandler(async (req, res, next) => {
@@ -139,7 +137,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
-
+  const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
   const expense = await expensesModel.findById(id).populate({
     path: "expenseCategory",
     select: "expenseCategoryName expenseCategoryDescription _id",
@@ -147,9 +145,28 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 
   if (!expense) {
     return next(new ApiError(`There is no expense with this id ${id}`, 404));
-  } else {
-    res.status(200).json({ status: "true", data: expense });
   }
+
+  const pageSize = req.query.limit || 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await invoiceHistoryModel.countDocuments();
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const casehistory = await invoiceHistoryModel
+    .find({
+      invoiceId: casehistory._id,
+    })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    data: expense,
+    history: casehistory,
+  });
 });
 
 //Delete One Expense(Put it in archives)
