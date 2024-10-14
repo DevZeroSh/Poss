@@ -10,6 +10,7 @@ const {
   editPaymentHistory,
 } = require("./paymentHistoryService");
 const orderSchema = require("../models/orderModel");
+const xlsx = require("xlsx");
 
 //Create New Customar
 //@rol: Who has rol can create
@@ -67,7 +68,6 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   );
   customar.openingBalanceId = openingBalance._id;
 
-
   if (openingBalance.rest !== 0) {
     const nextCounterPromise = (await orderModel.countDocuments()) + 1;
 
@@ -88,8 +88,8 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
       counter: "op-" + nextCounterPromise,
       paid: "unpaid",
       openingBalanceId: customar.openingBalanceId,
-      exchangeRate:req.body.openingBalanceExchangeRate,
-      currencyCode:req.body.openingBalanceCurrencyCode,
+      exchangeRate: req.body.openingBalanceExchangeRate,
+      currencyCode: req.body.openingBalanceCurrencyCode,
       date,
     });
   }
@@ -237,5 +237,67 @@ exports.deleteCustomar = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`There is no customer with this id ${id}`, 404));
   } else {
     res.status(200).json({ status: "true", message: "Customer Deleted" });
+  }
+});
+
+// desc imports
+
+exports.importCustomer = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const customersModel = db.model("Customar", customarSchema);
+
+  // Check if file is provided
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+
+  const { buffer } = req.file;
+  let csvData;
+
+  // Handle CSV and XLSX file types
+  if (
+    req.file.originalname.endsWith(".csv") ||
+    req.file.mimetype === "text/csv"
+  ) {
+    csvData = await csvtojson().fromString(buffer.toString());
+  } else if (
+    req.file.originalname.endsWith(".xlsx") ||
+    req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheet_name_list = workbook.SheetNames;
+    csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+  } else {
+    return res.status(400).json({ error: "Unsupported file type" });
+  }
+
+  // Get current customer count to generate the next code
+  const currentCount = await customersModel.countDocuments();
+  let nextCode = 112001 + currentCount;
+
+  // Add code to each customer record
+  csvData = csvData.map((client) => {
+    client.code = nextCode++;
+    return client;
+  });
+
+  try {
+    // Insert customers into the database
+    const insertedCustomers = await customersModel.insertMany(csvData, {
+      ordered: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Customers imported successfully",
+      data: insertedCustomers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });

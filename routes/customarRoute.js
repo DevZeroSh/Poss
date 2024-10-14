@@ -8,8 +8,10 @@ const {
   updataCustomar,
   deleteCustomar,
   updateCustomerPassword,
+  importCustomer,
 } = require("../services/customarServices");
-
+const multer = require("multer");
+const upload = multer();
 router.route("/e-edit/:id").put(authService.ecommerceProtect, updataCustomar);
 router
   .route("/updatePassword")
@@ -24,5 +26,6 @@ router
   .put(authService.protect, updataCustomar)
   .delete(authService.protect, deleteCustomar);
 
+router.route("/import").post(upload.single("file"),importCustomer);
 
 module.exports = router;

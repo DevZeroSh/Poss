@@ -14,7 +14,7 @@ const customarSchema = new mongoose.Schema(
     email: {
       type: String,
       lowercase: true,
-      unique: [true, " Customar Name must be unique"],
+  
     },
     idNumber: {
       type: Number,
@@ -80,6 +80,7 @@ const customarSchema = new mongoose.Schema(
         lastName: String,
       },
     ],
+
     uesrid: String,
     parentAccountCode: {
       type: String,
