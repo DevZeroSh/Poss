@@ -139,7 +139,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       }
 
       remainingPayment -= paymentAmount;
-
+      tes1t.push(purchase._id.toString());
       return {
         updateOne: {
           filter: { _id: purchase._id },
@@ -152,6 +152,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await suppler.save();
     paymentText = "payment-sup";
     financialFunds.fundBalance -= req.body.total;
+
     await createPaymentHistory(
       "payment",
       formattedDate,
@@ -255,7 +256,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       purchase.totalRemainderMainCurrency = 0;
       purchase.totalRemainder = 0;
     }
-
+    tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
     financialFunds.fundBalance -= req.body.total;
 
@@ -297,7 +298,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     if (sales.totalRemainderMainCurrency <= 0) {
       sales.paid = "paid";
     }
-
+    tes1t.push(req.body.salesId);
     financialFunds.fundBalance += req.body.total;
     await sales.save();
     await createPaymentHistory(
@@ -314,12 +315,11 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     );
   }
 
-  console.log(tes1t);
   req.body.payid = tes1t;
   req.body.date = formattedDate;
   await financialFunds.save();
   const payment = await paymentModel.create(req.body);
-  payment.save();
+
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
     amount: req.body.total,
