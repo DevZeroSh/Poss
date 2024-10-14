@@ -388,6 +388,13 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const paymentModel = db.model("Payment", paymentSchma);
+  const supplerModel = db.model("Supplier", supplierSchema);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+  const salesrModel = db.model("Orders", orderSchema);
+  const customerModel = db.model("Customar", customarSchema);
   const { id } = req.params;
 
   const payment = await paymentModel.findByIdAndDelete(id);
@@ -396,5 +403,48 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No Payment with this id ${id}`));
   }
 
-  res.status(204).json({ message: "deleted" });
+  if (payment.payid.length > 0 && payment.supplierId) {
+    await supplerModel.findByIdAndUpdate(
+      payment.supplierId,
+      {
+        $inc: {
+          total: -payment.totalMainCurrency,
+          TotalUnpaid: -payment.totalMainCurrency,
+        },
+      },
+      { new: true }
+    );
+
+    payment.payid.map(async (id) => {
+      const purchase = await PurchaseInvoicesModel.findById(id);
+      purchase.totalRemainderMainCurrency =
+        purchase.totalPurchasePriceMainCurrency;
+      purchase.totalRemainder = purchase.totalPurchasePrice;
+      purchase.paid = "unpaid";
+      purchase.payments = [];
+      purchase.save();
+    });
+  } else if (payment.payid.length > 0 && payment.customerId) {
+    await customerModel.findByIdAndUpdate(
+      payment.customerId,
+      {
+        $inc: {
+          total: +payment.totalMainCurrency,
+          TotalUnpaid: +payment.totalMainCurrency,
+        },
+      },
+      { new: true }
+    );
+
+    payment.payid.map(async (id) => {
+      const sales = await salesrModel.findById(id);
+      sales.totalRemainderMainCurrency = sales.totalOrderPrice;
+      sales.totalRemainder = sales.totalPriceExchangeRate;
+      sales.paid = "unpaid";
+      sales.payments = [];
+      sales.save();
+    });
+  }
+
+  res.status(200).json({ message: "deleted", data: payment });
 });

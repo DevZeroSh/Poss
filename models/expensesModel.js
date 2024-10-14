@@ -8,6 +8,7 @@ const expensesSchema = new mongoose.Schema({
   supplierId: String,
   supplierName: String,
   invoiceCurrencyTotal: Number,
+  currencyId: String,
   currencyCode: String,
   currencyExchangeRate: String,
   Tax: String,
