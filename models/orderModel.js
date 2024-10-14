@@ -28,6 +28,7 @@ const orderSchema = new mongoose.Schema(
         exchangeRate: Number,
         stockId: String,
         stockName: String,
+        desc: String,
         _id: false,
       },
     ],

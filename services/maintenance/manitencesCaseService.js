@@ -264,6 +264,7 @@ exports.addProductInManitencesCase = asyncHandler(async (req, res, next) => {
     taxs: item?.taxsId || 0,
     price: Number(item.price) || 0,
     stockId: item.stockId,
+    desc: item.desc,
   }));
 
   const updatedDevice = await manitencesCaseModel.findByIdAndUpdate(
@@ -399,6 +400,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     name: item.name,
     quantity: item.quantity,
     stockId: item.stockId,
+    desc: item.desc,
   }));
 
   const financialFund = await FinancialFundsModel.findById(

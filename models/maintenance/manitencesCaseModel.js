@@ -39,6 +39,7 @@ const manitencesCase = new mongoose.Schema(
         price: Number,
         prodcutType: String,
         stockId: String,
+        desc: String,
         _id: false,
       },
     ],
