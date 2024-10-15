@@ -12,6 +12,7 @@ const TaxSchema = require("../models/taxModel");
 const currencySchema = require("../models/currencyModel");
 const orderSchema = require("../models/orderModel");
 const { createPaymentHistory } = require("./paymentHistoryService");
+const PaymentHistorySchema = require("../models/paymentHistoryModel");
 
 async function recalculateBalances(startDate, dbName) {
   const db = mongoose.connection.useDb(dbName);
@@ -73,6 +74,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   );
   const salesrModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+
   db.model("Tax", TaxSchema);
   db.model("Currency", currencySchema);
   db.model("Employee", emoloyeeShcema);
@@ -395,6 +397,8 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
   );
   const salesrModel = db.model("Orders", orderSchema);
   const customerModel = db.model("Customar", customarSchema);
+  const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
+
   const { id } = req.params;
 
   const payment = await paymentModel.findByIdAndDelete(id);
@@ -436,6 +440,9 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
+    const PaymentHistory = await PaymentHistoryModel.deleteMany({
+      idPaymet: payment.counter,
+    });
     payment.payid.map(async (id) => {
       const sales = await salesrModel.findById(id);
       sales.totalRemainderMainCurrency = sales.totalOrderPrice;

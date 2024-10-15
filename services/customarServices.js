@@ -178,10 +178,10 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
     const amountBalance2 =
       parseFloat(req.body.openingBalance) -
       parseFloat(req.body.openingBalanceBefor);
-    order.totalRemainderMainCurrency += amountBalance2;
-    order.priceExchangeRate += amountBalance2;
-    order.totalOrderPrice += amountBalance2;
-    order.totalRemainder += amountBalance2;
+    order.totalRemainderMainCurrency += amountBalance2 || 0;
+    order.priceExchangeRate += amountBalance2 || 0;
+    order.totalOrderPrice += amountBalance2 || 0;
+    order.totalRemainder += amountBalance2 || 0;
     await order.save();
     res.status(200).json({
       status: "true",
