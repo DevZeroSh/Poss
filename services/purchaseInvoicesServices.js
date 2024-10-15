@@ -8,11 +8,6 @@ const currencySchema = require("../models/currencyModel");
 const financialFundsSchema = require("../models/financialFundsModel");
 const productSchema = require("../models/productModel");
 
-const brandSchema = require("../models/brandModel");
-const categorySchema = require("../models/CategoryModel");
-const labelsSchema = require("../models/labelsModel");
-const variantSchema = require("../models/variantsModel");
-const UnitSchema = require("../models/UnitsModel");
 const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const returnPurchaseInvicesSchema = require("../models/returnPurchaseInvice");
