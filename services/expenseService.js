@@ -139,6 +139,8 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
   const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
+ 
+ 
   const expense = await expensesModel.findById(id).populate({
     path: "expenseCategory",
     select: "expenseCategoryName expenseCategoryDescription _id",
@@ -156,7 +158,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   const totalPages = Math.ceil(totalItems / pageSize);
   const casehistory = await invoiceHistoryModel
     .find({
-      invoiceId: casehistory._id,
+      invoiceId: id,
     })
     .sort({ createdAt: -1 })
     .skip(skip)
