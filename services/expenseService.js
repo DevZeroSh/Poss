@@ -177,20 +177,6 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   });
 });
 
-//Delete One Expense(Put it in archives)
-//@rol:who has rol can Delete the Expense
-// exports.deleteExpense = asyncHandler(async (req, res, next) => {
-//     const { id } = req.params;
-
-//     const expense = await expensesModel.findByIdAndDelete(id);
-
-//     if (!expense) {
-//         return next(new ApiError(`There is no expense with this id ${id}`, 404));
-//     } else {
-//         res.status(200).json({ status: "true", message: "Expense Deleted" });
-//     }
-// });
-
 //@desc Update specific expense
 // @route Put /api/expenses/:id
 // @access Private
