@@ -28,19 +28,20 @@ const expensesSchema = new mongoose.Schema({
 });
 
 const setFileURL = (doc) => {
-  if (doc.expenseFile) {
+  if (doc.expenseFile && doc.expenseFile.length > 0) {
     doc.expenseFile = `${process.env.BASE_URL}/expenses/${file}`;
   }
 };
 
 //When findOne, findAll and update
 expensesSchema.post("init", (doc) => {
-  setFileURL(doc);
+  if (doc?.expenseFile) {
+    setFileURL(doc?.expenseFile);
+  }
 });
 
 //When createOne
 expensesSchema.post("save", (doc) => {
-  console.log(doc)
   setFileURL(doc.expenseFile);
 });
 
