@@ -1262,8 +1262,10 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
       invoiceNumber: canceled.counter,
     });
     await customersModel.findByIdAndUpdate(canceled.customarId, {
-      TotalUnpaid: -total,
-      total: -total,
+      $inc: {
+        TotalUnpaid: -canceled.totalOrderPrice,
+        total: -canceled.totalOrderPrice,
+      },
     });
     const history = createInvoiceHistory(dbName, id, "cancel", req.user._id);
     res.status(200).json({
