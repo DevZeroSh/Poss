@@ -10,6 +10,7 @@ const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const { Search } = require("../utils/search");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
+const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 
 const multerStorage = multer.diskStorage({
   filename: function (req, file, callback) {
