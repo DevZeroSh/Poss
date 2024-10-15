@@ -761,10 +761,6 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
 
           existingRecord.activeProductsValue += currentValue;
 
-          // Log the updated values for debugging
-          console.log("buyingPriceOriginal:", buyingPriceOriginal);
-          console.log("buyingPriceOriginalBefor:", buyingPriceOriginalBefor);
-
           // Save the updated record
           await existingRecord.save();
         } else {
