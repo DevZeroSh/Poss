@@ -11,6 +11,7 @@ const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
 const { Search } = require("../utils/search");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
+const emoloyeeShcema = require("../models/employeeModel");
 
 const multerStorage = multer.diskStorage({
   destination: function (req, file, callback) {
@@ -145,6 +146,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
   const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
+  db.model("Employee", emoloyeeShcema);
 
   const expense = await expensesModel.findById(id).populate({
     path: "expenseCategory",
