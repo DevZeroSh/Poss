@@ -745,11 +745,27 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
           currency: product.currency._id,
         });
         if (existingRecord) {
-          existingRecord.activeProductsCount +=
-            item.quantity - item.quantityBefor;
-          existingRecord.activeProductsValue +=
-            item.buyingpriceOringal * item.quantity -
-            item.buyingpriceOringalBefor * item.quantityBefor;
+          // Ensure that quantities and prices are numbers, and provide defaults if undefined
+          const quantity = item.quantity || 0;
+          const quantityBefor = item.quantityBefor || 0;
+          const buyingPriceOriginal = item.buyingpriceOringal || 0;
+          const buyingPriceOriginalBefor = item.buyingpriceOringalBefor || 0;
+
+          // Update the active products count
+          existingRecord.activeProductsCount += quantity - quantityBefor;
+
+          // Update the active products value
+          const currentValue =
+            buyingPriceOriginal * quantity -
+            buyingPriceOriginalBefor * quantityBefor;
+
+          existingRecord.activeProductsValue += currentValue;
+
+          // Log the updated values for debugging
+          console.log("buyingPriceOriginal:", buyingPriceOriginal);
+          console.log("buyingPriceOriginalBefor:", buyingPriceOriginalBefor);
+
+          // Save the updated record
           await existingRecord.save();
         } else {
           await createActiveProductsValue(0, 0, product.currency._id, dbName);
