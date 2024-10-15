@@ -28,7 +28,7 @@ const expensesSchema = new mongoose.Schema({
 });
 
 const setFileURL = (doc) => {
-  if (doc.expenseFile && doc.expenseFile.length > 0) {
+  if (doc.expenseFile) {
     doc.expenseFile = `${process.env.BASE_URL}/expenses/${file}`;
   }
 };
@@ -40,7 +40,8 @@ expensesSchema.post("init", (doc) => {
 
 //When createOne
 expensesSchema.post("save", (doc) => {
-  setFileURL(doc);
+  console.log(doc)
+  setFileURL(doc.expenseFile);
 });
 
 module.exports = expensesSchema;

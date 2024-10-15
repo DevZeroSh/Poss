@@ -13,6 +13,10 @@ const { createInvoiceHistory } = require("./invoiceHistoryService");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 
 const multerStorage = multer.diskStorage({
+  destination: function (req, file, callback) {
+    // Specify the destination folder for storing the files
+    callback(null, "./uploads/expenses");
+  },
   filename: function (req, file, callback) {
     // Specify the filename for the uploaded file
     const originalname = file.originalname;
@@ -24,10 +28,6 @@ const multerStorage = multer.diskStorage({
     }.${fileExtension}`;
 
     callback(null, filename);
-  },
-  destination: function (req, file, callback) {
-    // Specify the destination folder for storing the files
-    callback(null, "./uploads/expenses");
   },
 });
 
@@ -46,8 +46,9 @@ const upload = multer({
 });
 
 exports.uploadFile = upload.single("expenseFile");
+
 // @desc Create expenses
-// @route Post /api/expenses
+// @route POST /api/expenses
 exports.createExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -59,6 +60,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -72,17 +74,18 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
   )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
   const nextCounter = (await expensesModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
+  req.body.expenseFile = req.file?.filename;
+
   const expense = await expensesModel.create(req.body);
 
   if (req.body.paidStatus === "paid") {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
     );
-
     financialFunds.fundBalance -= req.body.invoiceCurrencyTotal;
 
     if (financialFunds) {
-      ReportsFinancialFundsModel.create({
+      await ReportsFinancialFundsModel.create({
         date: formattedDate,
         amount: req.body.invoiceCurrencyTotal,
         exchangeAmount: req.body.MainCurrencyTotal,
@@ -92,19 +95,22 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
         financialFundRest: financialFunds.fundBalance,
         exchangeRate: req.body.currencyExchangeRate,
       });
-      financialFunds.save();
+      await financialFunds.save();
     }
+
     req.body.totalRemainderMainCurrency = 0;
     req.body.totalRemainder = 0;
-    expense.save();
+    await expense.save();
   }
-  const history = createInvoiceHistory(
+
+  await createInvoiceHistory(
     dbName,
     expense._id,
     "create",
     req.user._id,
     formattedDate
   );
+
   res.status(200).json({ status: "success", data: expense });
 });
 
@@ -139,8 +145,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   const expensesModel = db.model("Expenses", expensesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
   const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
- 
- 
+
   const expense = await expensesModel.findById(id).populate({
     path: "expenseCategory",
     select: "expenseCategoryName expenseCategoryDescription _id",
