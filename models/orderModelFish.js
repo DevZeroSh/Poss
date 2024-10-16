@@ -17,6 +17,7 @@ const orderFishSchema = new mongoose.Schema(
         },
         exchangeRate: Number,
         exchangeRateIcon: String,
+        _id: false,
       },
     ],
     onefinancialFunds: {

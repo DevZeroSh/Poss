@@ -97,6 +97,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
 
   let paymentText = "";
+  let payment;
   const nextCounter = (await paymentModel.countDocuments()) + 1;
   req.body.counter = nextCounter;
   const description = req.body.description;
@@ -107,7 +108,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const totalMainCurrency = req.body.totalMainCurrency;
     suppler.TotalUnpaid -= totalMainCurrency;
     let remainingPayment = totalMainCurrency;
-
+    payment = await paymentModel.create(req.body);
     const purchases = await PurchaseInvoicesModel.find({
       paid: "unpaid",
       suppliersId: req.body.supplierId,
@@ -131,6 +132,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             payment: paymentAmount / purchase.exchangeRate,
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
+            paymentID: payment._id,
             date: formattedDate,
           },
         },
@@ -174,7 +176,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     customer.TotalUnpaid -= totalMainCurrency;
 
     let remainingPayment = totalMainCurrency;
-
+    payment = await paymentModel.create(req.body);
     const sales = await salesrModel.find({
       paid: "unpaid",
       customarId: req.body.customerId,
@@ -200,6 +202,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             payment: parseFloat((paymentAmount / sale.exchangeRate).toFixed(2)),
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
+            paymentID: payment._id,
             date: formattedDate,
           },
         },
@@ -236,12 +239,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   } else if (req.body.taker === "purchase") {
-    const suppler = await supplerModel.findById(req.body.supplierId);
+    const suppler = await supplerModel.findById({ _id: req.body.supplierId });
     const purchase = await PurchaseInvoicesModel.findById({
       _id: req.body.purchaseId,
       type: { $ne: "cancel" },
     });
-
+    payment = await paymentModel.create(req.body);
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -=
       req.body.totalMainCurrency / req.body.invoiceExchangeRate;
@@ -250,6 +253,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
       paymentMainCurrency: req.body.totalMainCurrency,
       financialFunds: req.body.financialFundsName,
+      paymentID: payment._id,
       date: formattedDate,
     });
 
@@ -264,6 +268,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
     await purchase.save();
     await suppler.save();
+
     paymentText = "payment-sup";
     await createPaymentHistory(
       "payment",
@@ -282,6 +287,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       _id: req.body.salesId,
       type: { $ne: "cancel" },
     });
+    payment = await paymentModel.create(req.body);
     const customer = await customerModel.findById(req.body.customerId);
     paymentText = "payment-cut";
     customer.TotalUnpaid -= req.body.totalMainCurrency;
@@ -294,6 +300,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
       paymentMainCurrency: req.body.totalMainCurrency,
       financialFunds: req.body.financialFundsName,
+      paymentID: payment._id,
       date: formattedDate,
     });
 
@@ -316,12 +323,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   }
+  console.log(tes1t);
 
-  req.body.payid = tes1t;
   req.body.date = formattedDate;
   await financialFunds.save();
-  const payment = await paymentModel.create(req.body);
-
+  // const payment = await paymentModel.create(req.body);
+  payment.payid = tes1t;
+  await payment.save();
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
     amount: req.body.total,
@@ -419,14 +427,23 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
-    payment.payid.map(async (id) => {
-      const purchase = await PurchaseInvoicesModel.findById(id);
-      purchase.totalRemainderMainCurrency =
-        purchase.totalPurchasePriceMainCurrency;
-      purchase.totalRemainder = purchase.totalPurchasePrice;
-      purchase.paid = "unpaid";
-      purchase.payments = [];
-      purchase.save();
+    payment.payid.map(async (purchaseId) => {
+      const purchase = await PurchaseInvoicesModel.findById(purchaseId);
+      if (purchase) {
+        purchase.paid = "unpaid";
+
+        const removedPayments = purchase.payments.filter((item) => {
+          if (item.paymentID.toString() === id.toString()) {
+            purchase.totalRemainderMainCurrency += item.paymentMainCurrency;
+            purchase.totalRemainder += item.payment;
+            return false;
+          }
+          return true;
+        });
+        purchase.payments = removedPayments;
+
+        await purchase.save();
+      }
     });
   } else if (payment.payid.length > 0 && payment.customerId) {
     await customerModel.findByIdAndUpdate(
@@ -440,18 +457,27 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
       { new: true }
     );
 
-    const PaymentHistory = await PaymentHistoryModel.deleteMany({
-      idPaymet: payment.counter,
-    });
-    payment.payid.map(async (id) => {
-      const sales = await salesrModel.findById(id);
-      sales.totalRemainderMainCurrency = sales.totalOrderPrice;
-      sales.totalRemainder = sales.totalPriceExchangeRate;
-      sales.paid = "unpaid";
-      sales.payments = [];
-      sales.save();
+    payment.payid.map(async (salesId) => {
+      const sales = await salesrModel.findById(salesId);
+      if (sales) {
+        sales.paid = "unpaid";
+        const removedPayments = sales.payments.filter((item) => {
+          if (item.paymentID.toString() === id.toString()) {
+            sales.totalRemainderMainCurrency += item.paymentMainCurrency;
+            sales.totalRemainder += item.payment;
+            return false;
+          }
+          return true;
+        });
+        sales.payments = removedPayments;
+        await sales.save();
+      }
     });
   }
-
+  if (payment) {
+    await PaymentHistoryModel.deleteMany({
+      idPaymet: payment.counter,
+    });
+  }
   res.status(200).json({ message: "deleted", data: payment });
 });

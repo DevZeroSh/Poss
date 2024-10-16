@@ -14,9 +14,6 @@ const PaymentSchema = new mongoose.Schema(
     customerId: {
       type: String,
     },
-    purchaseId: {
-      type: String,
-    },
     total: {
       type: Number,
       require: true,

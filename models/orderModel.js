@@ -10,6 +10,20 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.ObjectId,
       ref: "FinancialFunds",
     },
+    financialFunds: [
+      {
+        fundId: {
+          type: String,
+        },
+        allocatedAmount: {
+          type: Number,
+        },
+        exchangeRate: Number,
+        exchangeRateIcon: String,
+        fundName: String,
+        _id: false,
+      },
+    ],
     exchangeRate: Number,
     cartItems: [
       {

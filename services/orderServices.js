@@ -1345,9 +1345,11 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
         financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
       } else {
         financialFundsMap.set(fundId, {
-          fundId: fund.fundId,
-          allocatedAmount: fund.allocatedAmount || 0,
-          exchangeRateIcon: fund.exchangeRateIcon,
+          fundId: fund?.fundId,
+          allocatedAmount: fund?.allocatedAmount || 0,
+          exchangeRate: fund?.exchangeRate,
+          exchangeRateIcon: fund?.exchangeRateIcon,
+          fundName: fund?.fundName,
         });
       }
     });
