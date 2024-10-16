@@ -157,6 +157,13 @@ exports.getOneManitenaceCase = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No manitences Case By this ID ${id}`));
   }
 
+  // sort the calling
+  if (manitCase.customerCalling && manitCase.customerCalling.length > 0) {
+    manitCase.customerCalling.sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+  }
+
   const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
