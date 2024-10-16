@@ -14,7 +14,7 @@ const expensesRoute = express.Router();
 
 expensesRoute.use(authService.protect);
 expensesRoute.route("/").post(uploadFile, createExpenses).get(getExpenses);
-expensesRoute.route("/:id").get(getExpense).put(updateExpense);
+expensesRoute.route("/:id").get(getExpense).put(uploadFile,updateExpense);
 // .delete(authService.allowedTo("expenses"), deleteExpense)
 
 module.exports = expensesRoute;
