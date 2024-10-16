@@ -54,6 +54,7 @@ const purchaseOrderRouter = require("./purchaseOrderRoute");
 const manitUserRout = require("./maintenance/maintenanceUserRoute");
 const manitCaseRout = require("./maintenance/manitencesCaseRoute");
 const shippingCompaniesRoute = require("./shippingCompaniesRoute");
+const ecommercePaymentMethodRoute = require("./ecommerce/ecommercePaymentMethodRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -111,6 +112,7 @@ const mountRoutes = (app) => {
   app.use("/api/page", pagesRout);
   app.use("/api/footer", footerRout);
   app.use("/api/thirdPartyAuth", thirdPartyRoute);
+  app.use("/api/ecommercePaymentMethods", ecommercePaymentMethodRoute);
 
   //Hr
   app.use("/api/finger-print", fingerPrintRout);

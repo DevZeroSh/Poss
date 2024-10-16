@@ -11,6 +11,7 @@ const roleDashboardSchema = require("../models/roleDashboardModel");
 const rolesShcema = require("../models/roleModel");
 const stockSchema = require("../models/stockModel");
 const thirdPartyAuthSchema = require("../models/ecommerce/thirdPartyAuthModel");
+const ecommercePaymentMethodSchema = require("../models/ecommerce/ecommercePaymentMethodModel");
 const multerStorage = multer.memoryStorage();
 
 const multerFilter = function (req, file, cb) {
@@ -39,8 +40,8 @@ exports.resizerLogo = asyncHandler(async (req, res, next) => {
   next();
 });
 
-//@desc create company info
-//@route post /api/companyinfo
+//@desc Create company info
+//@route POST /api/companyinfo
 exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
   try {
     const dbName = req.body.databaseName;
@@ -55,6 +56,10 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
     const thirdPartyAuthModel = db.model(
       "thirdPartyAuth",
       thirdPartyAuthSchema
+    );
+    const paymentMethodModel = db.model(
+      "ecommercePaymentMethods",
+      ecommercePaymentMethodSchema
     );
 
     //await createConnection(req.body.databaseName);
@@ -336,6 +341,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       is_primary: "true",
     });
 
+    //6- Insert the 3rd party auth
     await thirdPartyAuthModel.create({
       googleAuthClientID: "",
       googleAuthClientSecret: "",
@@ -343,7 +349,35 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
       redirectUri: "",
     });
 
-    //make res
+    //7- Insert the e-commerce payment methods
+    await paymentMethodModel.create([
+      {
+        name: "onlinePayment",
+        description: "",
+        extraCharge: 1,
+        minAmount: 1,
+        maxAmount: 99999,
+        status: false,
+      },
+      {
+        name: "bankTransfer",
+        description: "",
+        extraCharge: 1,
+        minAmount: 1,
+        maxAmount: 99999,
+        status: false,
+      },
+      {
+        name: "payAtDoor",
+        description: "",
+        extraCharge: 1,
+        minAmount: 1,
+        maxAmount: 99999,
+        status: false,
+      },
+    ]);
+
+    //Finally, make res
     res.status(201).json({
       status: "true",
       message: "Company info inserted",
@@ -358,7 +392,7 @@ exports.createCompanyInfo = asyncHandler(async (req, res, next) => {
 });
 
 //Get company info
-//@rol: who has rol can Get Customars Data
+//@role: who has role can Get company info
 exports.getCompanyInfo = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
