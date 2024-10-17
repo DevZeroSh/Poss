@@ -12,6 +12,7 @@ const { Search } = require("../utils/search");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 const emoloyeeShcema = require("../models/employeeModel");
+const supplierSchema = require("../models/suppliersModel");
 
 const multerStorage = multer.diskStorage({
   destination: function (req, file, callback) {
@@ -53,8 +54,9 @@ exports.uploadFile = upload.single("expenseFile");
 exports.createExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-
   const expensesModel = db.model("Expenses", expensesSchema);
+  const SupplierModel = db.model("Supplier", supplierSchema);
+
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const TaxModel = db.model("Tax", TaxSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -78,6 +80,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
   req.body.expenseFile = req.file?.filename;
 
   const expense = await expensesModel.create(req.body);
+  const supplier = await SupplierModel.findById(req.body.supplierId);
 
   if (req.body.paidStatus === "paid") {
     const financialFunds = await FinancialFundsModel.findById(
@@ -103,7 +106,16 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     req.body.totalRemainder = 0;
     await expense.save();
   }
-
+  await createPaymentHistory(
+    "invoice",
+    req.body.expenseDate || formattedDate,
+    req.body.MainCurrencyTotal,
+    supplier.TotalUnpaid,
+    "supplier",
+    req.body.supplierId,
+    nextCounter,
+    dbName
+  );
   await createInvoiceHistory(
     dbName,
     expense._id,

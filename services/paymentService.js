@@ -13,6 +13,7 @@ const currencySchema = require("../models/currencyModel");
 const orderSchema = require("../models/orderModel");
 const { createPaymentHistory } = require("./paymentHistoryService");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
+const expensesSchema = require("../models/expensesModel");
 
 async function recalculateBalances(startDate, dbName) {
   const db = mongoose.connection.useDb(dbName);
@@ -74,6 +75,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   );
   const salesrModel = db.model("Orders", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const expensesModel = db.model("Expenses", expensesSchema);
 
   db.model("Tax", TaxSchema);
   db.model("Currency", currencySchema);
@@ -323,7 +325,42 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   }
-  console.log(tes1t);
+  //  else if (req.body.taker === "expense") {
+  //   const suppler = await supplerModel.findById({ _id: req.body.supplierId });
+  //   const expenses = await expensesModel.findById({
+  //     _id: req.body.expenseId,
+  //   });
+  //   payment = await paymentModel.create(req.body);
+  //   expenses.totalRemainderMainCurrency -= req.body.totalMainCurrency;
+  //   expenses.totalRemainder -=
+  //     req.body.totalMainCurrency / req.body.invoiceExchangeRate;
+
+  //   expenses.payments.push({
+  //     payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
+  //     paymentMainCurrency: req.body.totalMainCurrency,
+  //     financialFunds: req.body.financialFundsName,
+  //     paymentID: payment._id,
+  //     date: formattedDate,
+  //   });
+  //   if (expenses.totalRemainderMainCurrency <= 0) {
+  //     expenses.paid = "paid";
+  //   }
+  //   tes1t.push(req.body.expenseId);
+  //   financialFunds.fundBalance += req.body.total;
+  //   await expenses.save();
+  //   await createPaymentHistory(
+  //     "payment",
+  //     formattedDate,
+  //     req.body.totalMainCurrency,
+  //     suppler.TotalUnpaid,
+  //     "supplier",
+  //     req.body.customerId,
+  //     expensesModel.counter,
+  //     dbName,
+  //     description,
+  //     nextCounter
+  //   );
+  // }
 
   req.body.date = formattedDate;
   await financialFunds.save();

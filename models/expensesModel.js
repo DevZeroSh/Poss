@@ -26,6 +26,18 @@ const expensesSchema = new mongoose.Schema(
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
     counter: { type: String, default: 0, unique: true },
+    payments: [
+      {
+        payment: Number,
+        paymentMainCurrency: Number,
+        financialFunds: String,
+        financialFundsId: String,
+        financialFundsCurrencyCode: String,
+        date: String,
+        paymentID: String,
+        _id: false,
+      },
+    ],
   },
   { timestamps: true }
 );

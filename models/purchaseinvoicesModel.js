@@ -1,4 +1,3 @@
-const { Double } = require("mongodb");
 const mongoose = require("mongoose");
 
 const PurchaseInvoicesSchema = new mongoose.Schema(
@@ -37,7 +36,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     currencyId: String,
     priceExchangeRate: {
       type: Number,
-      default: 0,
+      default: 1,
     },
     onefinancialFunds: {
       type: mongoose.Schema.ObjectId,
@@ -46,10 +45,10 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     totalPurchasePrice: Number,
     totalPurchasePriceMainCurrency: Number,
     addedValue: Number,
-    paidAt: String,
+
     date: String,
     description: String,
-
+    invoiceType: String,
     totalRemainderMainCurrency: { type: Number, default: 0 },
     totalRemainder: { type: Number, default: 0 },
     payments: [
@@ -80,8 +79,31 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     },
     openingBalanceId: String,
     reportsBalanceId: String,
+    employeeID: String,
+    employeeName: String,
+    expenseClarification: Number,
+    expenseFile: String,
+    expenseCategoryId: String,
+    expenseCategory: String,
+    paymentDate: String,
   },
   { timestamps: true }
 );
+
+const setFileURL = (doc) => {
+  if (doc.expenseFile) {
+    doc.expenseFile = `${process.env.BASE_URL}/expenses/${doc.expenseFile}`;
+  }
+};
+
+//When findOne, findAll and update
+PurchaseInvoicesSchema.post("init", (doc) => {
+  setFileURL(doc);
+});
+
+//When createOne
+PurchaseInvoicesSchema.post("save", (doc) => {
+  setFileURL(doc.expenseFile);
+});
 
 module.exports = PurchaseInvoicesSchema;

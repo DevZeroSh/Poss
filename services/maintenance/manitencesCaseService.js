@@ -392,7 +392,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
   const maintenance = await manitencesCaseModel.findByIdAndUpdate(id, {
-    manitencesStatus: "Delivered",
+    manitencesStatus: "convertedToInvoice",
     paymentStatus: "paid",
   });
   let piecesAndCost = maintenance.piecesAndCost.map((item) => ({
@@ -471,7 +471,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
         employeeName: req.user.name,
         date: formattedDate,
         counter: maintenance.counter,
-        histoyType: "Delivered",
+        histoyType: "convertedToInvoice",
         deviceStatus: req.body.deviceStatus,
       }),
     ]);
@@ -540,6 +540,8 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
     res.status(500).json({ message: "An error occurred" });
   }
 });
+
+
 
 exports.getCaseByDeviceId = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
