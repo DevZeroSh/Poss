@@ -13,6 +13,8 @@ const { createInvoiceHistory } = require("./invoiceHistoryService");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 const emoloyeeShcema = require("../models/employeeModel");
 const supplierSchema = require("../models/suppliersModel");
+const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
+const { createPaymentHistory } = require("./paymentHistoryService");
 
 const multerStorage = multer.diskStorage({
   destination: function (req, file, callback) {
@@ -54,9 +56,8 @@ exports.uploadFile = upload.single("expenseFile");
 exports.createExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const expensesModel = db.model("Expenses", expensesSchema);
+  const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
   const SupplierModel = db.model("Supplier", supplierSchema);
-
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const TaxModel = db.model("Tax", TaxSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -75,14 +76,18 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
   )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
+
   const nextCounter = (await expensesModel.countDocuments()) + 1;
-  req.body.counter = nextCounter;
+  req.body.invoiceNumber = nextCounter;
   req.body.expenseFile = req.file?.filename;
 
+  // Create the expense document
   const expense = await expensesModel.create(req.body);
-  const supplier = await SupplierModel.findById(req.body.supplierId);
+  const supplier = await SupplierModel.findById(req.body.suppliersId);
 
-  if (req.body.paidStatus === "paid") {
+  // Set the full URL for the expense file
+
+  if (req.body.paid === "paid") {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
     );
@@ -106,16 +111,19 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     req.body.totalRemainder = 0;
     await expense.save();
   }
+
+  // Call history functions
   await createPaymentHistory(
     "invoice",
     req.body.expenseDate || formattedDate,
     req.body.MainCurrencyTotal,
     supplier.TotalUnpaid,
     "supplier",
-    req.body.supplierId,
+    req.body.suppliersId,
     nextCounter,
     dbName
   );
+
   await createInvoiceHistory(
     dbName,
     expense._id,
@@ -124,6 +132,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
     formattedDate
   );
 
+  // Send response
   res.status(200).json({ status: "success", data: expense });
 });
 
@@ -132,7 +141,7 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
 exports.getExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const expensesModel = db.model("Expenses", expensesSchema);
+  const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
 
   // Search for product or qr
@@ -155,7 +164,7 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
 
   const db = mongoose.connection.useDb(dbName);
 
-  const expensesModel = db.model("Expenses", expensesSchema);
+  const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
   db.model("ExpensesCategory", expensesCategorySchama);
   const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
   db.model("Employee", emoloyeeShcema);
@@ -200,7 +209,7 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
-  const expensesModel = db.model("Expenses", expensesSchema);
+  const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema

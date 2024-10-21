@@ -7,6 +7,7 @@ const emoloyeeShcema = require("../models/employeeModel");
 const currencySchema = require("../models/currencyModel");
 const financialFundsSchema = require("../models/financialFundsModel");
 const productSchema = require("../models/productModel");
+const { v4: uuidv4 } = require("uuid");
 
 const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
@@ -20,6 +21,7 @@ const { createPaymentHistory } = require("./paymentHistoryService");
 const stockSchema = require("../models/stockModel");
 const PaymentSchema = require("../models/paymentModel");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
+const multer = require("multer");
 
 //Fixed Ourchse invoice
 exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
@@ -419,8 +421,15 @@ exports.findAllProductInvoices = asyncHandler(async (req, res, next) => {
 
   if (req.query.keyword) {
     query.$or = [
-      { name: { $regex: req.query.keyword, $options: "i" } },
-      { qr: { $regex: req.query.keyword, $options: "i" } },
+      {
+        supplierName: { $regex: req.query.keyword, $options: "i" },
+      },
+      {
+        expenseName: { $regex: req.query.keyword, $options: "i" },
+      },
+      {
+        invoiceNumber: { $regex: req.query.keyword, $options: "i" },
+      },
     ];
   }
 
@@ -2071,3 +2080,121 @@ exports.updateInvoicesQuantity = asyncHandler(async (req, res, next) => {
 //     }
 //   }
 // });
+
+const multerStorage = multer.diskStorage({
+  destination: function (req, file, callback) {
+    // Specify the destination folder for storing the files
+    callback(null, "./uploads/expenses");
+  },
+  filename: function (req, file, callback) {
+    // Specify the filename for the uploaded file
+    const originalname = file.originalname;
+    const lastDotIndex = originalname.lastIndexOf(".");
+    const fileExtension =
+      lastDotIndex !== -1 ? originalname.slice(lastDotIndex + 1) : "";
+    const filename = `ex-${uuidv4()}-${Date.now()}-${
+      Math.floor(Math.random() * (10000000000 - 1 + 1)) + 1
+    }.${fileExtension}`;
+
+    callback(null, filename);
+  },
+});
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: (req, file, callback) => {
+    const allowedMimes = ["image/jpeg", "image/png", "application/pdf"];
+    if (allowedMimes.includes(file.mimetype)) {
+      callback(null, true);
+    } else {
+      callback(
+        new ApiError("Invalid file type. Only images and PDFs are allowed.")
+      );
+    }
+  },
+});
+
+exports.uploadFile = upload.single("expenseFile");
+
+exports.createExpenses = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
+  const SupplierModel = db.model("Supplier", supplierSchema);
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const TaxModel = db.model("Tax", TaxSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+
+  const ts = Date.now();
+  const date_ob = new Date(ts);
+  const formattedDate = `${date_ob.getFullYear()}-${padZero(
+    date_ob.getMonth() + 1
+  )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
+    date_ob.getMinutes()
+  )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
+
+  const nextCounter = (await expensesModel.countDocuments()) + 1;
+  req.body.invoiceNumber = nextCounter;
+  req.body.expenseFile = req.file?.filename;
+
+  // Create the expense document
+  const expense = await expensesModel.create(req.body);
+  const supplier = await SupplierModel.findById(req.body.supplierId);
+
+  // Set the full URL for the expense file
+
+  if (req.body.paidStatus === "paid") {
+    const financialFunds = await FinancialFundsModel.findById(
+      req.body.finincalFund
+    );
+    financialFunds.fundBalance -= req.body.invoiceCurrencyTotal;
+
+    if (financialFunds) {
+      await ReportsFinancialFundsModel.create({
+        date: formattedDate,
+        amount: req.body.invoiceCurrencyTotal,
+        exchangeAmount: req.body.MainCurrencyTotal,
+        expense: expense._id,
+        type: "expense",
+        financialFundId: financialFunds._id,
+        financialFundRest: financialFunds.fundBalance,
+        exchangeRate: req.body.currencyExchangeRate,
+      });
+      await financialFunds.save();
+    }
+
+    req.body.totalRemainderMainCurrency = 0;
+    req.body.totalRemainder = 0;
+    await expense.save();
+  }
+
+  // Call history functions
+  await createPaymentHistory(
+    "invoice",
+    req.body.expenseDate || formattedDate,
+    req.body.MainCurrencyTotal,
+    supplier.TotalUnpaid,
+    "supplier",
+    req.body.supplierId,
+    nextCounter,
+    dbName
+  );
+
+  await createInvoiceHistory(
+    dbName,
+    expense._id,
+    "create",
+    req.user._id,
+    formattedDate
+  );
+
+  // Send response
+  res.status(200).json({ status: "success", data: expense });
+});

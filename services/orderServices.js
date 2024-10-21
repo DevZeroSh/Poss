@@ -1247,7 +1247,9 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
         }
       }
     });
-
+    const fundReports = await ReportsFinancialFundsModel.findOneAndDelete({
+      order: id,
+    });
     let total = 0;
     for (let index = 0; index < canceled.payments.length; index++) {
       const fund = await FinancialFundsModel.findOneAndUpdate(

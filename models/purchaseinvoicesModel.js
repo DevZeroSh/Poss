@@ -86,17 +86,19 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     expenseCategoryId: String,
     expenseCategory: String,
     paymentDate: String,
+    Tax: String,
+    TaxId: String,
+    receiptNumber: String,
+    expenseName: String,
   },
   { timestamps: true }
 );
 
 const setFileURL = (doc) => {
-  if (doc.expenseFile) {
+  if (doc?.expenseFile) {
     doc.expenseFile = `${process.env.BASE_URL}/expenses/${doc.expenseFile}`;
   }
 };
-
-//When findOne, findAll and update
 PurchaseInvoicesSchema.post("init", (doc) => {
   setFileURL(doc);
 });
@@ -105,5 +107,6 @@ PurchaseInvoicesSchema.post("init", (doc) => {
 PurchaseInvoicesSchema.post("save", (doc) => {
   setFileURL(doc.expenseFile);
 });
+//When findOne, findAll and update
 
 module.exports = PurchaseInvoicesSchema;

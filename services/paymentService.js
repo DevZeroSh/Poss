@@ -241,7 +241,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   } else if (req.body.taker === "purchase") {
-    const suppler = await supplerModel.findById({ _id: req.body.supplierId });
+    const suppler = await supplerModel.findById({
+      _id: req.body.supplierId || req.body.suppliersId,
+    });
     const purchase = await PurchaseInvoicesModel.findById({
       _id: req.body.purchaseId,
       type: { $ne: "cancel" },
@@ -325,42 +327,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       nextCounter
     );
   }
-  //  else if (req.body.taker === "expense") {
-  //   const suppler = await supplerModel.findById({ _id: req.body.supplierId });
-  //   const expenses = await expensesModel.findById({
-  //     _id: req.body.expenseId,
-  //   });
-  //   payment = await paymentModel.create(req.body);
-  //   expenses.totalRemainderMainCurrency -= req.body.totalMainCurrency;
-  //   expenses.totalRemainder -=
-  //     req.body.totalMainCurrency / req.body.invoiceExchangeRate;
-
-  //   expenses.payments.push({
-  //     payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
-  //     paymentMainCurrency: req.body.totalMainCurrency,
-  //     financialFunds: req.body.financialFundsName,
-  //     paymentID: payment._id,
-  //     date: formattedDate,
-  //   });
-  //   if (expenses.totalRemainderMainCurrency <= 0) {
-  //     expenses.paid = "paid";
-  //   }
-  //   tes1t.push(req.body.expenseId);
-  //   financialFunds.fundBalance += req.body.total;
-  //   await expenses.save();
-  //   await createPaymentHistory(
-  //     "payment",
-  //     formattedDate,
-  //     req.body.totalMainCurrency,
-  //     suppler.TotalUnpaid,
-  //     "supplier",
-  //     req.body.customerId,
-  //     expensesModel.counter,
-  //     dbName,
-  //     description,
-  //     nextCounter
-  //   );
-  // }
 
   req.body.date = formattedDate;
   await financialFunds.save();
