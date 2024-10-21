@@ -65,6 +65,7 @@ exports.updatePaymentMethod = asyncHandler(async (req, res, next) => {
   if (req.body.ibanNumber) paymentMethod.ibanNumber = req.body.ibanNumber;
   if (req.body.ibanName) paymentMethod.ibanName = req.body.ibanName;
   if (req.body.bankName) paymentMethod.bankName = req.body.bankName;
+  if (req.body.companyRatio) paymentMethod.companyRatio = req.body.companyRatio;
 
   paymentMethod = await paymentMethod.save();
 

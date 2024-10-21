@@ -9,6 +9,7 @@ const ecommercePaymentMethodSchema = new mongoose.Schema(
     },
     description: String,
     extraCharge: Number,
+    companyRatio: Number,
     minAmount: Number,
     maxAmount: Number,
     status: Boolean,

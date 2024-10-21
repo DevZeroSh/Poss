@@ -4,7 +4,7 @@ const authService = require("../../services/authService");
 const {
   createCashOrder,
   findAllOrderforCustomer,
-  filterOrderForLoggedUser,
+  filterOrderCustomerById,
   filterOneOrderForLoggedUser,
   UpdateEcommersOrder,
   customarChangeOrderStatus,
@@ -26,6 +26,10 @@ ecommerceOrderRouter
   .route("/:id")
   .get(authService.ecommerceProtect, filterOneOrderForLoggedUser)
   .post(authService.ecommerceProtect, createCashOrder);
+
+ecommerceOrderRouter
+  .route("/ecommerceOrder/find/:id")
+  .get(filterOrderCustomerById);
 
 ecommerceOrderRouter
   .route("/convert-ecommers-order/:id")

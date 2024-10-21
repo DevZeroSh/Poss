@@ -194,12 +194,61 @@ exports.createOrderDashboard = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
-  console.log(req.user);
-  req.filter = {
-    user: req.user._id,
-  };
-  next();
+exports.filterOrderCustomerById = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
+  db.model("Product", productSchema);
+  db.model("Users", E_user_Schema);
+
+  // Pagination settings
+  const pageSize = 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  // Build the query object for filtering by customer ID
+  let query = { customar: req.params.id };
+
+  // Add search functionality for orderNumber or date if provided in query params
+  if (req.query.orderNumber || req.query.date) {
+    query = {
+      $and: [
+        { customar: req.params.id },
+        {
+          $or: [
+            { orderNumber: { $regex: req.query.orderNumber, $options: "i" } },
+            { date: { $regex: req.query.date, $options: "i" } },
+          ],
+        },
+      ],
+    };
+  }
+
+  // Create a Mongoose query object
+  let mongooseQuery = orderModel.find(query);
+
+  // Apply sorting
+  mongooseQuery = mongooseQuery.sort({ createdAt: -1 });
+
+  // Apply pagination
+  const totalItems = await orderModel.countDocuments(query);
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  // Apply skip and limit to paginate results
+  mongooseQuery = mongooseQuery.skip(skip).limit(pageSize);
+
+  // Execute the query and fetch the results
+  const orders = await mongooseQuery;
+
+  // Return the paginated orders with total pages and current page
+  res.status(200).json({
+    status: "success",
+    results: orders.length,
+    totalItems,
+    totalPages,
+    currentPage: page,
+    data: orders,
+  });
 });
 
 exports.findAllOrderforCustomer = asyncHandler(async (req, res, netx) => {
