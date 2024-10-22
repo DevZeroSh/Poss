@@ -21,6 +21,8 @@ const stockReconcilSchema = new mongoose.Schema(
         exchangeRate: Number,
       },
     ],
+    stockName: String,
+    stockID: String,
     employee: String,
   },
   { timestamps: true }
