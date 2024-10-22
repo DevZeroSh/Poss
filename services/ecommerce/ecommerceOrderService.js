@@ -511,6 +511,7 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
       uesrid: req.body.customarId,
     });
     user.isCustomer = true;
+    user.save();
   } else {
     createCustomer = await customersModel.findOne({
       uesrid: req.body.customarId,
