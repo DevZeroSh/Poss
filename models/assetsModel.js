@@ -8,6 +8,7 @@ const assetsSchema = new mongoose.Schema({
   usefulLife: String,
   salvageValue: { type: Number, default: 0 },
   sellingPrice: Number,
+  annualDepreciation: Number,
   parentAccountCode: {
     type: String,
     default: 1210,
