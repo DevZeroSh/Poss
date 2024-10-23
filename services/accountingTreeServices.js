@@ -18,3 +18,30 @@ exports.createAccountingTree = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({ status: "success", data: createAccount });
 });
+
+exports.updateAccountingTree = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const accountingTree = db.model("AccountingTree", AccountingTree);
+
+  const { id } = req.params;
+
+  const updateTree = await accountingTree.findByIdAndUpdate(
+    id,
+    { name: req.body.name },
+    { new: true }
+  );
+
+  res.status(200).json({ status: "success", data: updateTree });
+});
+
+exports.getAccountingTreeByCode = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const accountingTree = db.model("AccountingTree", AccountingTree);
+  const code = req.params.id;
+  const getAllAccount = await accountingTree.find({
+    $or: [{ code: code }, { parentCode: code }],
+  });
+  res.status(200).json({ status: "success", data: getAllAccount });
+});

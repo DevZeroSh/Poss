@@ -58,7 +58,6 @@ exports.getSpecificReports = asyncHandler(async (req, res, next) => {
       runningBalance += transaction?.amount;
     }
     transaction.runningBalance = runningBalance;
-    console.log(runningBalance);
   });
 
   // Sort transactions in descending order before applying pagination

@@ -43,9 +43,6 @@ exports.createFinancialFunds = asyncHandler(async (req, res) => {
   );
   const data = new Date();
   const Time = data.toISOString();
-  req.body.code = 111000;
-  const nextCounter = (await FinancialFundsModel.countDocuments()) + 1;
-  req.body.code += nextCounter;
   const financialFunds = await FinancialFundsModel.create(req.body);
   await ReportsFinancialFundsModel.create({
     date: Time,

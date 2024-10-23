@@ -2,10 +2,18 @@ const express = require("express");
 const {
   getAccountingTree,
   createAccountingTree,
+  updateAccountingTree,
+  getAccountingTreeByCode,
 } = require("../services/accountingTreeServices");
+const authService = require("../services/authService");
 
 const accountingTreeRout = express.Router();
 
-accountingTreeRout.route("/").get(getAccountingTree).post(createAccountingTree);
+accountingTreeRout.use(authService.protect);
 
+accountingTreeRout.route("/").get(getAccountingTree).post(createAccountingTree);
+accountingTreeRout
+  .route("/:id")
+  .put(updateAccountingTree)
+  .get(getAccountingTreeByCode);
 module.exports = accountingTreeRout;

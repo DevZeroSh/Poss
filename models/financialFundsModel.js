@@ -35,7 +35,7 @@ const financialFundsSchema = new mongoose.Schema(
       type: String,
       default: 111,
     },
-    code: { type: String, unique: true, require: true },
+    code: { type: String },
   },
   { timestamps: true }
 );
