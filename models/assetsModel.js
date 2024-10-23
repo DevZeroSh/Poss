@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const assetsSchema = new mongoose.Schema({
   name: { type: String, require: true },
-  code: { type: String, unique: true, require: true },
+  code: { type: String },
   buyingprice: { type: String, default: 0 },
   currentValue: Number,
   usefulLife: String,
