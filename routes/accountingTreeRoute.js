@@ -4,6 +4,7 @@ const {
   createAccountingTree,
   updateAccountingTree,
   getAccountingTreeByCode,
+  deleteAccountingTree,
 } = require("../services/accountingTreeServices");
 const authService = require("../services/authService");
 
@@ -15,5 +16,5 @@ accountingTreeRout.route("/").get(getAccountingTree).post(createAccountingTree);
 accountingTreeRout
   .route("/:id")
   .put(updateAccountingTree)
-  .get(getAccountingTreeByCode);
+  .get(getAccountingTreeByCode).delete(deleteAccountingTree);
 module.exports = accountingTreeRout;
