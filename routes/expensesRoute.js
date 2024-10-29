@@ -2,19 +2,30 @@ const express = require("express");
 
 const authService = require("../services/authService");
 const {
-  createExpenses,
+  createInvoiceExpenses,
   uploadFile,
+  getInvoiceExpenses,
+  getInvoiceExpense,
+  updateInvoiceExpense,
+  createExpenses,
   getExpenses,
-  getExpense,
-  deleteExpense,
   updateExpense,
+  getExpense,
 } = require("../services/expenseService");
 
 const expensesRoute = express.Router();
 
 expensesRoute.use(authService.protect);
-expensesRoute.route("/").post(uploadFile, createExpenses).get(getExpenses);
-expensesRoute.route("/:id").get(getExpense).put(uploadFile,updateExpense);
+expensesRoute.route("/ex").get(getExpenses).post(createExpenses);
+expensesRoute
+  .route("/")
+  .post(uploadFile, createInvoiceExpenses)
+  .get(getInvoiceExpenses);
+expensesRoute
+  .route("/:id")
+  .get(getInvoiceExpense)
+  .put(uploadFile, updateInvoiceExpense);
 // .delete(authService.allowedTo("expenses"), deleteExpense)
 
+expensesRoute.route("/ex/:id").get(getExpense).put(updateExpense);
 module.exports = expensesRoute;

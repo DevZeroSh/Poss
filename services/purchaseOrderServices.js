@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const purchaseOrderSchema = require("../models/purchaseOrderModel");
-
+const ApiError = require("../utils/apiError");
 exports.getAllPurchaseOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -37,8 +37,8 @@ exports.getPurchaseOrderById = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
 
   const purchaseOrderModel = db.model("PurchaseOrder", purchaseOrderSchema);
-
-  const purchaseOrder = await purchaseOrderModel.find({ _id: req.params.id });
+  const { id } = req.params;
+  const purchaseOrder = await purchaseOrderModel.findById(id);
 
   if (!purchaseOrder) {
     return next(new ApiError("Purchase Order not found", 404));
@@ -53,9 +53,9 @@ exports.createCashPurchaseOrder = asyncHandler(async (req, res, next) => {
 
   const purchaseOrderModel = db.model("PurchaseOrder", purchaseOrderSchema);
 
-  const cartItems = req.body.cartItems;
+  const invoicesItems = req.body.invoicesItems;
 
-  if (!cartItems || cartItems.length === 0) {
+  if (!invoicesItems || invoicesItems.length === 0) {
     return next(new ApiError("The cart is empty", 400));
   }
 
@@ -75,7 +75,7 @@ exports.createCashPurchaseOrder = asyncHandler(async (req, res, next) => {
   const nextCounter = (await purchaseOrderModel.countDocuments()) + 1;
 
   const purchaseOrder = await purchaseOrderModel.create({
-    cartItems,
+    invoicesItems,
     supplierId,
     supplierName,
     exchangeRate,

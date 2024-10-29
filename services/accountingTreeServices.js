@@ -7,9 +7,33 @@ exports.getAccountingTree = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const accountingTree = db.model("AccountingTree", AccountingTree);
-  const getAllAccount = await accountingTree.find();
-  res.status(200).json({ status: "success", data: getAllAccount });
+
+  try {
+    const getAllAccount = await accountingTree.find();
+
+    const buildTree = (data, parentCode = null) => {
+      return data
+        .filter((item) => item.parentCode === parentCode)
+        .map((item) => {
+          const children = buildTree(data, item.code);
+          const initialBalance = item.balance + (item.debit || 0) - (item.creditor || 0);
+          const totalChildBalance = children.reduce((sum, child) => sum + (child.balance || 0), 0);
+
+          return {
+            ...item._doc,
+            balance: initialBalance + totalChildBalance,
+            children: children.length > 0 ? children : [],
+          };
+        });
+    };
+
+    const treeData = buildTree(getAllAccount);
+    res.status(200).json({ status: "success", data: treeData });
+  } catch (error) {
+    next(error); // Proper error handling
+  }
 });
+
 
 exports.createAccountingTree = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;

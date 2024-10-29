@@ -12,6 +12,9 @@ const AccountingTreeSchema = new mongoose.Schema({
     default: null,
   },
   balance: { type: Number, default: 0 },
+  debit: { type: Number, default: 0 },
+  creditor: { type: Number, default: 0 },
+  type: { type: String },
 });
 
 module.exports = AccountingTreeSchema;

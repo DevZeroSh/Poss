@@ -120,7 +120,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const newInvoiceData = {
       employee: req.user._id,
       invoicesItems: invoiceItems,
-      date: date + " " + formatteTime || formattedDate,
+      date: date !== undefined ? date + " " + formatteTime : formattedDate,
       suppliersId,
       supplierName,
       supplierPhone,

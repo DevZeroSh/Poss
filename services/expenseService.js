@@ -51,9 +51,9 @@ const upload = multer({
 
 exports.uploadFile = upload.single("expenseFile");
 
-// @desc Create expenses
+// @desc Create invoice expenses
 // @route POST /api/expenses
-exports.createExpenses = asyncHandler(async (req, res, next) => {
+exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
@@ -136,9 +136,9 @@ exports.createExpenses = asyncHandler(async (req, res, next) => {
   res.status(200).json({ status: "success", data: expense });
 });
 
-//Get All Expenses
+//Get All invoice Expenses
 //@rol: who has rol can Get Expenses Data
-exports.getExpenses = asyncHandler(async (req, res, next) => {
+exports.getInvoiceExpenses = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const expensesModel = db.model("PurchaseInvoices", PurchaseInvoicesSchema);
@@ -156,9 +156,9 @@ exports.getExpenses = asyncHandler(async (req, res, next) => {
   });
 });
 
-//Get One Expense
+//Get One invoice Expense
 //@rol: who has rol can Get the Expense's Data
-exports.getExpense = asyncHandler(async (req, res, next) => {
+exports.getInvoiceExpense = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const dbName = req.query.databaseName;
 
@@ -201,10 +201,10 @@ exports.getExpense = asyncHandler(async (req, res, next) => {
   });
 });
 
-//@desc Update specific expense
+//@desc Update specific invoice expense
 // @route Put /api/expenses/:id
 // @access Private
-exports.updateExpense = asyncHandler(async (req, res, next) => {
+exports.updateInvoiceExpense = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
@@ -265,4 +265,70 @@ exports.updateExpense = asyncHandler(async (req, res, next) => {
     formattedDate
   );
   res.status(200).json({ status: "true", message: "Expense updated" });
+});
+
+exports.createExpenses = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const expensesModel = db.model("expenses", expensesSchema);
+
+  const newExpense = await expensesModel.create(req.body);
+
+  res.status(200).json({ status: "success", data: newExpense });
+});
+
+exports.getExpenses = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const expensesModel = db.model("expenses", expensesSchema);
+
+  // Search for product or qr
+  const { totalPages, mongooseQuery } = await Search(expensesModel, req);
+
+  const expenses = await mongooseQuery.sort({ expenseDate: -1 });
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    results: expenses.length,
+    data: expenses,
+  });
+});
+
+//Get One Expense
+//@rol: who has rol can Get the Expense's Data
+exports.getExpense = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const expensesModel = db.model("expenses", expensesSchema);
+  db.model("ExpensesCategory", expensesCategorySchama);
+  const expense = await expensesModel.findById(id).populate({
+    path: "expenseCategory",
+    select: "expenseCategoryName expenseCategoryDescription _id",
+  });
+  if (!expense) {
+    return next(new ApiError(`There is no expense with this id ${id}`, 404));
+  }
+  res.status(200).json({
+    status: "true",
+    data: expense,
+  });
+});
+
+exports.updateExpense = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const expensesModel = db.model("expenses", expensesSchema);
+  db.model("ExpensesCategory", expensesCategorySchama);
+  const expense = await expensesModel.findByIdAndUpdate(id, req.body, {
+    new: true,
+  });
+  if (!expense) {
+    return next(new ApiError(`There is no expense with this id ${id}`, 404));
+  }
+  res.status(200).json({
+    status: "true",
+    data: expense,
+  });
 });

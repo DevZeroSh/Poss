@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const purchaseOrderSchema = new mongoose.Schema(
   {
-    cartItems: [
+    invoicesItems: [
       {
         product: { type: String, ref: "Product" },
         quantity: { type: Number },
@@ -14,17 +14,23 @@ const purchaseOrderSchema = new mongoose.Schema(
         taxs: { type: Number },
         totalTax: { type: Number },
         type: { type: String },
-        buyingprice: { type: Number },
+        buyingPrice: { type: Number },
+        buyingpriceOringal: { type: Number },
         currency: { type: Number },
       },
     ],
     supplierId: { type: String },
     supplierName: { type: String },
+    supplierEmail: { type: String },
+    supplierAddress: { type: String },
+    supplierPhone: { type: String },
+    supplierCompany: { type: String },
     exchangeRate: { type: Number },
     priceExchangeRate: { type: Number },
     totalPurchaseOrderPrice: { type: Number },
     invoiceCurrencyId: String,
     currency: { type: String },
+    currencyCode: { type: String },
     startDate: { type: Date },
     endDate: { type: Date },
     description: { type: String, default: "" },
