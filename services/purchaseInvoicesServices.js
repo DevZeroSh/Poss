@@ -981,9 +981,10 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     const existingRecord = await ActiveProductsValue.findOne({
       currency: currencyId,
     });
+    console.log(totalValue);
     if (existingRecord) {
       existingRecord.activeProductsCount -= totalCount;
-      existingRecord.activeProductsValue -= totalValue;
+      existingRecord.activeProductsValue -= totalValue || 0;
       await existingRecord.save();
     } else {
       await createActiveProductsValue(

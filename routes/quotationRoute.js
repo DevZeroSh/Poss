@@ -3,6 +3,7 @@ const {
   createCashQuotation,
   getAllQuotations,
   getQuotationById,
+  updateQuotation,
 } = require("../services/quotationServices");
 
 const quotationRouter = express.Router();
@@ -11,6 +12,6 @@ const quotationRouter = express.Router();
 quotationRouter.route("/").post(createCashQuotation).get(getAllQuotations);
 
 // Get / update / delete a specific quotation by ID
-quotationRouter.route("/:id").get(getQuotationById); //.put(updateQuotation).delete(deleteQuotation);
+quotationRouter.route("/:id").get(getQuotationById).put(updateQuotation);
 
 module.exports = quotationRouter;

@@ -22,7 +22,7 @@ const purchaseRequestSchema = new mongoose.Schema(
     suppliers: {
       supplierId: String,
       supplierName: String,
-      suppliersPhone: String,
+      suppliersPhone: Number,
       supplierAddress: String,
       supplierEmail: String,
       _id: false,
