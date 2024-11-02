@@ -36,6 +36,7 @@ const purchaseRequestSchema = new mongoose.Schema(
     registryDate: String,
     deliveryDate: String,
     admin: String,
+    shpingPrice:Number,
     status: { type: String, default: "Draft" },
     counter: { type: String, default: 0 },
   },
