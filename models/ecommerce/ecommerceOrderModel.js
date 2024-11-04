@@ -60,6 +60,7 @@ const ecommerceOrderSchema = new mongoose.Schema(
       fullName: String,
       phone: String,
     },
+    ipAddress: String,
     shippingPrice: {
       type: Number,
       default: 0,
