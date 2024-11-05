@@ -204,6 +204,7 @@ const productSchema = new mongoose.Schema(
     ],
     groupID: { type: String },
     importDate: Date,
+    suppliers: [String],
   },
   {
     timestamps: true,
