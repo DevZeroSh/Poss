@@ -46,19 +46,7 @@ const supplierSchema = new mongoose.Schema(
         number: String,
       },
     ],
-    products: [
-      {
-        product: String,
-        qr: String,
-        name: String,
-        buyingprice: Number,
-        buyingpriceOriginal: Number,
-        taxRate: Number,
-        quantity: Number,
-        exchangeRate: Number,
-      },
-    ],
-    
+
     parentAccountCode: {
       type: String,
       default: 211,
