@@ -710,8 +710,13 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     // Ensure all mapped promises are awaited
     await Promise.all(bulkSupplierPromises);
 
-    await supplier.save(); // Save supplier details
-
+    await supplier.save();
+    createInvoiceHistory(
+      dbName,
+      newPurchaseInvoice._id,
+      "create",
+      req.user._id
+    );
     res.status(201).json({
       status: "success",
       message: "Invoice created successfully",
