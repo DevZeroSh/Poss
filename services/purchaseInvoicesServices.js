@@ -500,25 +500,37 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     "ActiveProductsValue",
     ActiveProductsValueModel
   );
+  const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
 
   const formattedDate = new Date().toISOString().replace("T", " ").slice(0, 19); // Simplified date formatting
-
+  const time = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
+  };
+  const formatteTime = time();
   const {
     supllierObject,
     paid,
     date,
-    onefinancialFunds,
-    fundPricePurchaseInvocie,
-    currencyCode,
+    financailFund,
     exchangeRate,
     totalInMainCurrency: totalPurchasePriceMainCurrency,
-    currencyId,
+    currency,
     invoiceNumber,
     invoiceSubTotal,
     invoiceDiscount,
     invoiceGrandTotal,
     ManualInvoiceDiscount,
     taxDetails,
+    invoiceName,
+    paymentInFundCurrency,
+    InvoiceDiscountType,
+    subtotalWithDiscount
   } = req.body;
 
   let supplier, invoicesItem, newPurchaseInvoice;
@@ -556,57 +568,77 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     if (paid === "paid") {
       // Handle paid invoice logic
       const financialFund = await FinancialFundsModel.findById(
-        onefinancialFunds
-      ).lean();
+        financailFund.value
+      );
       if (!financialFund) throw new Error("Financial fund not found");
 
-      financialFund.fundBalance -= fundPricePurchaseInvocie;
+      financialFund.fundBalance -= paymentInFundCurrency;
 
       newPurchaseInvoice = await PurchaseInvoicesModel.create({
         employee: req.user._id,
         invoicesItems: invoiceItems,
         date: date || formattedDate,
         supllier: supllierObject,
-        currencyCode,
+        currency,
         exchangeRate,
-        onefinancialFunds,
+        financailFund,
         invoiceNumber,
         paid,
         totalPurchasePriceMainCurrency,
         invoiceSubTotal,
         invoiceDiscount,
         invoiceGrandTotal,
-        currencyId,
         taxDetails,
+        invoiceName,
+        paymentInFundCurrency: paymentInFundCurrency,
+        ManualInvoiceDiscount,
+        InvoiceDiscountType,
+        subtotalWithDiscount
       });
-
-      await Promise.all([
+      // Use Promise.all for parallel database operations
+      const [reports, payment] = await Promise.all([
         ReportsFinancialFundsModel.create({
           date: date || formattedDate,
           invoice: newPurchaseInvoice._id,
-          amount: fundPricePurchaseInvocie,
+          amount: paymentInFundCurrency,
           type: "purchase",
           exchangeRate,
-          financialFundId: onefinancialFunds,
+          financialFundId: financailFund.value,
           financialFundRest: financialFund.fundBalance,
         }),
         PaymentModel.create({
-          supplierId: supllierObject.value,
-          supplierName: supllierObject.label,
-          total: fundPricePurchaseInvocie,
+          supplierId: supplier.value,
+          supplierName: supplier.label,
+          total: invoiceGrandTotal,
           totalMainCurrency: totalPurchasePriceMainCurrency,
           exchangeRate: financialFund.fundCurrency.exchangeRate,
           currencyCode: financialFund.fundCurrency.currencyCode,
-          date: date || formattedDate,
-          invoiceNumber,
+          date: date + " " + formatteTime || formattedDate,
+          invoiceNumber: invoiceNumber,
+          counter: nextCounterPayment,
         }),
       ]);
 
-      supplier.total += totalPurchasePriceMainCurrency || 0;
+      newPurchaseInvoice.payments.push({
+        payment: paymentInFundCurrency,
+        paymentMainCurrency: totalPurchasePriceMainCurrency,
+        financialFunds: financialFund.fundName,
+        financialFundsCurrencyCode: financialFund.label,
+        date: date + " " + formatteTime || formattedDate,
+        paymentID: payment._id,
+      });
+
+      // Assign reports balance ID after the report is created
+      newPurchaseInvoice.reportsBalanceId = reports.id;
+      await newPurchaseInvoice.save();
+
+      // Update supplier and financial fund balances
+      supplier.total +=
+        totalPurchasePriceMainCurrency - ManualInvoiceDiscount || 0;
       await financialFund.save();
     } else {
       // Handle unpaid invoice logic
-      let total = totalPurchasePriceMainCurrency;
+      let total = totalPurchasePriceMainCurrency - ManualInvoiceDiscount;
       if (supplier.TotalUnpaid <= -1) {
         const t = total + supplier.TotalUnpaid;
         if (t > 0) {
@@ -630,9 +662,9 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         date: date || formattedDate,
         invoicesItems: invoiceItems,
         supllier: supllierObject,
-        currencyCode,
+        currency,
         exchangeRate,
-        onefinancialFunds,
+        financailFund,
         invoiceNumber,
         paid: "unpaid",
         totalPurchasePriceMainCurrency,
@@ -641,8 +673,11 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         totalRemainderMainCurrency: totalPurchasePriceMainCurrency,
         totalRemainder: invoiceGrandTotal,
         invoiceGrandTotal,
-        currencyId,
         taxDetails,
+        invoiceName,
+        ManualInvoiceDiscount,
+        InvoiceDiscountType,
+        subtotalWithDiscount
       });
     }
 
@@ -711,6 +746,29 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     await Promise.all(bulkSupplierPromises);
 
     await supplier.save();
+    await createPaymentHistory(
+      "invoice",
+      date + " " + formatteTime || formattedDate,
+      totalPurchasePriceMainCurrency,
+      supplier.TotalUnpaid,
+      "supplier",
+      supllierObject.value,
+      invoiceNumber,
+      dbName
+    );
+    if (paid === "paid") {
+      await createPaymentHistory(
+        "payment",
+        date + " " + formatteTime || formattedDate,
+        totalPurchasePriceMainCurrency,
+        supplier.TotalUnpaid,
+        "supplier",
+        supllierObject.value,
+        invoiceNumber,
+        dbName,
+        nextCounterPayment
+      );
+    }
     createInvoiceHistory(
       dbName,
       newPurchaseInvoice._id,
@@ -1057,7 +1115,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
   }
 });
 
-exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
+exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
@@ -1246,6 +1304,35 @@ exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
     "return",
     req.user._id
   );
+  res.status(201).json({ status: "success", data: savedInvoice, history });
+});
+
+exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  const returnModel = db.model(
+    "ReturenPurchaseInvoice",
+    returnPurchaseInvicesSchema
+  );
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const ReportsFinancialFundsModel = db.model(
+    "ReportsFinancialFunds",
+    reportsFinancialFundsSchema
+  );
+  const SupplierModel = db.model("Supplier", supplierSchema);
+
+  const formatDate = (date) => {
+    const padZero = (value) => (value < 10 ? `0${value}` : value);
+    return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(
+      date.getDate()
+    )} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(
+      date.getSeconds()
+    )}`;
+  };
+  const formattedDate = formatDate(new Date());
+
   res.status(201).json({ status: "success", data: savedInvoice, history });
 });
 

@@ -40,8 +40,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
       },
     ],
     exchangeRate: Number,
-    currencyCode: String,
-    currencyId: String,
+    currency: { currencyCode: String, currencyId: String },
     invoiceGrandTotal: Number,
     invoiceSubTotal: Number,
     invoiceDiscount: Number,
@@ -55,11 +54,10 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    invoiceName: String,
 
-    onefinancialFunds: {
-      type: mongoose.Schema.ObjectId,
-      ref: "FinancialFunds",
-    },
+    financailFund: { value: String, label: String },
+    paymentInFundCurrency: String,
     totalPurchasePrice: Number,
     totalPurchasePriceMainCurrency: Number,
 
@@ -80,7 +78,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         _id: false,
       },
     ],
-
+    InvoiceDiscountType: String,
     paid: {
       type: String,
       default: "unpaid",
