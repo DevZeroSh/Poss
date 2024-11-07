@@ -20,6 +20,7 @@ const {
   getEcommerceProductSponsored,
   getEcommerceProductFeatured,
   ecommerceDashboardStats,
+  getProductBySuppliers,
 } = require("../services/productServices");
 const {
   deleteProductValdiator,
@@ -79,5 +80,7 @@ productRout
   .get(getOneProduct)
   .put(authService.protect, uploadProductImage, resizerImage, updateProduct)
   .delete(authService.protect, deleteProductValdiator, archiveProduct);
+
+productRout.route("/suppliers/:id").get(getProductBySuppliers);
 
 module.exports = productRout;

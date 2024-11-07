@@ -11,7 +11,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const TaxSchema = require("../models/taxModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
-const returnPurchaseInvicesSchema = require("../models/returnPurchaseInvice");
+const refundPurchaseInviceModel = require("../models/refundPurchaseInviceModel");
 const { Search } = require("../utils/search");
 const { createProductMovement } = require("../utils/productMovement");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
@@ -530,7 +530,8 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     invoiceName,
     paymentInFundCurrency,
     InvoiceDiscountType,
-    subtotalWithDiscount,paymentDate
+    subtotalWithDiscount,
+    paymentDate,
   } = req.body;
 
   let supplier, invoicesItem, newPurchaseInvoice;
@@ -594,7 +595,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         ManualInvoiceDiscount,
         InvoiceDiscountType,
         subtotalWithDiscount,
-        paymentDate
+        paymentDate,
       });
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([
@@ -679,7 +680,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         ManualInvoiceDiscount,
         InvoiceDiscountType,
         subtotalWithDiscount,
-        paymentDate
+        paymentDate,
       });
     }
 
@@ -1124,7 +1125,7 @@ exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
   const productModel = db.model("Product", productSchema);
   const returnModel = db.model(
     "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
+    refundPurchaseInviceModel
   );
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
@@ -1309,33 +1310,312 @@ exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
   res.status(201).json({ status: "success", data: savedInvoice, history });
 });
 
-exports.returnPurchaseInvoice = asyncHandler(async (req, res, next) => {
+exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
 
-  const productModel = db.model("Product", productSchema);
-  const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
-  );
+  // Model definitions
+  const ProductModel = db.model("Product", productSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
   const SupplierModel = db.model("Supplier", supplierSchema);
+  const PurchaseInvoicesModel = db.model(
+    "RefundPurchaseInvoice",
+    refundPurchaseInviceModel
+  );
+  const PaymentModel = db.model("Payment", PaymentSchema);
+  const ActiveProductsValue = db.model(
+    "ActiveProductsValue",
+    ActiveProductsValueModel
+  );
+  const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
 
-  const formatDate = (date) => {
-    const padZero = (value) => (value < 10 ? `0${value}` : value);
-    return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(
-      date.getDate()
-    )} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(
-      date.getSeconds()
-    )}`;
+  const formattedDate = new Date().toISOString().replace("T", " ").slice(0, 19); // Simplified date formatting
+  const time = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
   };
-  const formattedDate = formatDate(new Date());
+  const formatteTime = time();
+  const {
+    supllierObject,
+    paid,
+    date,
+    financailFund,
+    exchangeRate,
+    totalInMainCurrency: totalPurchasePriceMainCurrency,
+    currency,
+    invoiceNumber,
+    invoiceSubTotal,
+    invoiceDiscount,
+    invoiceGrandTotal,
+    ManualInvoiceDiscount,
+    taxDetails,
+    invoiceName,
+    paymentInFundCurrency,
+    InvoiceDiscountType,
+    subtotalWithDiscount,
+    paymentDate,
+  } = req.body;
 
-  res.status(201).json({ status: "success", data: savedInvoice, history });
+  let supplier, invoicesItem, newPurchaseInvoice;
+
+  try {
+    invoicesItem = JSON.parse(req.body.invoicesItems);
+    supplier = await SupplierModel.findById(supllierObject.value);
+    if (!supplier) throw new Error("Supplier not found");
+  } catch (error) {
+    return res.status(400).json({ status: "error", message: error.message });
+  }
+
+  const productQRCodes = invoicesItem.map((item) => item.qr);
+  const products = await ProductModel.find({
+    qr: { $in: productQRCodes },
+  });
+
+  // Create a map for quick product lookups by QR code
+  const productMap = new Map(products.map((prod) => [prod.qr, prod]));
+
+  // Prepare and update invoice items with product data
+  const invoiceItems = invoicesItem.map((item) => {
+    const productDoc = productMap.get(item.qr);
+    if (!productDoc)
+      throw new Error(`Product not found for QR code: ${item.qr}`);
+    return {
+      ...item,
+      name: productDoc.name,
+      profitRatio: item.profitRatio || 0,
+    };
+  });
+
+  try {
+    // Handle invoice creation based on 'paid' status
+    if (paid === "paid") {
+      // Handle paid invoice logic
+      const financialFund = await FinancialFundsModel.findById(
+        financailFund.value
+      );
+      if (!financialFund) throw new Error("Financial fund not found");
+
+      financialFund.fundBalance -= paymentInFundCurrency;
+
+      newPurchaseInvoice = await PurchaseInvoicesModel.create({
+        employee: req.user._id,
+        invoicesItems: invoiceItems,
+        date: date || formattedDate,
+        supllier: supllierObject,
+        currency,
+        exchangeRate,
+        financailFund,
+        invoiceNumber,
+        paid,
+        totalPurchasePriceMainCurrency,
+        invoiceSubTotal,
+        invoiceDiscount,
+        invoiceGrandTotal,
+        taxDetails,
+        invoiceName,
+        paymentInFundCurrency: paymentInFundCurrency,
+        ManualInvoiceDiscount,
+        InvoiceDiscountType,
+        subtotalWithDiscount,
+        paymentDate,
+      });
+      // Use Promise.all for parallel database operations
+      const [reports, payment] = await Promise.all([
+        ReportsFinancialFundsModel.create({
+          date: date || formattedDate,
+          invoice: newPurchaseInvoice._id,
+          amount: paymentInFundCurrency,
+          type: "refund-purchase",
+          exchangeRate,
+          financialFundId: financailFund.value,
+          financialFundRest: financialFund.fundBalance,
+        }),
+        PaymentModel.create({
+          supplierId: supplier.value,
+          supplierName: supplier.label,
+          total: invoiceGrandTotal,
+          totalMainCurrency: totalPurchasePriceMainCurrency,
+          exchangeRate: financialFund.fundCurrency.exchangeRate,
+          currencyCode: financialFund.fundCurrency.currencyCode,
+          date: date + " " + formatteTime || formattedDate,
+          invoiceNumber: invoiceNumber,
+          counter: nextCounterPayment,
+        }),
+      ]);
+
+      newPurchaseInvoice.payments.push({
+        payment: paymentInFundCurrency,
+        paymentMainCurrency: totalPurchasePriceMainCurrency,
+        financialFunds: financialFund.fundName,
+        financialFundsCurrencyCode: financialFund.label,
+        date: date + " " + formatteTime || formattedDate,
+        paymentID: payment._id,
+      });
+
+      // Assign reports balance ID after the report is created
+      newPurchaseInvoice.reportsBalanceId = reports.id;
+      await newPurchaseInvoice.save();
+
+      // Update supplier and financial fund balances
+      supplier.total +=
+        totalPurchasePriceMainCurrency - ManualInvoiceDiscount || 0;
+      await financialFund.save();
+    } else {
+      // Handle unpaid invoice logic
+      let total = totalPurchasePriceMainCurrency - ManualInvoiceDiscount;
+      if (supplier.TotalUnpaid <= -1) {
+        const t = total + supplier.TotalUnpaid;
+        if (t > 0) {
+          total = t;
+          supplier.TotalUnpaid = t;
+        } else if (t < 0) {
+          supplier.TotalUnpaid = t;
+          req.body.paid = "paid";
+        } else {
+          total = 0;
+          supplier.TotalUnpaid = 0;
+          req.body.paid = "paid";
+        }
+      } else {
+        supplier.TotalUnpaid += total;
+      }
+      supplier.total += total || 0;
+
+      newPurchaseInvoice = await PurchaseInvoicesModel.create({
+        employee: req.user._id,
+        date: date || formattedDate,
+        invoicesItems: invoiceItems,
+        supllier: supllierObject,
+        currency,
+        exchangeRate,
+        financailFund,
+        invoiceNumber,
+        paid: "unpaid",
+        totalPurchasePriceMainCurrency,
+        invoiceSubTotal,
+        invoiceDiscount,
+        totalRemainderMainCurrency: totalPurchasePriceMainCurrency,
+        totalRemainder: invoiceGrandTotal,
+        invoiceGrandTotal,
+        taxDetails,
+        invoiceName,
+        ManualInvoiceDiscount,
+        InvoiceDiscountType,
+        subtotalWithDiscount,
+        paymentDate,
+      });
+    }
+
+    // Bulk update product quantities and stock information
+    const bulkProductUpdates = invoicesItem.map((item) => ({
+      updateOne: {
+        filter: { qr: item.qr, "stocks.stockId": item.stock._id },
+        update: {
+          $inc: {
+            quantity: -item.quantity,
+            "stocks.$.productQuantity": -item.quantity,
+          },
+        },
+      },
+    }));
+
+    await ProductModel.bulkWrite(bulkProductUpdates);
+
+    const bulkSupplierPromises = invoicesItem.map(async (item) => {
+      const product = productMap.get(item.qr);
+      const updates = [];
+
+      if (product) {
+        if (!product.suppliers.includes(supllierObject.value)) {
+          product.suppliers.push(supllierObject.value);
+          updates.push(product.save()); // Save suppliers update
+        }
+
+        if (product.type !== "Service") {
+          const updateResult = await ActiveProductsValue.findOneAndUpdate(
+            { currency: product.currency._id },
+            {
+              $inc: {
+                activeProductsCount: -item.quantity,
+                activeProductsValue: -item.orginalBuyingPrice * item.quantity,
+              },
+            },
+            { new: true, upsert: true } // Ensures document is created if it doesn't exist
+          );
+
+          const totalStockQuantity = product.stocks.reduce(
+            (total, stock) => total + stock.productQuantity,
+            0
+          );
+
+          // Log product movement
+          updates.push(
+            createProductMovement(
+              product._id,
+              totalStockQuantity,
+              item.quantity,
+              "out",
+              "refund-purchase",
+              dbName,
+              "Purchase Invoice"
+            )
+          );
+        }
+      }
+
+      return Promise.all(updates); // Await all updates for this item
+    });
+
+    // Ensure all mapped promises are awaited
+    await Promise.all(bulkSupplierPromises);
+
+    await supplier.save();
+    await createPaymentHistory(
+      "invoice",
+      date + " " + formatteTime || formattedDate,
+      totalPurchasePriceMainCurrency,
+      supplier.TotalUnpaid,
+      "supplier",
+      supllierObject.value,
+      invoiceNumber,
+      dbName
+    );
+    if (paid === "paid") {
+      await createPaymentHistory(
+        "payment",
+        date + " " + formatteTime || formattedDate,
+        totalPurchasePriceMainCurrency,
+        supplier.TotalUnpaid,
+        "supplier",
+        supllierObject.value,
+        invoiceNumber,
+        dbName,
+        nextCounterPayment
+      );
+    }
+    createInvoiceHistory(
+      dbName,
+      newPurchaseInvoice._id,
+      "create",
+      req.user._id
+    );
+    res.status(201).json({
+      status: "success",
+      message: "Invoice created successfully",
+      data: newPurchaseInvoice,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: "error", message: error.message });
+  }
 });
 
 exports.getReturnPurchase = asyncHandler(async (req, res, next) => {
@@ -1345,8 +1625,8 @@ exports.getReturnPurchase = asyncHandler(async (req, res, next) => {
   db.model("Employee", emoloyeeShcema);
 
   const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
+    "RefundPurchaseInvoice",
+    refundPurchaseInviceModel
   );
 
   const { totalPages, mongooseQuery } = await Search(returnModel, req);
@@ -1369,8 +1649,8 @@ exports.getOneReturnPurchase = asyncHandler(async (req, res, next) => {
   db.model("FinancialFunds", financialFundsSchema);
   db.model("Currency", currencySchema);
   const returnModel = db.model(
-    "ReturenPurchaseInvoice",
-    returnPurchaseInvicesSchema
+    "RefundPurchaseInvoice",
+    refundPurchaseInviceModel
   );
 
   const { id } = req.params;

@@ -37,8 +37,8 @@ exports.getProduct = asyncHandler(async (req, res, next) => {
   db.model("Labels", labelsSchema);
   db.model("Tax", TaxSchema);
   db.model("Unit", UnitSchema);
-  db.model("Variant", variantSchema);
   db.model("Currency", currencySchema);
+  db.model("Variant", variantSchema);
   db.model("Review", reviewSchema);
   db.model("Users", E_user_Schema);
   const pageSize = req.query.limit || 25;
@@ -1511,4 +1511,54 @@ exports.addProduct = asyncHandler(async (req, res) => {
       .status(500)
       .json({ error: "Internal Server Error", details: error.message });
   }
+});
+
+exports.getProductBySuppliers = asyncHandler(async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const productModel = db.model("Product", productSchema);
+  db.model("Unit", UnitSchema);
+  db.model("Currency", currencySchema);
+  db.model("Tax", TaxSchema);
+
+  const pageSize = parseInt(req.query.limit) || 25;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  // Get the supplier ID from the URL path and convert it to an array
+  const supplierIds = req.params.id ? [req.params.id] : null;
+
+  const query = {};
+
+  // Apply the supplier filter only if supplierIds is not null
+  if (supplierIds) {
+    query.suppliers = { $in: supplierIds };
+  }
+
+  if (req.query.keyword) {
+    query.$or = [
+      { name: { $regex: req.query.keyword, $options: "i" } },
+      { qr: { $regex: req.query.keyword, $options: "i" } },
+    ];
+  }
+
+  const totalItems = await productModel.countDocuments(query);
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  const products = await productModel
+    .find(query)
+    .populate("currency")
+    .populate("unit")
+    .populate({ path: "tax", select: "tax  _id" })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.json({
+    status: "true",
+    page,
+    results: totalItems,
+    Pages: totalPages,
+    data: products,
+  });
 });

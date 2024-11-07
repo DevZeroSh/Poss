@@ -3,7 +3,7 @@ const authService = require("../services/authService");
 const {
   findAllProductInvoices,
   findOneProductInvoices,
-  returnPurchaseInvoice,
+  refundPurchaseInvoice,
   getReturnPurchase,
   getOneReturnPurchase,
   createPurchaseInvoice,
@@ -15,7 +15,7 @@ PurchaseInvoices.use(authService.protect);
 
 PurchaseInvoices.route("/refund")
   .get(getReturnPurchase)
-  .post(returnPurchaseInvoice);
+  .post(refundPurchaseInvoice);
 PurchaseInvoices.route("/refund/:id").get(getOneReturnPurchase);
 PurchaseInvoices.route("/")
   .post(createPurchaseInvoice)
