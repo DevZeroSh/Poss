@@ -526,6 +526,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     invoiceDiscount,
     invoiceGrandTotal,
     ManualInvoiceDiscount,
+    ManualInvoiceDiscountValue,
     taxDetails,
     invoiceName,
     paymentInFundCurrency,
@@ -593,6 +594,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         invoiceName,
         paymentInFundCurrency: paymentInFundCurrency,
         ManualInvoiceDiscount,
+        ManualInvoiceDiscountValue,
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
@@ -636,11 +638,11 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
       // Update supplier and financial fund balances
       supplier.total +=
-        totalPurchasePriceMainCurrency - ManualInvoiceDiscount || 0;
+        totalPurchasePriceMainCurrency - ManualInvoiceDiscountValue || 0;
       await financialFund.save();
     } else {
       // Handle unpaid invoice logic
-      let total = totalPurchasePriceMainCurrency - ManualInvoiceDiscount;
+      let total = totalPurchasePriceMainCurrency - ManualInvoiceDiscountValue;
       if (supplier.TotalUnpaid <= -1) {
         const t = total + supplier.TotalUnpaid;
         if (t > 0) {
@@ -678,6 +680,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         taxDetails,
         invoiceName,
         ManualInvoiceDiscount,
+        ManualInvoiceDiscountValue,
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
