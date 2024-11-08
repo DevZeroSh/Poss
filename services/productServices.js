@@ -577,6 +577,21 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
       product._id,
       product.quantity,
       product.quantity,
+      0,
+      0,
+      "movement",
+      "in",
+      "create",
+      dbName
+    );
+
+    await createProductMovement(
+      product._id,
+      0,
+      0,
+      product.buyingprice,
+      product.buyingprice,
+      "price",
       "in",
       "create",
       dbName
@@ -832,6 +847,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     }
 
     const quantityChanged = existingProduct.quantity != req.body.quantity;
+    const priceChanged = existingProduct.buyingprice != req.body.buyingprice;
 
     const product = await productModel.findByIdAndUpdate(
       { _id: id },
@@ -850,6 +866,22 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
         id,
         req.body.quantity,
         req.body.quantity - req.body.quantityBefore,
+        0,
+        0,
+        "movement",
+        "edit",
+        "update",
+        dbName
+      );
+    }
+    if (priceChanged) {
+      savedMovement = await createProductMovement(
+        id,
+        0,
+        0,
+        req.body.buyingprice,
+        existingProduct.buyingprice,
+        "price",
         "edit",
         "update",
         dbName

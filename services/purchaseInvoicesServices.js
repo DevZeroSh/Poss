@@ -735,11 +735,24 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
               product._id,
               totalStockQuantity,
               item.quantity,
+              0,
+              0,
+              "movement",
               "in",
               "purchase",
-              dbName,
-              "Purchase Invoice"
+              dbName
             )
+          );
+          createProductMovement(
+            product._id,
+            0,
+            0,
+            item.orginalBuyingPrice,
+            product.buyingprice,
+            "price",
+            "in",
+            "purchase",
+            dbName
           );
         }
       }
