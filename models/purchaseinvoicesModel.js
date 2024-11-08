@@ -21,6 +21,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
           _id: { type: mongoose.Schema.Types.ObjectId },
           tax: { type: Number },
         },
+        unit:String,
         stock: {
           _id: { type: mongoose.Schema.Types.ObjectId },
           stock: { type: String },
@@ -44,11 +45,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     exchangeRate: Number,
     currency: {
       currencyCode: String,
-      id: String,
       exchangeRate: Number,
-      currency: String,
-      currencyID: String,
-      label: String,
       value: String,
     },
     invoiceGrandTotal: Number,
