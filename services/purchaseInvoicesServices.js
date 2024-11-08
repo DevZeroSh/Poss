@@ -637,12 +637,11 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       await newPurchaseInvoice.save();
 
       // Update supplier and financial fund balances
-      supplier.total +=
-        totalPurchasePriceMainCurrency - ManualInvoiceDiscountValue || 0;
+      supplier.total += totalPurchasePriceMainCurrency || 0;
       await financialFund.save();
     } else {
       // Handle unpaid invoice logic
-      let total = totalPurchasePriceMainCurrency - ManualInvoiceDiscountValue;
+      let total = totalPurchasePriceMainCurrency;
       if (supplier.TotalUnpaid <= -1) {
         const t = total + supplier.TotalUnpaid;
         if (t > 0) {
