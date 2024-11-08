@@ -68,7 +68,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     paymentInFundCurrency: String,
     totalPurchasePrice: Number,
     totalPurchasePriceMainCurrency: Number,
-
+    ManualInvoiceDiscountValue:Number,
     date: String,
     description: String,
     invoiceType: String,
