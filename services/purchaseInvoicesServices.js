@@ -733,6 +733,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
           updates.push(
             createProductMovement(
               product._id,
+              newPurchaseInvoice._id,
               totalStockQuantity,
               item.quantity,
               0,
@@ -745,6 +746,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
           );
           createProductMovement(
             product._id,
+            newPurchaseInvoice._id,
             0,
             0,
             item.orginalBuyingPrice,

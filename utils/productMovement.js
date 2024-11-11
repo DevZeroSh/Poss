@@ -4,6 +4,7 @@ const ApiError = require("./apiError");
 
 const createProductMovement = async (
   productId,
+  reference,
   newQuantity,
   quantity,
   newPrice,
@@ -19,6 +20,7 @@ const createProductMovement = async (
   try {
     const newMovement = new movementSchema({
       productId,
+      reference,
       quantity,
       newQuantity,
       newPrice,
