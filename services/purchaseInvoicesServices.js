@@ -771,18 +771,20 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
               dbName
             )
           );
-          createProductMovement(
-            product._id,
-            newPurchaseInvoice._id,
-            0,
-            0,
-            item.orginalBuyingPrice,
-            product.buyingprice,
-            "price",
-            "in",
-            "purchase",
-            dbName
-          );
+          if (item.orginalBuyingPrice !== product.buyingprice) {
+            createProductMovement(
+              product._id,
+              newPurchaseInvoice._id,
+              0,
+              0,
+              item.orginalBuyingPrice,
+              product.buyingprice,
+              "price",
+              "in",
+              "purchase",
+              dbName
+            );
+          }
         }
       }
 
