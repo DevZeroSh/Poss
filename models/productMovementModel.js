@@ -7,6 +7,7 @@ const ProductMovementSchema = new mongoose.Schema(
       ref: "Product",
       required: true,
     },
+    reference: mongoose.Schema.ObjectId,
     quantity: {
       type: Number,
       default: 0,
