@@ -477,13 +477,14 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const timeIsoString = new Date().toISOString();
 
   const customarsPromise = customersModel.findById(req.body.customer.id);
-  const nextCounterOrder = orderModel
+  const nextCounterOrder = await orderModel
     .countDocuments()
     .then((count) => count + 1);
+
   const nextCounterReports = ReportsSalesModel.countDocuments().then(
     (count) => count + 1
   );
-  req.body.counter = nextCounterReports;
+  req.body.counter = nextCounterOrder;
   let financialFunds;
   if (req.body.paymentsStatus === "paid") {
     financialFunds = await FinancialFundsModel.findById(
@@ -591,16 +592,17 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
         customars.TotalUnpaid = Number(t);
       } else if (t < 0) {
         customars.TotalUnpaid = t;
-        req.body.paid = "paid";
+        req.body.paymentsStatus = "paid";
       } else {
         total = 0;
         customars.TotalUnpaid = 0;
-        req.body.paid = "paid";
+        req.body.paymentsStatus = "paid";
       }
     } else {
       customars.TotalUnpaid += total;
     }
-
+    req.body.totalRemainderMainCurrency = req.body.totalInMainCurrency;
+    req.body.totalRemainder = req.body.invoiceGrandTotal;
     order = await orderModel.create(req.body);
   }
   const productQRCodes = cartItems.map((item) => item.qr);
@@ -758,7 +760,10 @@ exports.findAllOrder = asyncHandler(async (req, res, next) => {
   };
   // Add keyword filter if provided
   if (req.query.keyword) {
-    query.$or = [{ counter: { $regex: req.query.keyword, $options: "i" } }];
+    query.$or = [
+      { counter: { $regex: req.query.keyword, $options: "i" } },
+      { invoiceName: { $regex: req.query.keyword, $options: "i" } },
+    ];
   }
 
   let mongooseQuery = orderModel.find(query);
