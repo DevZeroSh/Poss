@@ -533,6 +533,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     InvoiceDiscountType,
     subtotalWithDiscount,
     paymentDate,
+    invoiceTax,
   } = req.body;
 
   let supplier, invoicesItem, newPurchaseInvoice;
@@ -598,6 +599,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
+        invoiceTax
       });
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([
@@ -683,6 +685,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
+        invoiceTax
       });
     }
 
@@ -1181,6 +1184,7 @@ exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
     finalPriceMainCurrency,
     totalPurchasePrice,
     invoiceFinancialFund,
+    
   } = req.body;
 
   const invoiceItems = [];
