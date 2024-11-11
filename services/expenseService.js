@@ -181,14 +181,16 @@ exports.getInvoiceExpense = asyncHandler(async (req, res, next) => {
   const pageSize = req.query.limit || 20;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
-  const totalItems = await invoiceHistoryModel.countDocuments();
+  const totalItems = await invoiceHistoryModel.countDocuments({
+    invoiceId: id,
+  });
 
   const totalPages = Math.ceil(totalItems / pageSize);
   const casehistory = await invoiceHistoryModel
     .find({
       invoiceId: id,
     })
-    .populate("employeeId")
+    .populate({ path: "employeeId", select: "name email" })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(pageSize);

@@ -22,6 +22,7 @@ const stockSchema = require("../models/stockModel");
 const PaymentSchema = require("../models/paymentModel");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const multer = require("multer");
+const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 
 //Fixed Ourchse invoice
 exports.createPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
@@ -466,6 +467,7 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
+  const invoiceHistoryModel = db.model("invoiceHistory", invoiceHistorySchema);
 
   const { id } = req.params;
   const ProductInvoices = await PurchaseInvoicesModel.findById(id).populate({
@@ -476,7 +478,29 @@ exports.findOneProductInvoices = asyncHandler(async (req, res, next) => {
   if (!ProductInvoices) {
     return next(new ApiError(`No ProductInvoices for this id ${id}`, 404));
   }
-  res.status(200).json({ status: "true", data: ProductInvoices });
+  const pageSize = req.query.limit || 20;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+  const totalItems = await invoiceHistoryModel.countDocuments({
+    invoiceId: id,
+  });
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+  const invoiceHistory = await invoiceHistoryModel
+    .find({
+      invoiceId: id,
+    })
+    .populate({ path: "employeeId", select: "name email" })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(pageSize);
+
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    data: ProductInvoices,
+    history: invoiceHistory,
+  });
 });
 
 exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
@@ -599,7 +623,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
-        invoiceTax
+        invoiceTax,
       });
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([
@@ -685,7 +709,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         InvoiceDiscountType,
         subtotalWithDiscount,
         paymentDate,
-        invoiceTax
+        invoiceTax,
       });
     }
 
@@ -1186,7 +1210,6 @@ exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
     finalPriceMainCurrency,
     totalPurchasePrice,
     invoiceFinancialFund,
-    
   } = req.body;
 
   const invoiceItems = [];
