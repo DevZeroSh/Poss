@@ -814,10 +814,7 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
     query = { counter: id };
   }
 
-  const order = await orderModel.findOne(query).populate({
-    path: "onefinancialFunds",
-    select: "fundName",
-  });
+  const order = await orderModel.findOne(query)
 
   if (!order) {
     return next(new ApiError(`No order found for this id ${id}`, 404));
