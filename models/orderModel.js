@@ -94,16 +94,19 @@ const orderSchema = new mongoose.Schema(
     taxSummary: [
       { taxRate: Number, totalTaxValue: Number, discountTaxValue: Number },
     ],
-    totalInMainCurrency: Number,
-    manuallInvoiceDiscount: Number,
-    manuallInvoiceDiscountValue: Number,
-    invoiceDiscount: Number,
     currency: {
       value: String,
       currencyCode: String,
       exchangeRate: String,
       _id: false,
     },
+    
+    totalInMainCurrency: Number,
+    manuallInvoiceDiscount: Number,
+    manuallInvoiceDiscountValue: Number,
+    invoiceDiscount: Number,
+    ManualInvoiceDiscountValue: Number,
+
     currencyExchangeRate: { type: Number, default: 1 },
     orderDate: Date,
     orderNumber: String,
@@ -115,6 +118,9 @@ const orderSchema = new mongoose.Schema(
     paymentInFundCurrency: Number,
     invoiceGrandTotal: Number,
     InvoiceDiscountType: String,
+    invoiceSubTotal: Number,
+    invoiceTax: Number,
+
     payments: [
       {
         payment: Number,
