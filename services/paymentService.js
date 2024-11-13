@@ -270,6 +270,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
       date: formattedDate,
+      paymentInInvoiceCurrency: req.body.paymentInInvoiceCurrency,
     });
     await suppler.save();
     const history = createInvoiceHistory(
@@ -278,7 +279,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "payment",
       req.user._id,
       formattedDate,
-      req.body.paymentInFundCurrency + " " + req.body.financialFundsCurrencyCode,
+      req.body.paymentInFundCurrency +
+        " " +
+        req.body.financialFundsCurrencyCode,
       "invoice"
     );
 
