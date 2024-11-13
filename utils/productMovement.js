@@ -33,7 +33,11 @@ const createProductMovement = async (
 
     return savedMovement;
   } catch (error) {
-    return new ApiError(`Error creating product: ${error.message}`, 500);
+    console.error("Error saving product movement:", error);
+    throw new ApiError(
+      `Error creating product movement: ${error.message}`,
+      500
+    );
   }
 };
 
