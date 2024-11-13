@@ -151,7 +151,8 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     ActiveProductsValueModel
   );
   const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
-  const nextCounterPurchaseInvoices = (await PurchaseInvoicesModel.countDocuments()) + 1;
+  const nextCounterPurchaseInvoices =
+    (await PurchaseInvoicesModel.countDocuments()) + 1;
 
   const formattedDate = new Date().toISOString().replace("T", " ").slice(0, 19); // Simplified date formatting
   const time = () => {
@@ -251,7 +252,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         subtotalWithDiscount,
         paymentDate,
         invoiceTax,
-        counter:nextCounterPurchaseInvoices,
+        counter: nextCounterPurchaseInvoices,
       });
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([
@@ -1356,7 +1357,7 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
   // 1) find prucseInvices
   const purchaseInvoices = await PurchaseInvoicesModel.findById(id);
   const supplier = await SupplierModel.findOne({
-    _id: purchaseInvoices.suppliersId,
+    _id: purchaseInvoices.supllier.value,
   });
 
   if (
@@ -1367,25 +1368,16 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
       // 2) Take Out the Quantity
       const bulkProductUpdates = purchaseInvoices.invoicesItems.map((item) => ({
         updateOne: {
-          filter: { qr: item.qr },
+          filter: { qr: item.qr, "stocks.stockId": item.stock._id },
           update: {
-            $inc: { quantity: -item.quantity, activeCount: -item.quantity },
+            $inc: {
+              quantity: -item.quantity,
+              "stocks.$.productQuantity": -item.quantity,
+            },
           },
         },
       }));
       await ProductModel.bulkWrite(bulkProductUpdates);
-      const bulkStockUpdates = [];
-      purchaseInvoices.invoicesItems.forEach((item) => {
-        bulkStockUpdates.push({
-          updateOne: {
-            filter: { qr: item.qr, "stocks.stockId": item.stockId },
-            update: {
-              $inc: { "stocks.$.productQuantity": -item.quantity },
-            },
-          },
-        });
-      });
-      await ProductModel.bulkWrite(bulkStockUpdates);
       // 3) Take out in the Active Quantity
       purchaseInvoices.invoicesItems.map(async (item) => {
         const product = await ProductModel.findOne({ qr: item.qr });
@@ -1396,7 +1388,7 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
           if (existingRecord) {
             existingRecord.activeProductsCount -= item.quantity;
             existingRecord.activeProductsValue -=
-              item.buyingpriceOringal * item.quantity;
+              item.orginalBuyingPrice * item.quantity;
             await existingRecord.save();
           } else {
             await createActiveProductsValue(0, 0, product.currency._id, dbName);
@@ -1406,32 +1398,8 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
       supplier.total -= purchaseInvoices.totalRemainderMainCurrency;
       supplier.TotalUnpaid -= purchaseInvoices.totalRemainderMainCurrency;
       await supplier.save();
-      // 4) minus Qunaityt in Supplier
-      purchaseInvoices.invoicesItems.forEach((item) => {
-        const existingProduct = supplier.products.find(
-          (prod) => prod.qr === item.qr
-        );
 
-        if (existingProduct) {
-          Object.assign(existingProduct, {
-            quantity: existingProduct.quantity - item.quantity,
-            buyingprice: item.buyingpriceOringal,
-            exchangeRate: item.currency,
-            taxRate: item.taxRate,
-          });
-        } else {
-          supplier.products.push({
-            product: item.product,
-            qr: item.qr,
-            name: item.name,
-            buyingprice: item.buyingpriceOringal,
-            quantity: -item.quantity,
-            exchangeRate: item.currency,
-            taxRate: item.taxRate,
-          });
-        }
-      });
-      // 5) minus balance form Fund and delete archives Reports in Supplier
+      // 4) minus balance form Fund and delete archives Reports in Supplier
       if (purchaseInvoices.reportsBalanceId) {
         const reportsBalanceId =
           await ReportsFinancialFundsModel.findByIdAndUpdate(
