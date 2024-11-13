@@ -484,6 +484,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const nextCounterReports = ReportsSalesModel.countDocuments().then(
     (count) => count + 1
   );
+  req.body.type = "sales";
   req.body.counter = nextCounterOrder;
   let financialFunds;
   if (req.body.paymentsStatus === "paid") {
@@ -842,14 +843,12 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
     .skip(skip)
     .limit(pageSize);
 
-  res
-    .status(200)
-    .json({
-      status: "true",
-      Pages: totalPages,
-      data: order,
-      history: invoiceHistory,
-    });
+  res.status(200).json({
+    status: "true",
+    Pages: totalPages,
+    data: order,
+    history: invoiceHistory,
+  });
 });
 
 exports.editOrderInvoiceOld = asyncHandler(async (req, res, next) => {

@@ -130,8 +130,8 @@ const orderSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["normal", "bills", "openBalance", "ecommerce", "cancel"],
-      default: "normal",
+      enum: ["sales", "bills", "openBalance", "ecommerce", "cancel"],
+      default: "sales",
     },
 
     fish: [String],
