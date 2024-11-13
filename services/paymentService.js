@@ -14,6 +14,7 @@ const orderSchema = require("../models/orderModel");
 const { createPaymentHistory } = require("./paymentHistoryService");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const expensesSchema = require("../models/expensesModel");
+const { createInvoiceHistory } = require("./invoiceHistoryService");
 
 async function recalculateBalances(startDate, dbName) {
   const db = mongoose.connection.useDb(dbName);
@@ -104,6 +105,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   req.body.counter = nextCounter;
   const description = req.body.description;
   let tes1t = [];
+
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
 
@@ -253,14 +255,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     purchase.totalRemainder -=
       req.body.totalMainCurrency / req.body.invoiceExchangeRate;
 
-    purchase.payments.push({
-      payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
-      paymentMainCurrency: req.body.totalMainCurrency,
-      financialFunds: req.body.financialFundsName,
-      paymentID: payment._id,
-      date: formattedDate,
-    });
-
+ 
+    console.log(req.body.taker);
     if (purchase.totalRemainderMainCurrency <= 0.9) {
       purchase.paid = "paid";
       purchase.totalRemainderMainCurrency = 0;
@@ -269,9 +265,20 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
     financialFunds.fundBalance -= req.body.total;
-
-    await purchase.save();
+    purchase.payments.push({
+      payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
+      paymentMainCurrency: req.body.totalMainCurrency,
+      financialFunds: req.body.financialFundsName,
+      paymentID: payment._id,
+      date: formattedDate,
+    });
     await suppler.save();
+    const history = createInvoiceHistory(
+      dbName,
+      req.body.purchaseId,
+      "payment",
+      req.user._id
+    );
 
     paymentText = "payment-sup";
     await createPaymentHistory(
@@ -286,6 +293,10 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       description,
       nextCounter
     );
+
+    await purchase.save();
+
+
   } else if (req.body.taker === "sales") {
     const sales = await salesrModel.findById({
       _id: req.body.salesId,

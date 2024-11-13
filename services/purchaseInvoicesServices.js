@@ -151,6 +151,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     ActiveProductsValueModel
   );
   const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
+  const nextCounterPurchaseInvoices = (await PurchaseInvoicesModel.countDocuments()) + 1;
 
   const formattedDate = new Date().toISOString().replace("T", " ").slice(0, 19); // Simplified date formatting
   const time = () => {
@@ -250,6 +251,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         subtotalWithDiscount,
         paymentDate,
         invoiceTax,
+        counter:nextCounterPurchaseInvoices,
       });
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([

@@ -86,6 +86,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    counter: String,
     InvoiceDiscountType: String,
     paid: {
       type: String,

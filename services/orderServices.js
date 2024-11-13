@@ -1,7 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const mongoose = require("mongoose");
-const { default: slugify } = require("slugify");
 const cron = require("node-cron");
 
 const productSchema = require("../models/productModel");
@@ -1468,37 +1467,23 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
   try {
     const order = await models.ReturnOrder.create(req.body);
 
-    const bulkUpdateOptions = req.body.cartItems.map((item) => ({
+    const bulkUpdateOptions = req.body.invoicesItems.map((item) => ({
       updateOne: {
-        filter: { _id: item._id },
+        filter: { _id: item._id, "stocks.stockId": item.stock._id },
         update: {
-          $inc: { quantity: +item.quantity, activeCount: +item.quantity },
+          $inc: {
+            quantity: +item.quantity,
+            "stocks.$.productQuantity": +item.quantity,
+          },
         },
       },
     }));
 
     await models.Product.bulkWrite(bulkUpdateOptions);
     await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
-    const bulkUpdates = req.body.cartItems.map(
-      (item) => (
-        console.log(item),
-        {
-          updateOne: {
-            filter: { qr: item.qr, "stocks.stockId": item.stockId },
-            update: {
-              $inc: {
-                "stocks.$.productQuantity": +item.quantity,
-              },
-            },
-          },
-        }
-      )
-    );
-
-    await models.Product.bulkWrite(bulkUpdates);
 
     await Promise.all(
-      req.body.cartItems.map(async (item) => {
+      req.body.invoicesItems.map(async (item) => {
         const product = await models.Product.findOne({ qr: item.qr });
         if (product) {
           const { currency: itemCurrency } = product;
@@ -1600,36 +1585,23 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           counter: new RegExp(`^${counterPrefix}-`),
         })) + 1;
 
-      console.log(nextCounter);
       req.body.counter = `${req.body.counter}-${nextCounter}`;
       const order = await models.ReturnOrder.create(req.body);
 
       const bulkUpdateOptions = req.body.cartItems.map((item) => ({
         updateOne: {
-          filter: { _id: item._id },
-          update: { $inc: { quantity: +item.quantity } },
+          filter: { _id: item._id, "stocks.stockId": item.stock._id },
+          update: {
+            $inc: {
+              quantity: +item.quantity,
+              "stocks.$.productQuantity": +item.quantity,
+            },
+          },
         },
       }));
 
       await models.Product.bulkWrite(bulkUpdateOptions);
       await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
-      const bulkUpdates = req.body.cartItems.map(
-        (item) => (
-          console.log(item),
-          {
-            updateOne: {
-              filter: { qr: item.qr, "stocks.stockId": item.stockId },
-              update: {
-                $inc: {
-                  "stocks.$.productQuantity": +item.quantity,
-                },
-              },
-            },
-          }
-        )
-      );
-
-      await models.Product.bulkWrite(bulkUpdates);
 
       await Promise.all(
         req.body.cartItems.map(async (item) => {
@@ -1779,7 +1751,7 @@ exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
 exports.canceledOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const orderModel = db.model("Orders", orderSchema);
+  const orderModel = db.model("Sales", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(
     "ReportsFinancialFunds",
@@ -1813,13 +1785,13 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
     totalRemainder: 0,
   });
   if (canceled.payments.length <= 0 && canceled.type !== "cancel") {
-    const bulkProductCancel = canceled.cartItems.map((item) => ({
+    const bulkProductCancel = canceled.invoicesItems.map((item) => ({
+    
       updateOne: {
-        filter: { qr: item.qr, "stocks.stockId": item.stockId },
+        filter: { qr: item.qr, "stocks.stockId": item.stock._id },
         update: {
           $inc: {
             quantity: +item.quantity,
-            activeCount: +item.quantity,
             "stocks.$.productQuantity": +item.quantity,
           },
         },
@@ -1832,7 +1804,7 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
       return next(new ApiError("Bulk update failed" + error, 500));
     }
 
-    canceled.cartItems.map(async (item) => {
+    canceled.invoicesItems.map(async (item) => {
       const product = await productModel.findOne({ qr: item.qr });
       if (product && product.type !== "Service") {
         const existingRecord = await ActiveProductsValue.findOne({
@@ -1864,7 +1836,7 @@ exports.canceledOrder = asyncHandler(async (req, res, next) => {
     await PaymentHistoryModel.deleteMany({
       invoiceNumber: canceled.counter,
     });
-    await customersModel.findByIdAndUpdate(canceled.customarId, {
+    await customersModel.findByIdAndUpdate(canceled.customer._id, {
       $inc: {
         TotalUnpaid: -canceled.totalOrderPrice,
         total: -canceled.totalOrderPrice,
@@ -1991,7 +1963,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
     orderDate: formattedDate,
     type: "bills",
     totalInMainCurrency: totalOrderPrice,
-    counter: "in " + nextCounter,
+    counter: nextCounter,
     paymentsStatus: "paid",
     exchangeRate: 1,
     fish: fish,

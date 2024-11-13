@@ -8,7 +8,7 @@ const invoiceHistorySchema = new mongoose.Schema(
     },
     historyType: {
       type: String,
-      enum: ["create", "edit", "return", "cancel"],
+      enum: ["create", "edit", "return", "cancel", "payment"],
       required: true,
     },
     employeeId: {
