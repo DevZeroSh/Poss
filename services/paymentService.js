@@ -278,7 +278,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "payment",
       req.user._id,
       formattedDate,
-      req.body.paymentInFundCurrency + " " + req.body.financialFundsCurrencyCode
+      req.body.paymentInFundCurrency + " " + req.body.financialFundsCurrencyCode,
+      "invoice"
     );
 
     paymentText = "payment-sup";

@@ -11,6 +11,7 @@ const invoiceHistorySchema = new mongoose.Schema(
       enum: ["create", "edit", "return", "cancel", "payment"],
       required: true,
     },
+    from:String,
     employeeId: {
       type: mongoose.Schema.ObjectId,
       ref: "Employee",
