@@ -16,6 +16,7 @@ const invoiceHistorySchema = new mongoose.Schema(
       ref: "Employee",
     },
     date: String,
+    desc: String,
   },
   { timestamps: true }
 );

@@ -32,7 +32,8 @@ exports.createInvoiceHistory = async (
   invoiceId,
   historyType,
   employeeId,
-  formattedDate
+  formattedDate,
+  desc
 ) => {
   try {
     const dbName = databaseName;
@@ -48,6 +49,7 @@ exports.createInvoiceHistory = async (
       historyType,
       employeeId,
       date: formattedDate,
+      desc: desc,
     });
     const savedInvoiceHistory = await invoiceHistoryModel.create(
       invoiceHistoryData

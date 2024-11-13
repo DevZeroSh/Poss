@@ -252,10 +252,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     });
     payment = await paymentModel.create(req.body);
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
-    purchase.totalRemainder -=
-      req.body.totalMainCurrency / req.body.invoiceExchangeRate;
+    purchase.totalRemainder -= req.body.paymentInFundCurrency;
 
- 
     console.log(req.body.taker);
     if (purchase.totalRemainderMainCurrency <= 0.9) {
       purchase.paid = "paid";
@@ -264,12 +262,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     }
     tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
-    financialFunds.fundBalance -= req.body.total;
+    financialFunds.fundBalance -= req.body.paymentInFundCurrency;
     purchase.payments.push({
-      payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
+      payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
       paymentMainCurrency: req.body.totalMainCurrency,
       financialFunds: req.body.financialFundsName,
       paymentID: payment._id,
+      financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
       date: formattedDate,
     });
     await suppler.save();
@@ -277,7 +276,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       dbName,
       req.body.purchaseId,
       "payment",
-      req.user._id
+      req.user._id,
+      formattedDate,
+      req.body.paymentInFundCurrency + " " + req.body.financialFundsCurrencyCode
     );
 
     paymentText = "payment-sup";
@@ -295,8 +296,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     );
 
     await purchase.save();
-
-
   } else if (req.body.taker === "sales") {
     const sales = await salesrModel.findById({
       _id: req.body.salesId,
@@ -346,7 +345,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   await payment.save();
   await ReportsFinancialFundsModel.create({
     date: timeIsoString,
-    amount: req.body.total,
+    amount: req?.body?.total || req?.body?.paymentInFundCurrency,
     finalPriceMainCurrency: req.body.totalMainCurrency,
     payment: payment._id,
     type: paymentText,
