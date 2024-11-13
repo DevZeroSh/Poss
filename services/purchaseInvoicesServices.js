@@ -750,8 +750,11 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
           product._id,
           totalStockQuantity,
           item.quantity,
-          "in",
-          "purchase",
+          0,
+          0,
+          "movement",
+          "out",
+          "Purchase Invoice",
           dbName
         );
       }
@@ -1233,10 +1236,12 @@ exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
               product._id,
               totalStockQuantity,
               item.quantity,
+              0,
+              0,
+              "movement",
               "out",
-              "refund-purchase",
+              "Purchase Invoice",
               dbName,
-              "Purchase Invoice"
             )
           );
         }
@@ -1380,21 +1385,57 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
       await ProductModel.bulkWrite(bulkProductUpdates);
       // 3) Take out in the Active Quantity
       purchaseInvoices.invoicesItems.map(async (item) => {
-        const product = await ProductModel.findOne({ qr: item.qr });
-        if (product && product.type !== "Service") {
-          const existingRecord = await ActiveProductsValue.findOne({
-            currency: product.currency._id,
-          });
-          if (existingRecord) {
-            existingRecord.activeProductsCount -= item.quantity;
-            existingRecord.activeProductsValue -=
-              item.orginalBuyingPrice * item.quantity;
-            await existingRecord.save();
-          } else {
-            await createActiveProductsValue(0, 0, product.currency._id, dbName);
+        try {
+          const product = await ProductModel.findOne({ qr: item.qr });
+          const updates = [];
+          if (product && product.type !== "Service") {
+            // Find or create ActiveProductsValue record
+            const existingRecord = await ActiveProductsValue.findOne({
+              currency: product.currency._id,
+            });
+            if (existingRecord) {
+              existingRecord.activeProductsCount -= item.quantity;
+              existingRecord.activeProductsValue -=
+                item.orginalBuyingPrice * item.quantity;
+              await existingRecord.save();
+            } else {
+              await createActiveProductsValue(
+                0,
+                0,
+                product.currency._id,
+                dbName
+              );
+            }
+
+            // Calculate total stock quantity after updates
+            const totalStockQuantity = product.stocks.reduce(
+              (total, stock) => total + stock.productQuantity,
+              0
+            );
+
+            updates.push(
+              createProductMovement(
+                product.id,
+                id,
+                totalStockQuantity,
+                item.quantity,
+                0,
+                0,
+                "movement",
+                "out",
+                "Purchase Invoice",
+                dbName
+              )
+            );
           }
+          await Promise.all(updates);
+        } catch (error) {
+          console.error(`Error processing item with qr ${item.qr}:`, error);
         }
       });
+
+      // Execute all promises at once
+
       supplier.total -= purchaseInvoices.totalRemainderMainCurrency;
       supplier.TotalUnpaid -= purchaseInvoices.totalRemainderMainCurrency;
       await supplier.save();
