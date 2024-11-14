@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const PurchaseInvoicesSchema = new mongoose.Schema(
   {
     supllier: {
-      value: String,
-      label: String,
+      id: String,
+      name: String,
       supplierCompany: String,
       supplierEmail: String,
       phoneNumber: String,

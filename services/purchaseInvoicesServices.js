@@ -192,7 +192,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   try {
     invoicesItem = JSON.parse(req.body.invoicesItems);
-    supplier = await SupplierModel.findById(supllierObject.value);
+    supplier = await SupplierModel.findById(supllierObject.id);
     if (!supplier) throw new Error("Supplier not found");
   } catch (error) {
     return res.status(400).json({ status: "error", message: error.message });
@@ -363,8 +363,8 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       const updates = [];
 
       if (product) {
-        if (!product.suppliers.includes(supllierObject.value)) {
-          product.suppliers.push(supllierObject.value);
+        if (!product.suppliers.includes(supllierObject.id)) {
+          product.suppliers.push(supllierObject.id);
           updates.push(product.save()); // Save suppliers update
         }
 
@@ -430,7 +430,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
-      supllierObject.value,
+      supllierObject.id,
       invoiceNumber,
       dbName
     );
@@ -441,7 +441,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         totalPurchasePriceMainCurrency,
         supplier.TotalUnpaid,
         "supplier",
-        supllierObject.value,
+        supllierObject.id,
         invoiceNumber,
         dbName,
         nextCounterPayment
@@ -575,9 +575,9 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     }
 
     const purchaseSupplier = await SupplierModel.findById(
-      purchase.supllier.value
+      purchase.supllier.id
     );
-    const supplier = await SupplierModel.findById(supllierObject.value);
+    const supplier = await SupplierModel.findById(supllierObject.id);
     let newPurchaseInvoice;
     if (paid === "paid") {
       const financialFund = await FinancialFundsModel.findById(
@@ -634,8 +634,8 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       await financialFund.save();
 
       await paymentModel.create({
-        supplierId: supllierObject.value,
-        supplierName: supllierObject.label,
+        supplierId: supllierObject.id,
+        supplierName: supllierObject.name,
         total: paymentInFundCurrency,
         totalMainCurrency: totalPurchasePriceMainCurrency,
         exchangeRate: financialFund.fundCurrency.exchangeRate,
@@ -645,7 +645,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         counter: nextCounterPayment,
       });
 
-      if (supllierObject.value === purchase.suppliersId) {
+      if (supllierObject.id === purchase.supllier.id) {
         supplier.total +=
           totalPurchasePriceMainCurrency -
           purchase.totalPurchasePriceMainCurrency;
@@ -656,7 +656,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       }
       await supplier.save();
     } else {
-      if (supllierObject.value === purchase.supllier.value) {
+      if (supllierObject.id === purchase.supllier.id) {
         supplier.TotalUnpaid +=
           totalPurchasePriceMainCurrency -
           purchase.totalPurchasePriceMainCurrency;
@@ -712,7 +712,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
-      supllierObject.value,
+      supllierObject.id,
       invoiceNumber,
       dbName
     );
@@ -767,7 +767,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         totalPurchasePriceMainCurrency,
         supplier.TotalUnpaid,
         "supplier",
-        supllierObject.value,
+        supllierObject.id,
         invoiceNumber,
         dbName,
         description,
@@ -1042,7 +1042,7 @@ exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   try {
     invoicesItem = JSON.parse(req.body.invoicesItems);
-    supplier = await SupplierModel.findById(supllierObject.value);
+    supplier = await SupplierModel.findById(supllierObject.id);
     if (!supplier) throw new Error("Supplier not found");
   } catch (error) {
     return res.status(400).json({ status: "error", message: error.message });
@@ -1260,7 +1260,7 @@ exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
-      supllierObject.value,
+      supllierObject.id,
       invoiceNumber,
       dbName
     );
@@ -1271,7 +1271,7 @@ exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
         totalPurchasePriceMainCurrency,
         supplier.TotalUnpaid,
         "supplier",
-        supllierObject.value,
+        supllierObject.id,
         invoiceNumber,
         dbName,
         nextCounterPayment
@@ -1362,7 +1362,7 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
   // 1) find prucseInvices
   const purchaseInvoices = await PurchaseInvoicesModel.findById(id);
   const supplier = await SupplierModel.findOne({
-    _id: purchaseInvoices.supllier.value,
+    _id: purchaseInvoices.supllier.id,
   });
 
   if (
