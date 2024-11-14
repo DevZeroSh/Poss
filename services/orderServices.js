@@ -513,9 +513,9 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
 
     const reportsFinancialFundsPromise = ReportsFinancialFundsModel.create({
       date: timeIsoString,
+      invoice: order._id,
       amount: req.body.paymentInFundCurrency,
       exchangeAmount: req.body.totalInMainCurrency,
-      order: order._id,
       type: "sales",
       financialFundId: req.body.financailFund.value,
       financialFundRest: financialFunds.fundBalance,
@@ -523,45 +523,45 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     });
 
     const financialFundsSavePromise = financialFunds.save();
-    const createExpensePromise =
-      financialFunds.fundPaymentType.haveRatio === "true"
-        ? (async () => {
-            const nextExpenseCounter =
-              (await expensesModel.countDocuments()) + 1;
-            const expenseQuantityAfterKdv =
-              (totalOrderPrice / exchangeRate) *
-                (financialFunds.bankRatio / 100) ||
-              req.body.priceExchangeRate * (financialFunds.bankRatio / 100);
-            const updatedFundBalance =
-              financialFunds.fundBalance - expenseQuantityAfterKdv;
-            financialFunds.fundBalance = updatedFundBalance;
-            const expensee = await expensesModel.create({
-              ...req.body,
-              expenseQuantityAfterKdv,
-              expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
-              expenseCategory: financialFunds.fundPaymentType.expenseCategory,
-              counter: nextExpenseCounter,
-              expenseDate: formattedDate,
-              expenseFinancialFund: financialFunds.fundName,
-              expenseTax: "0",
-              type: "paid",
-            });
-            await ReportsFinancialFundsModel.create({
-              date: formattedDate,
-              amount: expenseQuantityAfterKdv,
+    // const createExpensePromise =
+    //   financialFunds.fundPaymentType.haveRatio === "true"
+    //     ? (async () => {
+    //         const nextExpenseCounter =
+    //           (await expensesModel.countDocuments()) + 1;
+    //         const expenseQuantityAfterKdv =
+    //           (totalOrderPrice / exchangeRate) *
+    //             (financialFunds.bankRatio / 100) ||
+    //           req.body.priceExchangeRate * (financialFunds.bankRatio / 100);
+    //         const updatedFundBalance =
+    //           financialFunds.fundBalance - expenseQuantityAfterKdv;
+    //         financialFunds.fundBalance = updatedFundBalance;
+    //         const expensee = await expensesModel.create({
+    //           ...req.body,
+    //           expenseQuantityAfterKdv,
+    //           expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
+    //           expenseCategory: financialFunds.fundPaymentType.expenseCategory,
+    //           counter: nextExpenseCounter,
+    //           expenseDate: formattedDate,
+    //           expenseFinancialFund: financialFunds.fundName,
+    //           expenseTax: "0",
+    //           type: "paid",
+    //         });
+    //         await ReportsFinancialFundsModel.create({
+    //           date: formattedDate,
+    //           amount: expenseQuantityAfterKdv,
 
-              order: expensee._id,
-              type: "expense",
-              financialFundId: req.body.financailFund.value,
-              financialFundRest: updatedFundBalance,
-              exchangeRate: expenseQuantityAfterKdv,
-            });
-          })()
-        : Promise.resolve();
+    //           order: expensee._id,
+    //           type: "expense",
+    //           financialFundId: req.body.financailFund.value,
+    //           financialFundRest: updatedFundBalance,
+    //           exchangeRate: expenseQuantityAfterKdv,
+    //         });
+    //       })()
+    //     : Promise.resolve();
     await Promise.all([
       reportsFinancialFundsPromise,
       financialFundsSavePromise,
-      createExpensePromise,
+      // createExpensePromise,
     ]);
     order.payments.push({
       payment: req.body.totalPriceExchangeRate,
@@ -627,7 +627,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           product._id,
           order.id,
           totalStockQuantity,
-          item.quantity,
+          item.soldQuantity,
           0,
           0,
           "movement",
@@ -677,7 +677,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   //   await productModel.bulkWrite(bulkOptionst2Flat);
   // }
   const fundValue = req?.body?.financailFund?.value || null;
-  const reportsSalesPromise = ReportsSalesModel.create({
+  const reportsSalesPromise = await ReportsSalesModel.create({
     customer: req.body?.customer?.name,
     orderId: order._id,
     date: timeIsoString,
@@ -723,7 +723,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     customars.TotalUnpaid,
     "customer",
     req.body.customer.id,
-    "in-" + nextCounter,
+    "SAT-" + nextCounter,
     dbName
   );
   if (req.body.paymentsStatus === "paid") {
@@ -1202,11 +1202,11 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       });
       if (existingRecord) {
         existingRecord.activeProductsCount -=
-          item.soldQuantity - orders.invoicesItems[intex].soldQuantity;
+          item.soldQuantity - originalItems[index].soldQuantity;
         existingRecord.activeProductsValue -=
-          item.buyingPrice * item.quantity -
-          orders.invoicesItems[intex].orginalBuyingPrice *
-            orders.invoicesItems[intex].soldQuantity;
+          item.buyingpriceMainCurrence * item.soldQuantity -
+          originalItems[index].buyingpriceMainCurrence *
+            originalItems[index].soldQuantity;
         await existingRecord.save();
       } else {
         await createActiveProductsValue(0, 0, product.currency._id, dbName);
@@ -1220,15 +1220,16 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       );
       createProductMovement(
         product._id,
+        id,
         totalStockQuantity,
-        item.quantity,
+        item.soldQuantity,
         0,
         0,
         "movement",
-        "in",
+        "out",
         "Sales Invoice",
         dbName
-      );
+      );s
     }
   });
 
@@ -1238,9 +1239,8 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       filter: { qr: item.qr, "stocks.stockId": item.stock._id },
       update: {
         $inc: {
-          quantity: +item.quantity,
-          activeCount: +item.quantity,
-          "stocks.$.productQuantity": +item.quantity,
+          quantity: +item.soldQuantity,
+          "stocks.$.productQuantity": +item.soldQuantity,
         },
       },
     },
@@ -1248,12 +1248,11 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
 
   const bulkProductUpdatesNew = updatedItems.map((item) => ({
     updateOne: {
-      filter: { qr: item.qr, "stocks.stockId": item.stock._ids },
+      filter: { qr: item.qr, "stocks.stockId": item.stock._id },
       update: {
         $inc: {
-          quantity: -item.quantity,
-          activeCount: -item.quantity,
-          "stocks.$.productQuantity": -item.quantity,
+          quantity: -item.soldQuantity,
+          "stocks.$.productQuantity": -item.soldQuantity,
         },
       },
     },
@@ -1276,12 +1275,11 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const orderCustomer = await customersModel.findById(orders.customer.id);
 
   const customers = await customersModel.findById(req.body.customer.id);
-  let newInvoiceData;
   if (req.body.paymentsStatus === "paid") {
     const financialFund = await FinancialFundsModel.findById(
       req.body.financailFund.value
     );
-    financialFund.fundBalance += fundPriceExchangeRate;
+    financialFund.fundBalance += req.body.paymentInFundCurrency;
     // newInvoiceData = {
     //   employee: req.user._id,
     //   cartItems: cartItems,
@@ -1303,52 +1301,54 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     //   shippingPrice: req.body.shippingPrice,
     //   payments: [],
     // };
-    newOrderInvoice = await orderModel.findByIdAndUpdate(id, req.bdoy, {
+    newOrderInvoice = await orderModel.findByIdAndUpdate(id, req.body, {
       new: true,
     });
     newOrderInvoice.payments.push({
-      payment: totalOrderPrice,
-      paymentMainCurrency: fundPriceExchangeRate,
+      payment: req.body.totalPriceExchangeRate,
+      paymentMainCurrency: req.body.totalInMainCurrency,
       financialFunds: financialFund.fundName,
-      financialFundsCurrencyCode: req.body.invoiceFinancialFundCurrencyCode,
+      financialFundsCurrencyCode: financialFund.fundCurrency.currencyCode,
       date: date || formattedDate,
     });
+    const fundValue = req?.body?.financailFund?.value || null;
 
     const reports = await ReportsFinancialFundsModel.create({
       date: date || formattedDate,
       invoice: newOrderInvoice._id,
-      amount: fundPriceExchangeRate,
+      amount: req.body.totalInMainCurrency,
       type: "sales",
-      exchangeRate: exchangeRate,
+      exchangeRate: req.body.exchangeRate,
       exchangeAmount: priceExchangeRate,
-      financialFundId: onefinancialFunds,
+      financialFundId: fundValue,
       financialFundRest: financialFund.fundBalance,
     });
     newOrderInvoice.reportsBalanceId = reports.id;
     await newOrderInvoice.save();
-    if (customarId === orders.customarId) {
-      customers.total += totalOrderPrice - totalPriceBefor;
+    if (req.body.customer.id === orders.customer.id) {
+      customers.total +=
+        req.body.totalInMainCurrency - orders.totalInMainCurrency;
     } else {
-      orderCustomer.total -= totalPriceBefor;
+      orderCustomer.total -= orders.totalInMainCurrency;
       await orderCustomer.save();
-      customers.total += totalOrderPrice;
+      customers.total += req.body.totalInMainCurrency;
     }
     await customers.save();
   } else {
     if (req.body.customer.id === orders.customer.id) {
-      const test = req.bdoy.totalInMainCurrency - orders.totalInMainCurrency;
-      console.log(test);
+      const test = req.body.totalInMainCurrency - orders.totalInMainCurrency;
       customers.TotalUnpaid += test;
       customers.total += test;
     } else {
       orderCustomer.total -= orders.totalInMainCurrency;
       orderCustomer.TotalUnpaid -= orders.totalInMainCurrency;
       await orderCustomer.save();
-      customers.total += req.bdoy.totalInMainCurrency;
-      customers.TotalUnpaid += req.bdoy.totalInMainCurrency;
+      customers.total += req.body.totalInMainCurrency;
+      customers.TotalUnpaid += req.body.totalInMainCurrency;
     }
     await customers.save();
-
+    req.body.totalRemainder = req.body.invoiceGrandTotal;
+    req.body.totalRemainderMainCurrency = req.body.totalInMainCurrency;
     // newInvoiceData = {
     //   employee: req.user._id,
     //   cartItems: cartItems,
@@ -1372,20 +1372,25 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     // };
   }
 
-  newOrderInvoice = await orderModel.updateOne({ _id: id }, req.bdoy, {
+  newOrderInvoice = await orderModel.updateOne({ _id: id }, req.body, {
     new: true,
   });
   const salesReports = await ReportsSalesModel.findOneAndDelete({
     orderId: id,
   });
+
+  const nextCounterReportsSales =
+    (await ReportsSalesModel.countDocuments()) + 1;
+  const fundValue = req?.body?.financailFund?.value || null;
+
   await ReportsSalesModel.create({
-    customer: req.bdoy.customer.name,
+    customer: req.body.customer.name,
     orderId: id,
-    date: date.toString() || formattedDate.toString(),
-    fund: req.body.financailFund.value,
-    amount: req.bdoy.totalInMainCurrency,
+    date: date || formattedDate,
+    fund: fundValue,
+    amount: req.body.totalInMainCurrency,
     cartItems: req.body.invoicesItems,
-    counter: salesReports.counter.toString(),
+    counter: nextCounterReportsSales,
     paymentType: "Single Fund",
     employee: req.user._id,
   });
@@ -1395,7 +1400,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   await createPaymentHistory(
     "invoice",
     date || formattedDate,
-    req.bdoy.totalInMainCurrency,
+    req.body.totalInMainCurrency,
     customers.TotalUnpaid,
     "customer",
     req.body.customer.id,
@@ -1406,7 +1411,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     await createPaymentHistory(
       "payment",
       date || formattedDate,
-      totalOrderPrice,
+      req.body.totalInMainCurrency,
       customers.TotalUnpaid,
       "customer",
       req.body.customer.id,
@@ -1419,7 +1424,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
 
   const history = createInvoiceHistory(dbName, id, "edit", req.user._id);
   res.status(200).json({
-    status: "true",
+    status: "success",
     message: "Order updated successfully",
     data: orders,
     history,

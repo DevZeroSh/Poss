@@ -530,7 +530,6 @@ const createProductHandler = async (dbName, productData) => {
     const productModel = db.model("Product", productSchema);
 
     // Create a slug for the product name
-    productData.slug = slugify(productData.name);
     const product = await productModel.create(productData);
     if (productData.type !== "Service") {
       // Filter out stocks with productQuantity equal to 0
@@ -572,8 +571,10 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     const product = await createProductHandler(dbName, productData);
 
     // Update stocks with product ID
-
+    console.log(product);
+    
     await createProductMovement(
+      product._id,
       product._id,
       product.quantity,
       product.quantity,
@@ -586,6 +587,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
     );
 
     await createProductMovement(
+      product._id,
       product._id,
       0,
       0,
@@ -864,6 +866,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     if (quantityChanged) {
       savedMovement = await createProductMovement(
         id,
+        id,
         req.body.quantity,
         req.body.quantity - req.body.quantityBefore,
         0,
@@ -876,6 +879,7 @@ exports.updateProduct = asyncHandler(async (req, res, next) => {
     }
     if (priceChanged) {
       savedMovement = await createProductMovement(
+        id,
         id,
         0,
         0,
