@@ -21,6 +21,7 @@ const orderSchema = new mongoose.Schema(
     invoicesItems: [
       {
         type: { type: String, default: "product" },
+        id: String,
         qr: String,
         name: String,
         category: String,
@@ -46,6 +47,7 @@ const orderSchema = new mongoose.Schema(
         discount: Number,
         showNote: Boolean,
         showDiscount: Boolean,
+        buyingpriceMainCurrence: Number,
         _id: false,
       },
     ],
@@ -88,6 +90,7 @@ const orderSchema = new mongoose.Schema(
         discount: Number,
         showNote: Boolean,
         showDiscount: Boolean,
+        buyingpriceMainCurrence: Number,
         _id: false,
       },
     ],
@@ -100,7 +103,7 @@ const orderSchema = new mongoose.Schema(
       exchangeRate: String,
       _id: false,
     },
-    
+
     totalInMainCurrency: Number,
     manuallInvoiceDiscount: Number,
     manuallInvoiceDiscountValue: Number,
