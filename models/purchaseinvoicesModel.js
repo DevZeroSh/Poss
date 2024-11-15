@@ -83,7 +83,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         financialFundsCurrencyCode: String,
         date: String,
         paymentID: String,
-        paymentInInvoiceCurrency:Number,
+        paymentInInvoiceCurrency: Number,
         _id: false,
       },
     ],
@@ -117,6 +117,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     TaxId: String,
     receiptNumber: String,
     expenseName: String,
+    invoiceType: { type: String , default:"Purchase"},
   },
   { timestamps: true }
 );

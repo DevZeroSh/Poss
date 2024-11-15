@@ -74,7 +74,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const salesrModel = db.model("Orders", orderSchema);
+  const salesrModel = db.model("sales", orderSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const expensesModel = db.model("Expenses", expensesSchema);
 
@@ -311,22 +311,35 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     customer.TotalUnpaid -= req.body.totalMainCurrency;
     await customer.save();
     sales.totalRemainderMainCurrency -= req.body.totalMainCurrency;
-    sales.totalRemainder -=
-      req.body.totalMainCurrency / req.body.invoiceExchangeRate;
+    sales.totalRemainder -= req.body.paymentInFundCurrency;
 
     sales.payments.push({
-      payment: req.body.totalMainCurrency / req.body.invoiceExchangeRate,
+      payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
       paymentMainCurrency: req.body.totalMainCurrency,
       financialFunds: req.body.financialFundsName,
       paymentID: payment._id,
+      financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
       date: formattedDate,
+      paymentInInvoiceCurrency: req.body.paymentInInvoiceCurrency,
     });
 
     if (sales.totalRemainderMainCurrency <= 0) {
       sales.paid = "paid";
     }
+    const history = createInvoiceHistory(
+      dbName,
+      req.body.salesId,
+      "payment",
+      req.user._id,
+      formattedDate,
+      req.body.paymentInFundCurrency +
+        " " +
+        req.body.financialFundsCurrencyCode,
+      "invoice"
+    );
+
     tes1t.push(req.body.salesId);
-    financialFunds.fundBalance += req.body.total;
+    financialFunds.fundBalance += req.body.paymentInFundCurrency;
     await sales.save();
     await createPaymentHistory(
       "payment",
@@ -335,7 +348,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       customer.TotalUnpaid,
       "customer",
       req.body.customerId,
-      salesrModel.counter,
+      sales.counter,
       dbName,
       description,
       nextCounter

@@ -123,7 +123,7 @@ const orderSchema = new mongoose.Schema(
     InvoiceDiscountType: String,
     invoiceSubTotal: Number,
     invoiceTax: Number,
-
+    invoiceType: { type: String, default: "sales" },
     payments: [
       {
         payment: Number,
@@ -133,6 +133,7 @@ const orderSchema = new mongoose.Schema(
         financialFundsCurrencyCode: String,
         date: String,
         paymentID: String,
+        paymentInInvoiceCurrency: Number,
         _id: false,
       },
     ],
