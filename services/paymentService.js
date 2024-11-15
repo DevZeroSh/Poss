@@ -98,11 +98,11 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
   const financialFundsId = req.body.financialFundsId;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
-
+  const ts = Date.now();
+  const milliseconds = ts;
   let paymentText = "";
   let payment;
-  const nextCounter = (await paymentModel.countDocuments()) + 1;
-  req.body.counter = nextCounter;
+  req.body.counter = milliseconds;
   const description = req.body.description;
   let tes1t = [];
 
@@ -171,7 +171,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       purchases.counter,
       dbName,
       description,
-      nextCounter
+      milliseconds
     );
   } else if (req.body.taker === "customer") {
     const customer = await customerModel.findById(req.body.customerId);
@@ -240,7 +240,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       salesrModel.counter,
       dbName,
       description,
-      nextCounter
+      milliseconds
     );
   } else if (req.body.taker === "purchase") {
     const suppler = await supplerModel.findById({
@@ -296,7 +296,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       purchase.counter,
       dbName,
       description,
-      nextCounter
+      milliseconds
     );
 
     await purchase.save();
@@ -351,7 +351,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       sales.counter,
       dbName,
       description,
-      nextCounter
+      milliseconds
     );
   }
 

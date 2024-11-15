@@ -1120,7 +1120,7 @@ exports.editOrderInvoiceOld = asyncHandler(async (req, res, next) => {
     customers.TotalUnpaid,
     "customer",
     customarId,
-    orders.counter,
+    "SAT-" + orders.counter,
     dbName
   );
   if (paid === "paid") {
@@ -1229,7 +1229,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
         "out",
         "Sales Invoice",
         dbName
-      );s
+      );
     }
   });
 
@@ -1395,8 +1395,10 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     employee: req.user._id,
   });
   await PaymentHistoryModel.deleteMany({
-    invoiceNumber: orders.counter,
+    invoiceNumber: "SAT-" + orders.counter,
   });
+  console.log(orders.counter);
+
   await createPaymentHistory(
     "invoice",
     date || formattedDate,
@@ -1404,7 +1406,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
     customers.TotalUnpaid,
     "customer",
     req.body.customer.id,
-    orders.counter,
+    "SAT-" + orders.counter,
     dbName
   );
   if (req.body.paymentsStatus === "paid") {
@@ -1415,7 +1417,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
       customers.TotalUnpaid,
       "customer",
       req.body.customer.id,
-      orders.counter,
+      "SAT-" + orders.counter,
       dbName,
       req.body.description,
       nextCounterPayment
