@@ -213,7 +213,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       };
 
       if (sale.totalRemainderMainCurrency <= paymentAmount) {
-        updateObj.$set.paid = "paid";
+        updateObj.$set.paymentsStatus = "paid";
       }
 
       remainingPayment -= paymentAmount;
@@ -262,7 +262,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     }
     tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
-    financialFunds.fundBalance -= req.body.paymentInFundCurrency;
+    financialFunds.fundBalance -= Number(req.body.paymentInFundCurrency);
     purchase.payments.push({
       payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
       paymentMainCurrency: req.body.totalMainCurrency,
@@ -324,7 +324,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     });
 
     if (sales.totalRemainderMainCurrency <= 0) {
-      sales.paid = "paid";
+      sales.paymentsStatus = "paid";
     }
     const history = createInvoiceHistory(
       dbName,
@@ -339,7 +339,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     );
 
     tes1t.push(req.body.salesId);
-    financialFunds.fundBalance += req.body.paymentInFundCurrency;
+    financialFunds.fundBalance += Number(req.body.paymentInFundCurrency);
     await sales.save();
     await createPaymentHistory(
       "payment",
