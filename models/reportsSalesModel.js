@@ -8,7 +8,7 @@ const ReportsSalesSchema = new mongoose.Schema(
     },
     orderId: {
       type: mongoose.Schema.ObjectId,
-      ref: "Orders",
+      ref: "sales",
     },
     date: {
       type: Date,

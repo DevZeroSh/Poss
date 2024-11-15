@@ -22,7 +22,7 @@ async function recalculateBalances(startDate, dbName) {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const salesrModel = db.model("Orders", orderSchema);
+  const salesrModel = db.model("sales", orderSchema);
 
   // Fetch transactions (purchases and sales) that are affected
   const affectedPurchases = await PurchaseInvoicesModel.find({
@@ -433,7 +433,7 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
     "PurchaseInvoices",
     PurchaseInvoicesSchema
   );
-  const salesrModel = db.model("Orders", orderSchema);
+  const salesrModel = db.model("sales", orderSchema);
   const customerModel = db.model("Customar", customarSchema);
   const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
 

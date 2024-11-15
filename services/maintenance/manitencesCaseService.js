@@ -361,7 +361,7 @@ exports.convertToSales = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const manitencesCaseModel = db.model("manitencesCase", manitencesCaseSchema);
   const productModel = db.model("Product", productSchema);
-  const orderModel = db.model("Orders", orderSchema);
+  const orderModel = db.model("sales", orderSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const ActiveProductsValue = db.model(
     "ActiveProductsValue",

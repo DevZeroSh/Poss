@@ -24,7 +24,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
     },
     order: {
       type: mongoose.Schema.ObjectId,
-      ref: "Orders",
+      ref: "sales",
     },
     payment: {
       type: mongoose.Schema.ObjectId,

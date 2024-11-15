@@ -481,7 +481,7 @@ exports.convertEcommersOrderToInvoice = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const EcommerceOrderModel = db.model("EcommerceOrder", ecommerceOrderSchema);
-  const orderModel = db.model("Orders", orderSchema);
+  const orderModel = db.model("sales", orderSchema);
   const productModel = db.model("Product", productSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
   const ReportsFinancialFundsModel = db.model(

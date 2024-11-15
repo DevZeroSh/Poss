@@ -18,7 +18,7 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
-  const orderModel = db.model("Orders", orderSchema);
+  const orderModel = db.model("sales", orderSchema);
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
@@ -138,7 +138,7 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const customersModel = db.model("Customar", customarSchema);
-  const orderModel = db.model("Orders", orderSchema);
+  const orderModel = db.model("sales", orderSchema);
 
   const customar = await customersModel.findById(id);
 
