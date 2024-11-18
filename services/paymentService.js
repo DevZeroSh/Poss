@@ -252,7 +252,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     });
     payment = await paymentModel.create(req.body);
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
-    purchase.totalRemainder -= req.body.paymentInFundCurrency;
+    purchase.totalRemainder -= req.body.paymentInInvoiceCurrency;
 
     console.log(req.body.taker);
     if (purchase.totalRemainderMainCurrency <= 0.9) {
