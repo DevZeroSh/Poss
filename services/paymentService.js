@@ -95,7 +95,16 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)} 
    -${padZero(currentDate.getDate())}`;
   const timeIsoString = currentDate.toISOString();
-
+  const time = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
+  };
+  const formatteTime = time();
   const financialFundsId = req.body.financialFundsId;
   const financialFunds = await FinancialFundsModel.findById(financialFundsId);
   const ts = Date.now();
@@ -251,6 +260,14 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       type: { $ne: "cancel" },
     });
     payment = await paymentModel.create(req.body);
+    let paymentAmount = req.body.totalMainCurrency;
+    let paymentInvoiceCurrency = req.body.paymentInInvoiceCurrency;
+    let paymentInFundCurrency = req.body.paymentInFundCurrency;
+    if (paymentAmount > purchase.totalRemainderMainCurrency) {
+      paymentInFundCurrency;
+      paymentAmount = purchase.totalRemainderMainCurrency;
+      paymentInvoiceCurrency = purchase.totalRemainder;
+    }
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -= req.body.paymentInInvoiceCurrency;
 
@@ -259,24 +276,20 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       purchase.totalRemainderMainCurrency = 0;
       purchase.totalRemainder = 0;
     }
+
     tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
 
-    if (paymentAmount > sales.totalRemainderMainCurrency) {
-      paymentInFundCurrency
-      paymentAmount = sales.totalRemainderMainCurrency;
-      paymentInvoiceCurrency = sales.totalRemainder; 
-    }
-
     financialFunds.fundBalance -= Number(req.body.paymentInFundCurrency);
     purchase.payments.push({
-      payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
-      paymentMainCurrency: req.body.totalMainCurrency,
+      payment: paymentInFundCurrency || paymentAmount,
+      paymentMainCurrency: paymentAmount,
       financialFunds: req.body.financialFundsName,
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
-      date: formattedDate,
-      paymentInInvoiceCurrency: req.body.paymentInInvoiceCurrency,
+      exchangeRate: req.body.exchangeRate,
+      date: req.body.date + " " + formatteTime || formattedDate,
+      paymentInInvoiceCurrency: paymentInvoiceCurrency,
     });
     await suppler.save();
     const history = createInvoiceHistory(
@@ -320,9 +333,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     customer.TotalUnpaid -= req.body.totalMainCurrency;
     await customer.save();
     if (paymentAmount > sales.totalRemainderMainCurrency) {
-      paymentInFundCurrency
+      paymentInFundCurrency;
       paymentAmount = sales.totalRemainderMainCurrency;
-      paymentInvoiceCurrency = sales.totalRemainder; 
+      paymentInvoiceCurrency = sales.totalRemainder;
     }
 
     sales.totalRemainderMainCurrency -= paymentAmount;
@@ -334,8 +347,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       financialFunds: req.body.financialFundsName,
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
-      exchangeRate:req.body.exchangeRate,
-      date: formattedDate,
+      exchangeRate: req.body.exchangeRate,
+      date: req.body.date + " " + formatteTime || formattedDate,
       paymentInInvoiceCurrency: paymentInvoiceCurrency,
     });
 
