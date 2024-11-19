@@ -254,7 +254,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     purchase.totalRemainderMainCurrency -= req.body.totalMainCurrency;
     purchase.totalRemainder -= req.body.paymentInInvoiceCurrency;
 
-    console.log(req.body.taker);
     if (purchase.totalRemainderMainCurrency <= 0.9) {
       purchase.paid = "paid";
       purchase.totalRemainderMainCurrency = 0;
@@ -262,6 +261,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     }
     tes1t.push(req.body.purchaseId);
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
+
+    if (paymentAmount > sales.totalRemainderMainCurrency) {
+      paymentInFundCurrency
+      paymentAmount = sales.totalRemainderMainCurrency;
+      paymentInvoiceCurrency = sales.totalRemainder; 
+    }
+
     financialFunds.fundBalance -= Number(req.body.paymentInFundCurrency);
     purchase.payments.push({
       payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
@@ -308,24 +314,35 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     payment = await paymentModel.create(req.body);
     const customer = await customerModel.findById(req.body.customerId);
     paymentText = "payment-cut";
+    let paymentAmount = req.body.totalMainCurrency;
+    let paymentInvoiceCurrency = req.body.paymentInInvoiceCurrency;
+    let paymentInFundCurrency = req.body.paymentInFundCurrency;
     customer.TotalUnpaid -= req.body.totalMainCurrency;
     await customer.save();
-    sales.totalRemainderMainCurrency -= req.body.totalMainCurrency;
-    sales.totalRemainder -= req.body.paymentInFundCurrency;
+    if (paymentAmount > sales.totalRemainderMainCurrency) {
+      paymentInFundCurrency
+      paymentAmount = sales.totalRemainderMainCurrency;
+      paymentInvoiceCurrency = sales.totalRemainder; 
+    }
+
+    sales.totalRemainderMainCurrency -= paymentAmount;
+    sales.totalRemainder -= paymentInvoiceCurrency;
 
     sales.payments.push({
-      payment: req.body.paymentInFundCurrency || req.body.totalMainCurrency,
-      paymentMainCurrency: req.body.totalMainCurrency,
+      payment: paymentInFundCurrency || paymentAmount,
+      paymentMainCurrency: paymentAmount,
       financialFunds: req.body.financialFundsName,
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
+      exchangeRate:req.body.exchangeRate,
       date: formattedDate,
-      paymentInInvoiceCurrency: req.body.paymentInInvoiceCurrency,
+      paymentInInvoiceCurrency: paymentInvoiceCurrency,
     });
 
     if (sales.totalRemainderMainCurrency <= 0) {
       sales.paymentsStatus = "paid";
     }
+
     const history = createInvoiceHistory(
       dbName,
       req.body.salesId,
