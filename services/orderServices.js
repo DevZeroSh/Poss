@@ -811,17 +811,8 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
 
   const { id } = req.params;
   let query = {};
-  // Check if the id is a valid ObjectId
-  const isObjectId = mongoose.Types.ObjectId.isValid(id);
 
-  if (isObjectId) {
-    query = { _id: id };
-  } else {
-    // Check if the id is a number
-    query = { counter: id };
-  }
-
-  const order = await orderModel.findOne(query);
+  const order = await orderModel.findById(id);
 
   if (!order) {
     return next(new ApiError(`No order found for this id ${id}`, 404));
@@ -845,9 +836,8 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: "true",
-    Pages: totalPages,
+
     data: order,
-    history: invoiceHistory,
   });
 });
 
@@ -1275,6 +1265,7 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const orderCustomer = await customersModel.findById(orders.customer.id);
 
   const customers = await customersModel.findById(req.body.customer.id);
+  req.body.returnCartItem = req.body.invoicesItems;
   if (req.body.paymentsStatus === "paid") {
     const financialFund = await FinancialFundsModel.findById(
       req.body.financailFund.value
@@ -1397,7 +1388,6 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   await PaymentHistoryModel.deleteMany({
     invoiceNumber: "SAT-" + orders.counter,
   });
-  console.log(orders.counter);
 
   await createPaymentHistory(
     "invoice",
@@ -1463,7 +1453,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
 
-  const financialFundsId = req.body.onefinancialFunds;
+  const financialFundsId = req.body.financailFundID;
   const financialFunds = await models.FinancialFunds.findById(financialFundsId);
   const orderId = req.body.orderId;
   const orders = await models.Order.findById(orderId);
@@ -1482,7 +1472,9 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
   req.body.paidAt = formattedDate;
   req.body.employee = req.user._id;
+
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
+  req.body.counter = orders.counter;
   try {
     const order = await models.ReturnOrder.create(req.body);
 
@@ -1491,8 +1483,8 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         filter: { _id: item._id, "stocks.stockId": item.stock._id },
         update: {
           $inc: {
-            quantity: +item.quantity,
-            "stocks.$.productQuantity": +item.quantity,
+            quantity: +item.soldQuantity,
+            "stocks.$.productQuantity": +item.soldQuantity,
           },
         },
       },
@@ -1510,10 +1502,10 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
             currency: itemCurrency,
           });
 
-          const itemValue = item.buyingPrice * item.quantity;
+          const itemValue = item.buyingpriceMainCurrence * item.soldQuantity;
 
           if (existingRecord) {
-            existingRecord.activeProductsCount += item.quantity;
+            existingRecord.activeProductsCount += item.soldQuantity;
             existingRecord.activeProductsValue += itemValue;
             await existingRecord.save();
           } else {
@@ -1527,21 +1519,23 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         }
       })
     );
+    if (req?.body?.paymentsStatus === "paid") {
+      financialFunds.fundBalance -= req.body.paymentInFundCurrency;
+      await financialFunds.save();
 
-    financialFunds.fundBalance -= req.body.priceExchangeRate;
-    await financialFunds.save();
+      await models.ReportsFinancialFunds.create({
+        date: currentDateTime.toISOString(),
+        order: order._id,
+        type: "refund-sales",
+        financialFundId: financialFundsId,
+        financialFundRest: financialFunds.fundBalance,
+        amount: req.body.paymentInFundCurrency,
+        exchangeRate: req.body.exchangeRate,
+        totalPriceMainCurrence: req.body.totalInMainCurrency,
+      });
+    }
 
-    await models.ReportsFinancialFunds.create({
-      date: currentDateTime.toISOString(),
-      amount: req.body.totalOrderPrice,
-      order: order._id,
-      type: "refund-sales",
-      financialFundId: financialFundsId,
-      financialFundRest: financialFunds.fundBalance,
-      exchangeRate: req.body.priceExchangeRate,
-    });
-
-    const returnCartItemUpdates = req.body.cartItems
+    const returnCartItemUpdates = req.body.invoicesItems
       .map((incomingItem) => {
         const matchingIndex = orders.returnCartItem.findIndex(
           (item) => item.qr === incomingItem.qr
@@ -1549,15 +1543,15 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
         if (matchingIndex !== -1) {
           const newQuantity =
-            orders.returnCartItem[matchingIndex].quantity -
-            incomingItem.quantity;
+            orders.returnCartItem[matchingIndex].soldQuantity -
+            incomingItem.soldQuantity;
 
           return {
             updateOne: {
               filter: { _id: orderId },
               update: {
                 $set: {
-                  [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                  [`returnCartItem.${matchingIndex}.soldQuantity`]: newQuantity,
                 },
               },
             },
@@ -1588,6 +1582,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       counter: nextCounterReports,
       paymentType: "Single Fund",
       employee: req.user._id,
+      totalPriceMainCurrence: req.body.totalInMainCurrency,
     });
     res.status(200).json({
       status: "success",
@@ -1597,23 +1592,23 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
     });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.counter) {
-      const counterPrefix = req.body.counter.slice(0, 7);
+      const counterPrefix = req.body.counter;
 
       const nextCounter =
         (await models.ReturnOrder.countDocuments({
           counter: new RegExp(`^${counterPrefix}-`),
         })) + 1;
 
-      req.body.counter = `${req.body.counter}-${nextCounter}`;
+      req.body.counter = nextCounter + 1;
       const order = await models.ReturnOrder.create(req.body);
-
-      const bulkUpdateOptions = req.body.cartItems.map((item) => ({
+      console.log(req.body.counter);
+      const bulkUpdateOptions = req.body.invoicesItems.map((item) => ({
         updateOne: {
           filter: { _id: item._id, "stocks.stockId": item.stock._id },
           update: {
             $inc: {
-              quantity: +item.quantity,
-              "stocks.$.productQuantity": +item.quantity,
+              quantity: +item.soldQuantity,
+              "stocks.$.productQuantity": +item.soldQuantity,
             },
           },
         },
@@ -1623,7 +1618,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
       await models.ReturnOrder.bulkWrite(bulkUpdateOptions);
 
       await Promise.all(
-        req.body.cartItems.map(async (item) => {
+        req.body.invoicesItems.map(async (item) => {
           const product = await models.Product.findOne({ qr: item.qr });
           if (product) {
             const { currency: itemCurrency } = product;
@@ -1631,15 +1626,15 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
               currency: itemCurrency,
             });
 
-            const itemValue = item.buyingPrice * item.quantity;
+            const itemValue = item.buyingpriceMainCurrence * item.soldQuantity;
 
             if (existingRecord) {
-              existingRecord.activeProductsCount += item.quantity;
+              existingRecord.activeProductsCount += item.soldQuantity;
               existingRecord.activeProductsValue += itemValue;
               await existingRecord.save();
             } else {
               await createActiveProductsValue(
-                item.quantity,
+                item.soldQuantity,
                 itemValue,
                 itemCurrency,
                 dbName
@@ -1649,20 +1644,21 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         })
       );
 
-      financialFunds.fundBalance -= req.body.priceExchangeRate;
-      await financialFunds.save();
+      if (req.body.paymentsStatus === "paid") {
+        financialFunds.fundBalance -= req.body.priceExchangeRate;
+        await financialFunds.save();
 
-      await models.ReportsFinancialFunds.create({
-        date: currentDateTime.toISOString(),
-        amount: req.body.totalOrderPrice,
-        order: order._id,
-        type: "refund-sales",
-        financialFundId: financialFundsId,
-        financialFundRest: financialFunds.fundBalance,
-        exchangeRate: req.body.priceExchangeRate,
-      });
-
-      const returnCartItemUpdates = req.body.cartItems
+        await models.ReportsFinancialFunds.create({
+          date: currentDateTime.toISOString(),
+          amount: req.body.totalOrderPrice,
+          order: order._id,
+          type: "refund-sales",
+          financialFundId: financialFundsId,
+          financialFundRest: financialFunds.fundBalance,
+          exchangeRate: req.body.priceExchangeRate,
+        });
+      }
+      const returnCartItemUpdates = req.body.invoicesItems
         .map((incomingItem) => {
           const matchingIndex = orders.returnCartItem.findIndex(
             (item) => item.qr === incomingItem.qr
@@ -1670,15 +1666,16 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
           if (matchingIndex !== -1) {
             const newQuantity =
-              orders.returnCartItem[matchingIndex].quantity -
-              incomingItem.quantity;
+              orders.returnCartItem[matchingIndex].soldQuantity -
+              incomingItem.soldQuantity;
 
             return {
               updateOne: {
                 filter: { _id: orderId },
                 update: {
                   $set: {
-                    [`returnCartItem.${matchingIndex}.quantity`]: newQuantity,
+                    [`returnCartItem.${matchingIndex}.soldQuantity`]:
+                      newQuantity,
                   },
                 },
               },
@@ -1703,7 +1700,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         date: new Date().toISOString(),
         fund: financialFundsId,
         amount: req.body.totalOrderPrice,
-        cartItems: req.body.cartItems,
+        cartItems: req.body.invoicesItems,
         type: "refund-pos",
         counter: nextCounterReports,
         paymentType: "Single Fund",
@@ -1716,7 +1713,6 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
         history,
       });
     } else {
-      // Other errors, pass them to the error handler middleware
       next(error);
     }
   }
@@ -1729,11 +1725,8 @@ exports.getReturnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   db.model("Employee", emoloyeeShcema);
-  db.model("FinancialFunds", financialFundsSchema);
-  db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
-  db.model("Product", productSchema);
+
   const returnOrderModel = db.model("returnOrder", returnOrderSchema);
-  db.model("ReportsSales", ReportsSalesSchema);
 
   const { totalPages, mongooseQuery } = await Search(returnOrderModel, req);
 
@@ -1752,10 +1745,8 @@ exports.getReturnOrder = asyncHandler(async (req, res, next) => {
 exports.getOneReturnOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  db.model("Employee", emoloyeeShcema);
   db.model("FinancialFunds", financialFundsSchema);
   db.model("ReportsFinancialFunds", reportsFinancialFundsSchema);
-  db.model("Product", productSchema);
   const returnOrderModel = db.model("returnOrder", returnOrderSchema);
   db.model("ReportsSales", ReportsSalesSchema);
 

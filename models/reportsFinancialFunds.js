@@ -15,7 +15,7 @@ const reportsFinancialFundsSchema = new mongoose.Schema(
       required: true,
     },
     totalPriceAfterDiscount: { type: Number, default: 0 },
-    exchangeAmount: {
+    totalPriceMainCurrence: {
       type: Number,
     },
     expense: {
