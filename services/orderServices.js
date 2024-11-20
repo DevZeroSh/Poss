@@ -1480,7 +1480,7 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
     const bulkUpdateOptions = req.body.invoicesItems.map((item) => ({
       updateOne: {
-        filter: { _id: item._id, "stocks.stockId": item.stock._id },
+        filter: { qr: item.qr, "stocks.stockId": item.stock._id },
         update: {
           $inc: {
             quantity: +item.soldQuantity,
@@ -1601,10 +1601,9 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
 
       req.body.counter = nextCounter + 1;
       const order = await models.ReturnOrder.create(req.body);
-      console.log(req.body.counter);
       const bulkUpdateOptions = req.body.invoicesItems.map((item) => ({
         updateOne: {
-          filter: { _id: item._id, "stocks.stockId": item.stock._id },
+          filter: { qr: item.qr, "stocks.stockId": item.stock._id },
           update: {
             $inc: {
               quantity: +item.soldQuantity,
