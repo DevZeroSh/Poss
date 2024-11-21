@@ -150,7 +150,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     "ActiveProductsValue",
     ActiveProductsValueModel
   );
-  
+
   const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
   const nextCounterPurchaseInvoices =
     (await PurchaseInvoicesModel.countDocuments()) + 1;
@@ -274,8 +274,16 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
           exchangeRate: financialFund.fundCurrency.exchangeRate,
           currencyCode: financialFund.fundCurrency.currencyCode,
           date: date + " " + formatteTime || formattedDate,
+          financialFundsName: financialFund.fundName,
+          financialFundsID: financailFund.value,
           invoiceNumber: invoiceNumber,
           counter: nextCounterPayment,
+          payid: {
+            id: newPurchaseInvoice._id,
+            status: "paid",
+            paymentInFundCurrency: paymentInFundCurrency,
+            paymentMainCurrency: req.body.totalInMainCurrency,
+          },
         }),
       ]);
 
@@ -642,6 +650,12 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         date: date,
         invoiceNumber: invoiceNumber,
         counter: nextCounterPayment,
+        payid: {
+          id: newPurchaseInvoice._id,
+          status: "paid",
+          paymentInFundCurrency: paymentInFundCurrency,
+          paymentMainCurrency: totalPurchasePriceMainCurrency,
+        },
       });
 
       if (supllierObject.id === purchase.supllier.id) {

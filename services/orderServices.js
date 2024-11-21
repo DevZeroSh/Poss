@@ -225,6 +225,14 @@ exports.DashBordSalseOld = asyncHandler(async (req, res, next) => {
       date: date || formattedDate,
       invoiceNumber: "in-" + nextCounter,
       counter: nextCounterPayment,
+      payid: [
+        {
+          id: order._id,
+          status: "paid",
+          paymentInFundCurrency: req.body.totalPriceExchangeRate,
+          paymentMainCurrency: totalOrderPrice,
+        },
+      ],
     });
     customars.total += totalOrderPrice;
     await order.save();
@@ -564,7 +572,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       // createExpensePromise,
     ]);
     order.payments.push({
-      payment: req.body.totalPriceExchangeRate,
+      payment: req.body.paymentInFundCurrency,
       paymentMainCurrency: req.body.totalInMainCurrency,
       financialFunds: financialFunds.fundName,
       financialFundsCurrencyCode: financialFunds.fundCurrency.currencyCode,
@@ -573,13 +581,21 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     await paymentModel.create({
       customarId: req.body.customer.id,
       customarName: req.body.customer.name,
-      total: req.body.totalPriceExchangeRate,
+      total: req.body.paymentInFundCurrency,
       totalMainCurrency: req.body.totalInMainCurrency,
       exchangeRate: financialFunds.fundCurrency.exchangeRate,
       currencyCode: financialFunds.fundCurrency.currencyCode,
+      financialFundsName: financialFunds.fundName,
+      financialFundsID: req.body.financailFund.value,
       date: req.body.date || formattedDate,
       invoiceNumber: "in-" + nextCounter,
       counter: nextCounterPayment,
+      payid: {
+        id: order._id,
+        status: "paid",
+        paymentInFundCurrency: req.body.paymentInFundCurrency,
+        paymentMainCurrency: req.body.totalInMainCurrency,
+      },
     });
     customars.total += Number(req.body.totalInMainCurrency);
     await order.save();

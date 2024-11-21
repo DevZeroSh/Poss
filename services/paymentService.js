@@ -113,7 +113,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   let payment;
   req.body.counter = milliseconds;
   const description = req.body.description;
-  let tes1t = [];
+  let tes1t;
 
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
@@ -156,7 +156,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       }
 
       remainingPayment -= paymentAmount;
-      tes1t.push(purchase._id.toString());
+      tes1t = {
+        id: purchase._id,
+        status: purchase.paid,
+        paymentInFundCurrency: paymentAmount / purchase.exchangeRate,
+        paymentMainCurrency: paymentAmount,
+      };
       return {
         updateOne: {
           filter: { _id: purchase._id },
@@ -226,7 +231,13 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       }
 
       remainingPayment -= paymentAmount;
-      tes1t.push(sale._id.toString());
+
+      tes1t = {
+        id: sale._id,
+        status: sale.paymentsStatus,
+        paymentInFundCurrency: parseFloat(paymentAmount / sale.exchangeRate),
+        paymentMainCurrency: paymentAmount,
+      };
       return {
         updateOne: {
           filter: { _id: sale._id },
@@ -277,7 +288,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       purchase.totalRemainder = 0;
     }
 
-    tes1t.push(req.body.purchaseId);
+    tes1t = {
+      id: req.body.purchaseId,
+      status: purchase.paid,
+      paymentInFundCurrency: req.body.paymentInFundCurrency,
+      paymentMainCurrency: req.body.totalMainCurrency,
+    };
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
 
     financialFunds.fundBalance -= Number(req.body.paymentInFundCurrency);
@@ -368,7 +384,12 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       "invoice"
     );
 
-    tes1t.push(req.body.salesId);
+    tes1t = {
+      id: req.body.salesId,
+      status: sales.paymentsStatus,
+      paymentInFundCurrency: Number(req.body.paymentInFundCurrency),
+      paymentMainCurrency: req.body.totalMainCurrency,
+    };
     financialFunds.fundBalance += Number(req.body.paymentInFundCurrency);
     await sales.save();
     await createPaymentHistory(
@@ -488,7 +509,7 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
     );
 
     payment.payid.map(async (purchaseId) => {
-      const purchase = await PurchaseInvoicesModel.findById(purchaseId);
+      const purchase = await PurchaseInvoicesModel.findById(purchaseId.id);
       if (purchase) {
         purchase.paid = "unpaid";
 
@@ -518,7 +539,7 @@ exports.deletePayment = asyncHandler(async (req, res, next) => {
     );
 
     payment.payid.map(async (salesId) => {
-      const sales = await salesrModel.findById(salesId);
+      const sales = await salesrModel.findById(salesId.id);
       if (sales) {
         sales.paid = "unpaid";
         const removedPayments = sales.payments.filter((item) => {
