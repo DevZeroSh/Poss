@@ -499,7 +499,7 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
         )
       );
     }
-    financialFunds.fundBalance += req.body.paymentInFundCurrency;
+    financialFunds.fundBalance += Number(req.body.paymentInFundCurrency);
   }
   const [customars, nextCounter, reportCounter] = await Promise.all([
     customarsPromise,

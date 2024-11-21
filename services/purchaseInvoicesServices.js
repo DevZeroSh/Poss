@@ -150,6 +150,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     "ActiveProductsValue",
     ActiveProductsValueModel
   );
+  
   const nextCounterPayment = (await PaymentModel.countDocuments()) + 1;
   const nextCounterPurchaseInvoices =
     (await PurchaseInvoicesModel.countDocuments()) + 1;
@@ -257,7 +258,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       // Use Promise.all for parallel database operations
       const [reports, payment] = await Promise.all([
         ReportsFinancialFundsModel.create({
-          date: date || formattedDate,
+          date: date + " " + formatteTime || formattedDate,
           invoice: newPurchaseInvoice._id,
           amount: paymentInFundCurrency,
           type: "purchase",
@@ -574,9 +575,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       return next(new ApiError("Bulk update failed" + error, 500));
     }
 
-    const purchaseSupplier = await SupplierModel.findById(
-      purchase.supllier.id
-    );
+    const purchaseSupplier = await SupplierModel.findById(purchase.supllier.id);
     const supplier = await SupplierModel.findById(supllierObject.id);
     let newPurchaseInvoice;
     if (paid === "paid") {
@@ -1241,7 +1240,7 @@ exports.refundPurchaseInvoice = asyncHandler(async (req, res, next) => {
               "movement",
               "out",
               "Purchase Invoice",
-              dbName,
+              dbName
             )
           );
         }

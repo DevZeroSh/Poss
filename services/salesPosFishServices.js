@@ -136,11 +136,20 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       if (stockEntry) {
         stockEntry.productQuantity -= item.quantity;
         product.sold += item.quantity;
+        const totalStockQuantity = product.stocks.reduce(
+          (total, stock) => total + stock.productQuantity,
+          0
+        );
+
         await product.save();
-        createProductMovement(
-          item.product,
-          stockEntry.productQuantity,
-          item.quantity,
+        await createProductMovement(
+          product._id,
+          order.id,
+          totalStockQuantity,
+          item.soldQuantity,
+          0,
+          0,
+          "movement",
           "out",
           "sales",
           dbName
@@ -394,13 +403,21 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       if (stockEntry) {
         stockEntry.productQuantity -= item.quantity;
         product.sold += item.quantity;
+        const totalStockQuantity = product.stocks.reduce(
+          (total, stock) => total + stock.productQuantity,
+          0
+        );
         await product.save();
-        createProductMovement(
-          item.product,
-          stockEntry.productQuantity,
-          item.quantity,
+        await createProductMovement(
+          product._id,
+          order.id,
+          totalStockQuantity,
+          item.soldQuantity,
+          0,
+          0,
+          "movement",
           "out",
-          "sales",
+          "Sales Invoice",
           dbName
         );
       }

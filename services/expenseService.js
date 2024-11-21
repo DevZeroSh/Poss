@@ -15,6 +15,7 @@ const emoloyeeShcema = require("../models/employeeModel");
 const supplierSchema = require("../models/suppliersModel");
 const PurchaseInvoicesSchema = require("../models/purchaseinvoicesModel");
 const { createPaymentHistory } = require("./paymentHistoryService");
+const currencySchema = require("../models/currencyModel");
 
 const multerStorage = multer.diskStorage({
   destination: function (req, file, callback) {
@@ -64,6 +65,7 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  db.model("Currency", currencySchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -98,20 +100,23 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
   // Create the expense document
   const expense = await expensesModel.create(req.body);
   const supplier = await SupplierModel.findById(req.body.supllier.id);
-  console.log(supplier);
 
   // Set the full URL for the expense file
 
-  if (req.body.paid === "paid") {
+  if (req.body.paymentStatus === "paid") {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
-    );
-    financialFunds.fundBalance -= Number(req.body.invoiceCurrencyTotal);
+    ).populate("fundCurrency");
+    console.log(financialFunds);
+    const paymentInFundCurrency =
+      req.body.totalPurchasePriceMainCurrency *
+      financialFunds.fundCurrency.exchangeRate;
+    financialFunds.fundBalance -= Number(paymentInFundCurrency);
 
     if (financialFunds) {
       await ReportsFinancialFundsModel.create({
         date: formattedDate,
-        amount: req.body.invoiceCurrencyTotal,
+        amount: paymentInFundCurrency,
         exchangeAmount: req.body.totalPurchasePriceMainCurrency,
         expense: expense._id,
         type: "expense",

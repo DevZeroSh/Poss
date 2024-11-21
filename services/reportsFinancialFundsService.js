@@ -30,7 +30,7 @@ exports.getReportsFinancialFunds = asyncHandler(async (req, res, next) => {
 exports.getSpecificReports = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const dbName = req.query.databaseName;
-  const pageSize = 10;
+  const pageSize = 2;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   const db = mongoose.connection.useDb(dbName);
