@@ -26,7 +26,7 @@ const PaymentSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
-    currencyCode: String,
+    financialFundsCurrencyCode: String,
     data: String,
     invoiceNumber: String,
     counter: {
