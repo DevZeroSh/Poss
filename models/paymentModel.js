@@ -35,13 +35,14 @@ const PaymentSchema = new mongoose.Schema(
       unique: true,
     },
     financialFundsName:String,
-    financialFundsID:String,
+    financialFundsId:String,
     payid: [
       {
         id: String,
         status: String,
         paymentInFundCurrency: Number,
         paymentMainCurrency: Number,
+        paymentInvoiceCurrency: Number,
         _id: false,
       },
     ],
