@@ -296,6 +296,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentMainCurrency: Number(req.body.totalMainCurrency),
       invoiceTotal: purchase.invoiceGrandTotal,
       invoiceName: purchase.invoiceName,
+      invoiceCurrencyCode:purchase.currency.currencyCode
     };
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
 
@@ -394,7 +395,8 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentInvoiceCurrency: Number(req.body.paymentInInvoiceCurrency),
       paymentMainCurrency: Number(req.body.totalMainCurrency),
       invoiceTotal: sales.invoiceGrandTotal,
-      invoiceName: purchase.invoiceName,
+      invoiceName: sales.invoiceName,
+      invoiceCurrencyCode: sales.currency.currencyCode,
     };
     financialFunds.fundBalance += Number(req.body.paymentInFundCurrency);
     await sales.save();
