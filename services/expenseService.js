@@ -68,7 +68,16 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
-
+  const time = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
+  };
+  const formatteTime = time();
   const ts = Date.now();
   const date_ob = new Date(ts);
   const formattedDate = `${date_ob.getFullYear()}-${padZero(
@@ -80,10 +89,16 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
   const nextCounter = (await expensesModel.countDocuments()) + 1;
   req.body.invoiceNumber = nextCounter;
   req.body.expenseFile = req.file?.filename;
+  req.body.supllier = JSON.parse(req.body.supllier);
+  req.body.currency = JSON.parse(req.body.currency);
+  req.body.employeeID = req.user.id;
+  req.body.employeeName = req.user.name;
+  req.body.date = req.body.date + " " + formatteTime;
 
   // Create the expense document
   const expense = await expensesModel.create(req.body);
-  const supplier = await SupplierModel.findById(req.body.suppliersId);
+  const supplier = await SupplierModel.findById(req.body.supllier.id);
+  console.log(supplier);
 
   // Set the full URL for the expense file
 
@@ -91,13 +106,13 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
     );
-    financialFunds.fundBalance -= req.body.invoiceCurrencyTotal;
+    financialFunds.fundBalance -= Number(req.body.invoiceCurrencyTotal);
 
     if (financialFunds) {
       await ReportsFinancialFundsModel.create({
         date: formattedDate,
         amount: req.body.invoiceCurrencyTotal,
-        exchangeAmount: req.body.MainCurrencyTotal,
+        exchangeAmount: req.body.totalPurchasePriceMainCurrency,
         expense: expense._id,
         type: "expense",
         financialFundId: financialFunds._id,
@@ -111,19 +126,20 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
     req.body.totalRemainder = 0;
     await expense.save();
   }
-
+  supplier.TotalUnpaid += Number(req.body.totalPurchasePriceMainCurrency);
+  supplier.total += Number(req.body.totalPurchasePriceMainCurrency);
   // Call history functions
   await createPaymentHistory(
     "invoice",
     req.body.expenseDate || formattedDate,
-    req.body.MainCurrencyTotal,
+    req.body.totalPurchasePriceMainCurrency,
     supplier.TotalUnpaid,
     "supplier",
-    req.body.suppliersId,
+    req.body.supllier.id,
     nextCounter,
     dbName
   );
-
+  supplier.save();
   await createInvoiceHistory(
     dbName,
     expense._id,
@@ -222,7 +238,16 @@ exports.updateInvoiceExpense = asyncHandler(async (req, res, next) => {
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
   }
-
+  const time = () => {
+    const padZero = (num) => String(num).padStart(2, "0");
+    const ts = Date.now();
+    const dateOb = new Date(ts);
+    const hours = padZero(dateOb.getHours());
+    const minutes = padZero(dateOb.getMinutes());
+    const seconds = padZero(dateOb.getSeconds());
+    return `${hours}:${minutes}:${seconds}`;
+  };
+  const formatteTime = time();
   const ts = Date.now();
   const date_ob = new Date(ts);
   const formattedDate = `${date_ob.getFullYear()}-${padZero(
@@ -230,7 +255,9 @@ exports.updateInvoiceExpense = asyncHandler(async (req, res, next) => {
   )}-${padZero(date_ob.getDate())} ${padZero(date_ob.getHours())}:${padZero(
     date_ob.getMinutes()
   )}:${padZero(date_ob.getSeconds())}:${padZero(date_ob.getMilliseconds())}`;
-
+  req.body.supllier = JSON.parse(req.body.supllier);
+  req.body.currency = JSON.parse(req.body.currency);
+  req.body.date = req.body.date + " " + formatteTime;
   const expense = await expensesModel.findByIdAndUpdate(id, req.body, {
     new: true,
   });

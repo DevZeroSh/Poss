@@ -1545,13 +1545,20 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
           const newQuantity =
             orders.returnCartItem[matchingIndex].soldQuantity -
             incomingItem.soldQuantity;
-
+          const newTotal =
+            orders.returnCartItem[matchingIndex].total - incomingItem.total;
+          const newTotalWithoutTax =
+            orders.returnCartItem[matchingIndex].totalWithoutTax -
+            incomingItem.totalWithoutTax;
           return {
             updateOne: {
               filter: { _id: orderId },
               update: {
                 $set: {
                   [`returnCartItem.${matchingIndex}.soldQuantity`]: newQuantity,
+                  [`returnCartItem.${matchingIndex}.total`]: newTotal,
+                  [`returnCartItem.${matchingIndex}.totalWithoutTax`]:
+                    newTotalWithoutTax,
                 },
               },
             },
@@ -1667,7 +1674,11 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
             const newQuantity =
               orders.returnCartItem[matchingIndex].soldQuantity -
               incomingItem.soldQuantity;
-
+            const newTotal =
+              orders.returnCartItem[matchingIndex].total - incomingItem.total;
+            const newTotalWithoutTax =
+              orders.returnCartItem[matchingIndex].totalWithoutTax -
+              incomingItem.totalWithoutTax;
             return {
               updateOne: {
                 filter: { _id: orderId },
@@ -1675,6 +1686,9 @@ exports.returnOrder = asyncHandler(async (req, res, next) => {
                   $set: {
                     [`returnCartItem.${matchingIndex}.soldQuantity`]:
                       newQuantity,
+                    [`returnCartItem.${matchingIndex}.total`]: newTotal,
+                    [`returnCartItem.${matchingIndex}.totalWithoutTax`]:
+                      newTotalWithoutTax,
                   },
                 },
               },
