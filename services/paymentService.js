@@ -88,10 +88,9 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
 
   const currentDate = new Date();
   const formattedDate =
-    req.body.date +
-      ` ${padZero(currentDate.getHours())}:${padZero(
-        currentDate.getMinutes()
-      )}:${padZero(currentDate.getSeconds())}` ||
+    ` ${padZero(currentDate.getHours())}:${padZero(
+      currentDate.getMinutes()
+    )}:${padZero(currentDate.getSeconds())}` ||
     `${currentDate.getFullYear()}-${padZero(currentDate.getMonth() + 1)} 
    -${padZero(currentDate.getDate())}`;
   const timeIsoString = currentDate.toISOString();
@@ -270,6 +269,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       _id: req.body.purchaseId,
       type: { $ne: "cancel" },
     });
+    req.body.date = req.body.date + " " + formatteTime;
     payment = await paymentModel.create(req.body);
     let paymentAmount = req.body.totalMainCurrency;
     let paymentInvoiceCurrency = req.body.paymentInInvoiceCurrency;
@@ -296,7 +296,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentMainCurrency: Number(req.body.totalMainCurrency),
       invoiceTotal: purchase.invoiceGrandTotal,
       invoiceName: purchase.invoiceName,
-      invoiceCurrencyCode:purchase.currency.currencyCode
+      invoiceCurrencyCode: purchase.currency.currencyCode,
     };
     suppler.TotalUnpaid -= req.body.totalMainCurrency;
 
@@ -344,6 +344,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       _id: req.body.salesId,
       type: { $ne: "cancel" },
     });
+    req.body.date = req.body.date + " " + formatteTime;
     payment = await paymentModel.create(req.body);
     const customer = await customerModel.findById(req.body.customerId);
     paymentText = "payment-cut";
