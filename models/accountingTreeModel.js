@@ -5,9 +5,13 @@ const AccountingTreeSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  code: { type: String, required: true, unique: true },
+  code: { type: String },
 
-  accountType: { type: String, required: true, unique: true },
+  accountType: { type: String },
+  detailType: String,
+  description: String,
+  date: String,
+
   parentCode: {
     type: String,
     default: null,
