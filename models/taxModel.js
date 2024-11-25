@@ -11,6 +11,7 @@ const TaxSchema = new mongoose.Schema({
     type: String,
     lowercase: true,
   },
+  isDefault: { type: Boolean, default: false },
 });
 
 module.exports = TaxSchema;
