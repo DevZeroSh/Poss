@@ -2,10 +2,11 @@ const mongoose = require("mongoose");
 
 const AccountTransactionSchema = new mongoose.Schema(
   {
-    fromAccount: String,
+    fromAccount: { id: String, name: String, amount: Number, _id: false },
 
     toAccount: [
       {
+        id: String,
         accountName: String,
 
         amount: {
@@ -21,6 +22,7 @@ const AccountTransactionSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    desc: String,
   },
   { timestamps: true }
 );

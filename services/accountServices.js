@@ -3,13 +3,14 @@ const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const { Search } = require("../utils/search");
 const AccountTransactionSchema = require("../models/accountModel");
+const AccountingTreeSchema = require("../models/accountingTreeModel");
 
 //@desc Get Account Transaction
 //@route Get /api/account
 exports.getAccountingTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("Account", AccountTransactionSchema);
+  const AccountModel = db.model("account", AccountTransactionSchema);
 
   const { totalPages, mongooseQuery } = await Search(AccountModel, req);
 
@@ -28,7 +29,7 @@ exports.getAccountingTransaction = asyncHandler(async (req, res, next) => {
 exports.getOneAccountTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("Account", AccountTransactionSchema);
+  const AccountModel = db.model("account", AccountTransactionSchema);
 
   const { id } = req.params;
 
@@ -45,9 +46,21 @@ exports.getOneAccountTransaction = asyncHandler(async (req, res, next) => {
 exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("Account", AccountTransactionSchema);
+  const AccountModel = db.model("account", AccountTransactionSchema);
+  const accountingTreeModel = db.model("AccountingTree", AccountingTreeSchema);
 
   const account = await AccountModel.create(req.body);
-
+  const accountingTree = await accountingTreeModel.findByIdAndUpdate(
+    req.body.fromAccount.id,
+    { $inc: { balance: -req.body.fromAccount.amount } },
+    { new: true }
+  );
+  req.body.toAccount.map(async (item) => {
+    const accountingTree = await accountingTreeModel.findByIdAndUpdate(
+      item.id,
+      { $inc: { balance: +item.amount } },
+      { new: true }
+    );
+  });
   res.status(200).json({ status: "success", data: account });
 });

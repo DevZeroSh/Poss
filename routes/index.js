@@ -55,6 +55,7 @@ const manitCaseRout = require("./maintenance/manitencesCaseRoute");
 const shippingCompaniesRoute = require("./shippingCompaniesRoute");
 const ecommercePaymentMethodRoute = require("./ecommerce/ecommercePaymentMethodRoute");
 const purchaseRequestRouter = require("./purchaseRequestRoute");
+const accountingRoute = require("./accountingRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -95,8 +96,8 @@ const mountRoutes = (app) => {
   app.use("/api/offers", offersRouter);
   app.use("/api/quotation", quotationRouter);
   app.use("/api/sales-pos", SalesPosRout);
-  app.use("/api/sales-pos", SalesPosRout);
   app.use("/api/accounting-tree", accountingTreeRout);
+  app.use("/api/account", accountingRoute);
   app.use("/api/assets", assetsRout);
   app.use("/api/purchaserequest", purchaseRequestRouter);
   app.use("/api/shippingCompany", shippingCompaniesRoute);
