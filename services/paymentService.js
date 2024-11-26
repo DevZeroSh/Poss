@@ -15,6 +15,7 @@ const { createPaymentHistory } = require("./paymentHistoryService");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const expensesSchema = require("../models/expensesModel");
 const { createInvoiceHistory } = require("./invoiceHistoryService");
+const { Search } = require("../utils/search");
 
 async function recalculateBalances(startDate, dbName) {
   const db = mongoose.connection.useDb(dbName);
@@ -448,11 +449,18 @@ exports.getPayment = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const paymentModel = db.model("Payment", paymentSchma);
 
-  const payment = await paymentModel.find().sort({ createdAt: -1 });
+  const { totalPages, mongooseQuery } = await Search(paymentModel, req);
+
+  const payment = await mongooseQuery;
   if (!payment) {
     return next(new ApiError("Not found any Payment here", 404));
   }
-  res.status(200).json({ status: "success", data: payment });
+  res.status(200).json({
+    status: "success",
+    totalPages: totalPages,
+    results: payment.length,
+    data: payment,
+  });
 });
 
 exports.getOnePayment = asyncHandler(async (req, res, next) => {
