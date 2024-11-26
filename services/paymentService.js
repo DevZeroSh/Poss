@@ -114,7 +114,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
   req.body.counter = milliseconds;
   const description = req.body.description;
   let tes1t;
-
+  req.body.date = req.body.date + " " + formatteTime;
   if (req.body.taker === "supplier") {
     const suppler = await supplerModel.findById(req.body.supplierId);
 
@@ -192,7 +192,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const totalMainCurrency = req.body.totalMainCurrency;
     const test = customer.TotalUnpaid;
     customer.TotalUnpaid -= totalMainCurrency;
-    console.log(req.body.date);
     let remainingPayment = totalMainCurrency;
     payment = await paymentModel.create(req.body);
     const sales = await salesrModel.find({
@@ -221,7 +220,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
             paymentID: payment._id,
-            date: req.body.date + " " + formatteTime || formattedDate,
+            date: req.body.date || formattedDate,
           },
         },
       };
@@ -252,7 +251,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await customer.save();
     await createPaymentHistory(
       "payment",
-      req.body.date + " " + formatteTime || formattedDate,
+      req.body.date || formattedDate,
       totalMainCurrency,
       test,
       "customer",
@@ -270,7 +269,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       _id: req.body.purchaseId,
       type: { $ne: "cancel" },
     });
-    req.body.date = req.body.date + " " + formatteTime;
     payment = await paymentModel.create(req.body);
     let paymentAmount = req.body.totalMainCurrency;
     let paymentInvoiceCurrency = req.body.paymentInInvoiceCurrency;
@@ -309,7 +307,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
       exchangeRate: req.body.exchangeRate,
-      date: req.body.date + " " + formatteTime || formattedDate,
+      date: req.body.date || formattedDate,
       paymentInInvoiceCurrency: paymentInvoiceCurrency,
     });
     await suppler.save();
@@ -345,7 +343,6 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       _id: req.body.salesId,
       type: { $ne: "cancel" },
     });
-    req.body.date = req.body.date + " " + formatteTime;
     payment = await paymentModel.create(req.body);
     const customer = await customerModel.findById(req.body.customerId);
     paymentText = "payment-cut";
@@ -370,7 +367,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
       paymentID: payment._id,
       financialFundsCurrencyCode: req.body.financialFundsCurrencyCode,
       exchangeRate: req.body.exchangeRate,
-      date: req.body.date + " " + formatteTime || formattedDate,
+      date: req.body.date || formattedDate,
       paymentInInvoiceCurrency: paymentInvoiceCurrency,
     });
 
