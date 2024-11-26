@@ -192,7 +192,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     const totalMainCurrency = req.body.totalMainCurrency;
     const test = customer.TotalUnpaid;
     customer.TotalUnpaid -= totalMainCurrency;
-
+    console.log(req.body.date);
     let remainingPayment = totalMainCurrency;
     payment = await paymentModel.create(req.body);
     const sales = await salesrModel.find({
@@ -221,7 +221,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
             paymentMainCurrency: paymentAmount,
             financialFunds: req.body.financialFundsName,
             paymentID: payment._id,
-            date: formattedDate,
+            date: req.body.date + " " + formatteTime || formattedDate,
           },
         },
       };
@@ -252,7 +252,7 @@ exports.createPayment = asyncHandler(async (req, res, next) => {
     await customer.save();
     await createPaymentHistory(
       "payment",
-      formattedDate,
+      req.body.date + " " + formatteTime || formattedDate,
       totalMainCurrency,
       test,
       "customer",

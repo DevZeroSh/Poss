@@ -68,31 +68,26 @@ exports.createCustomar = asyncHandler(async (req, res, next) => {
   );
   customar.openingBalanceId = openingBalance._id;
 
-  if (openingBalance.rest !== 0) {
-    const nextCounterPromise = (await orderModel.countDocuments()) + 1;
+  const nextCounterPromise = (await orderModel.countDocuments()) + 1;
 
-    await orderModel.create({
-      employee: req.user._id,
-      totalOrderPrice: req.body.TotalUnpaid,
-      priceExchangeRate: req.body.TotalUnpaid,
-      totalRemainderMainCurrency: req.body.TotalUnpaid,
-      totalRemainder: req.body.TotalUnpaid,
-      customarId: customar.id,
-      customarName: customar.name,
-      customarEmail: customar.email,
-      customarPhone: customar.phone,
-      customarAddress: customar.address,
-      exchangeRate: 1,
-      type: "openBalance",
-      paidAt: formattedDate,
-      counter: "op-" + nextCounterPromise,
-      paid: "unpaid",
-      openingBalanceId: customar.openingBalanceId,
-      exchangeRate: req.body.openingBalanceExchangeRate,
-      currencyCode: req.body.openingBalanceCurrencyCode,
-      date,
-    });
-  }
+  await orderModel.create({
+    employee: req.user._id,
+    totalInMainCurrency: req.body.TotalUnpaid,
+    invoiceGrandTotal: req.body.TotalUnpaid,
+    totalRemainderMainCurrency: req.body.TotalUnpaid,
+    totalRemainder: req.body.TotalUnpaid,
+    customer: customar,
+    exchangeRate: 1,
+    type: "openBalance",
+    paidAt: formattedDate,
+    counter: "op-" + nextCounterPromise,
+    paid: "unpaid",
+    openingBalanceId: customar.openingBalanceId,
+    exchangeRate: req.body.openingBalanceExchangeRate,
+    currencyCode: req.body.openingBalanceCurrencyCode,
+    date,
+  });
+
   await customar.save();
   res
     .status(201)
@@ -179,8 +174,8 @@ exports.updataCustomar = asyncHandler(async (req, res, next) => {
       parseFloat(req.body.openingBalance) -
       parseFloat(req.body.openingBalanceBefor);
     order.totalRemainderMainCurrency += amountBalance2 || 0;
-    order.priceExchangeRate += amountBalance2 || 0;
-    order.totalOrderPrice += amountBalance2 || 0;
+    order.totalInMainCurrency += amountBalance2 || 0;
+    order.invoiceGrandTotal += amountBalance2 || 0;
     order.totalRemainder += amountBalance2 || 0;
     await order.save();
     res.status(200).json({

@@ -107,7 +107,6 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
     const financialFunds = await FinancialFundsModel.findById(
       req.body.finincalFund
     ).populate("fundCurrency");
-    console.log(financialFunds);
     const paymentInFundCurrency =
       req.body.totalPurchasePriceMainCurrency *
       financialFunds.fundCurrency.exchangeRate;

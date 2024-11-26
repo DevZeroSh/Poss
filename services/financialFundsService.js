@@ -172,11 +172,8 @@ exports.transfer = asyncHandler(async (req, res, next) => {
   financialFund.fundBalance -= after;
 
   // 3) Find the fund to which the money will go
-  console.log("after: " + financialFund.fundBalance);
   const funds = await FinancialFundsModel.findByIdAndUpdate(fund);
-  console.log("Befor Trans: " + funds.fundBalance);
   funds.fundBalance += parseFloat(amount);
-  console.log("after Trans: " + funds.fundBalance);
 
   // 4) Save
   await financialFund.save();
