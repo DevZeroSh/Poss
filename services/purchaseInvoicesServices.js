@@ -337,7 +337,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         totalPurchasePriceMainCurrency,
         invoiceSubTotal,
         invoiceDiscount,
-        totalRemainderMainCurrency: totalPurchasePriceMainCurrency,
+        totalRemainderMainCurrency: total,
         totalRemainder: invoiceGrandTotal,
         invoiceGrandTotal,
         taxDetails,

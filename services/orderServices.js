@@ -618,8 +618,12 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
     } else {
       customars.TotalUnpaid += total;
     }
-    req.body.totalRemainderMainCurrency = req.body.totalInMainCurrency;
+    req.body.totalRemainderMainCurrency = total;
     req.body.totalRemainder = req.body.invoiceGrandTotal;
+    if (total === 0) {
+      req.body.totalRemainder = 0;
+    }
+
     order = await orderModel.create(req.body);
   }
   const productQRCodes = cartItems.map((item) => item.qr);
