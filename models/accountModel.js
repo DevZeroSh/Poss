@@ -7,7 +7,7 @@ const AccountTransactionSchema = new mongoose.Schema(
     toAccount: [
       {
         id: String,
-        accountName: String,
+        name: String,
 
         amount: {
           type: Number,

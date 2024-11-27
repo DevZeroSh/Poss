@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const AccountingTree = require("../models/accountingTreeModel");
 const ApiError = require("../utils/apiError");
-
+const xlsx = require("xlsx");
 exports.getAccountingTree = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
@@ -76,9 +76,9 @@ exports.getAccountingTreeByCode = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const accountingTree = db.model("AccountingTree", AccountingTree);
-  const code = req.params.id;
+  const type = req.params.id;
   const getAllAccount = await accountingTree.find({
-    $or: [{ code: code }, { parentCode: code }],
+    $or: [{ accountType: type }, { accountType: type }],
   });
   res.status(200).json({ status: "success", data: getAllAccount });
 });
@@ -106,4 +106,51 @@ exports.deleteAccountingTree = asyncHandler(async (req, res, next) => {
     status: "true",
     meesage: "deleted",
   });
+});
+
+exports.importAccountingTree= asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const accountingTree = db.model("AccountingTree", AccountingTree);
+  // Check if file is provided
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  const { buffer } = req.file;
+  let csvData;
+
+  if (
+    req.file.originalname.endsWith(".csv") ||
+    req.file.mimetype === "text/csv"
+  ) {
+    csvData = await csvtojson().fromString(buffer.toString());
+  } else if (
+    req.file.originalname.endsWith(".xlsx") ||
+    req.file.mimetype ===
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheet_name_list = workbook.SheetNames;
+    csvData = xlsx.utils.sheet_to_json(workbook.Sheets[sheet_name_list[0]]);
+  } else {
+    return res.status(400).json({ error: "Unsupported file type" });
+  }
+
+  try {
+    // Insert customers into the database
+    const insertedCustomers = await accountingTree.insertMany(csvData, {
+      ordered: false,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Customers imported successfully",
+      data: insertedCustomers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
+  }
 });
