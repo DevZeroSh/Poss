@@ -137,15 +137,15 @@ exports.importAccountingTree= asyncHandler(async (req, res, next) => {
   }
 
   try {
-    // Insert customers into the database
-    const insertedCustomers = await accountingTree.insertMany(csvData, {
+    // Insert Tree into the database
+    const insertedTree = await accountingTree.insertMany(csvData, {
       ordered: false,
     });
 
     res.status(200).json({
-      success: true,
-      message: "Customers imported successfully",
-      data: insertedCustomers,
+      success: "success",
+      message: "Tree imported successfully",
+      data: insertedTree,
     });
   } catch (error) {
     res.status(500).json({
