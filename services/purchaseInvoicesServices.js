@@ -209,150 +209,152 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
   // Prepare and update invoice items with product data
   const invoiceItems = invoicesItem.map((item) => {
-    const productDoc = productMap.get(item.qr);
-    if (!productDoc)
-      throw new Error(`Product not found for QR code: ${item.qr}`);
-    return {
-      ...item,
-      name: productDoc.name,
-      profitRatio: item.profitRatio || 0,
-    };
+    if (item.type !== "unTracedproduct") {
+      const productDoc = productMap.get(item.qr);
+      if (!productDoc)
+        throw new Error(`Product not found for QR code: ${item.qr}`);
+      return {
+        ...item,
+        name: productDoc.name,
+        profitRatio: item.profitRatio || 0,
+      };
+    }
   });
 
-  try {
-    // Handle invoice creation based on 'paid' status
-    if (paid === "paid") {
-      // Handle paid invoice logic
-      const financialFund = await FinancialFundsModel.findById(
-        financailFund.value
-      );
-      if (!financialFund) throw new Error("Financial fund not found");
+  // Handle invoice creation based on 'paid' status
+  if (paid === "paid") {
+    // Handle paid invoice logic
+    const financialFund = await FinancialFundsModel.findById(
+      financailFund.value
+    );
+    if (!financialFund) throw new Error("Financial fund not found");
 
-      financialFund.fundBalance -= paymentInFundCurrency;
+    financialFund.fundBalance -= paymentInFundCurrency;
 
-      newPurchaseInvoice = await PurchaseInvoicesModel.create({
-        employee: req.user._id,
-        invoicesItems: invoiceItems,
-        date: date || formattedDate,
-        supllier: supllierObject,
-        currency,
-        exchangeRate,
-        financailFund,
-        invoiceNumber,
-        paid,
-        totalPurchasePriceMainCurrency,
-        invoiceSubTotal,
-        invoiceDiscount,
-        invoiceGrandTotal,
-        taxDetails,
-        invoiceName,
-        paymentInFundCurrency: paymentInFundCurrency,
-        ManualInvoiceDiscount,
-        ManualInvoiceDiscountValue,
-        InvoiceDiscountType,
-        subtotalWithDiscount,
-        paymentDate,
-        invoiceTax,
-        counter: nextCounterPurchaseInvoices,
-      });
-      // Use Promise.all for parallel database operations
-      const [reports, payment] = await Promise.all([
-        ReportsFinancialFundsModel.create({
-          date: date + " " + formatteTime || formattedDate,
-          invoice: newPurchaseInvoice._id,
-          amount: paymentInFundCurrency,
-          type: "purchase",
-          exchangeRate,
-          financialFundId: financailFund.value,
-          financialFundRest: financialFund.fundBalance,
-        }),
-        PaymentModel.create({
-          supplierId: supplier.value,
-          supplierName: supplier.label,
-          total: invoiceGrandTotal,
-          totalMainCurrency: totalPurchasePriceMainCurrency,
-          exchangeRate: financialFund.fundCurrency.exchangeRate,
-          currencyCode: financialFund.fundCurrency.currencyCode,
-          date: date + " " + formatteTime || formattedDate,
-          financialFundsName: financialFund.fundName,
-          financialFundsID: financailFund.value,
-          invoiceNumber: invoiceNumber,
-          counter: nextCounterPayment,
-          payid: {
-            id: newPurchaseInvoice._id,
-            status: "paid",
-            paymentInFundCurrency: paymentInFundCurrency,
-            paymentMainCurrency: req.body.totalInMainCurrency,
-          },
-        }),
-      ]);
-
-      newPurchaseInvoice.payments.push({
-        payment: paymentInFundCurrency,
-        paymentMainCurrency: totalPurchasePriceMainCurrency,
-        financialFunds: financialFund.fundName,
-        financialFundsCurrencyCode: financialFund.label,
+    newPurchaseInvoice = await PurchaseInvoicesModel.create({
+      employee: req.user._id,
+      invoicesItems: invoicesItem,
+      date: date || formattedDate,
+      supllier: supllierObject,
+      currency,
+      exchangeRate,
+      financailFund,
+      invoiceNumber,
+      paid,
+      totalPurchasePriceMainCurrency,
+      invoiceSubTotal,
+      invoiceDiscount,
+      invoiceGrandTotal,
+      taxDetails,
+      invoiceName,
+      paymentInFundCurrency: paymentInFundCurrency,
+      ManualInvoiceDiscount,
+      ManualInvoiceDiscountValue,
+      InvoiceDiscountType,
+      subtotalWithDiscount,
+      paymentDate,
+      invoiceTax,
+      counter: nextCounterPurchaseInvoices,
+    });
+    // Use Promise.all for parallel database operations
+    const [reports, payment] = await Promise.all([
+      ReportsFinancialFundsModel.create({
         date: date + " " + formatteTime || formattedDate,
-        paymentID: payment._id,
-      });
-
-      // Assign reports balance ID after the report is created
-      newPurchaseInvoice.reportsBalanceId = reports.id;
-      await newPurchaseInvoice.save();
-
-      // Update supplier and financial fund balances
-      supplier.total += totalPurchasePriceMainCurrency || 0;
-      await financialFund.save();
-    } else {
-      // Handle unpaid invoice logic
-      let total = totalPurchasePriceMainCurrency;
-      if (supplier.TotalUnpaid <= -1) {
-        const t = total + supplier.TotalUnpaid;
-        if (t > 0) {
-          total = t;
-          supplier.TotalUnpaid = t;
-        } else if (t < 0) {
-          supplier.TotalUnpaid = t;
-          req.body.paid = "paid";
-        } else {
-          total = 0;
-          supplier.TotalUnpaid = 0;
-          req.body.paid = "paid";
-        }
-      } else {
-        supplier.TotalUnpaid += total;
-      }
-      supplier.total += total || 0;
-
-      newPurchaseInvoice = await PurchaseInvoicesModel.create({
-        employee: req.user._id,
-        date: date || formattedDate,
-        invoicesItems: invoiceItems,
-        supllier: supllierObject,
-        currency,
+        invoice: newPurchaseInvoice._id,
+        amount: paymentInFundCurrency,
+        type: "purchase",
         exchangeRate,
-        financailFund,
-        invoiceNumber,
-        paid: "unpaid",
-        totalPurchasePriceMainCurrency,
-        invoiceSubTotal,
-        invoiceDiscount,
-        totalRemainderMainCurrency: total,
-        totalRemainder: invoiceGrandTotal,
-        invoiceGrandTotal,
-        taxDetails,
-        invoiceName,
-        ManualInvoiceDiscount,
-        ManualInvoiceDiscountValue,
-        InvoiceDiscountType,
-        subtotalWithDiscount,
-        paymentDate,
-        invoiceTax,
-      });
-    }
+        financialFundId: financailFund.value,
+        financialFundRest: financialFund.fundBalance,
+      }),
+      PaymentModel.create({
+        supplierId: supplier.value,
+        supplierName: supplier.label,
+        total: invoiceGrandTotal,
+        totalMainCurrency: totalPurchasePriceMainCurrency,
+        exchangeRate: financialFund.fundCurrency.exchangeRate,
+        currencyCode: financialFund.fundCurrency.currencyCode,
+        date: date + " " + formatteTime || formattedDate,
+        financialFundsName: financialFund.fundName,
+        financialFundsID: financailFund.value,
+        invoiceNumber: invoiceNumber,
+        counter: nextCounterPayment,
+        payid: {
+          id: newPurchaseInvoice._id,
+          status: "paid",
+          paymentInFundCurrency: paymentInFundCurrency,
+          paymentMainCurrency: req.body.totalInMainCurrency,
+        },
+      }),
+    ]);
 
-    // Bulk update product quantities and stock information
-    const bulkProductUpdates = invoicesItem.map((item) => ({
+    newPurchaseInvoice.payments.push({
+      payment: paymentInFundCurrency,
+      paymentMainCurrency: totalPurchasePriceMainCurrency,
+      financialFunds: financialFund.fundName,
+      financialFundsCurrencyCode: financialFund.label,
+      date: date + " " + formatteTime || formattedDate,
+      paymentID: payment._id,
+    });
+
+    // Assign reports balance ID after the report is created
+    newPurchaseInvoice.reportsBalanceId = reports.id;
+    await newPurchaseInvoice.save();
+
+    // Update supplier and financial fund balances
+    supplier.total += totalPurchasePriceMainCurrency || 0;
+    await financialFund.save();
+  } else {
+    // Handle unpaid invoice logic
+    let total = totalPurchasePriceMainCurrency;
+    if (supplier.TotalUnpaid <= -1) {
+      const t = total + supplier.TotalUnpaid;
+      if (t > 0) {
+        total = t;
+        supplier.TotalUnpaid = t;
+      } else if (t < 0) {
+        supplier.TotalUnpaid = t;
+        req.body.paid = "paid";
+      } else {
+        total = 0;
+        supplier.TotalUnpaid = 0;
+        req.body.paid = "paid";
+      }
+    } else {
+      supplier.TotalUnpaid += total;
+    }
+    supplier.total += total || 0;
+
+    newPurchaseInvoice = await PurchaseInvoicesModel.create({
+      employee: req.user._id,
+      date: date || formattedDate,
+      invoicesItems: invoicesItem,
+      supllier: supllierObject,
+      currency,
+      exchangeRate,
+      financailFund,
+      invoiceNumber,
+      paid: "unpaid",
+      totalPurchasePriceMainCurrency,
+      invoiceSubTotal,
+      invoiceDiscount,
+      totalRemainderMainCurrency: total,
+      totalRemainder: invoiceGrandTotal,
+      invoiceGrandTotal,
+      taxDetails,
+      invoiceName,
+      ManualInvoiceDiscount,
+      ManualInvoiceDiscountValue,
+      InvoiceDiscountType,
+      subtotalWithDiscount,
+      paymentDate,
+      invoiceTax,
+    });
+  }
+
+  const bulkProductUpdates = invoicesItem
+    .filter((item) => item.type !== "unTracedproduct")
+    .map((item) => ({
       updateOne: {
         filter: { qr: item.qr, "stocks.stockId": item.stock._id },
         update: {
@@ -365,16 +367,18 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       },
     }));
 
-    await ProductModel.bulkWrite(bulkProductUpdates);
+  await ProductModel.bulkWrite(bulkProductUpdates);
 
-    const bulkSupplierPromises = invoicesItem.map(async (item) => {
+  const bulkSupplierPromises = invoicesItem
+    .filter((item) => item.type !== "unTracedproduct")
+    .map(async (item) => {
       const product = productMap.get(item.qr);
       const updates = [];
 
       if (product) {
         if (!product.suppliers.includes(supllierObject.id)) {
           product.suppliers.push(supllierObject.id);
-          updates.push(product.save()); // Save suppliers update
+          updates.push(product.save());
         }
 
         if (product.type !== "Service") {
@@ -386,7 +390,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
                 activeProductsValue: item.orginalBuyingPrice * item.quantity,
               },
             },
-            { new: true, upsert: true } // Ensures document is created if it doesn't exist
+            { new: true, upsert: true }
           );
 
           const totalStockQuantity = product.stocks.reduce(
@@ -394,7 +398,6 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
             0
           );
 
-          // Log product movement
           updates.push(
             createProductMovement(
               product._id,
@@ -426,50 +429,41 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
         }
       }
 
-      return Promise.all(updates); // Await all updates for this item
+      return Promise.all(updates);
     });
 
-    // Ensure all mapped promises are awaited
-    await Promise.all(bulkSupplierPromises);
+  await Promise.all(bulkSupplierPromises);
 
-    await supplier.save();
+  await supplier.save();
+  await createPaymentHistory(
+    "invoice",
+    date + " " + formatteTime || formattedDate,
+    totalPurchasePriceMainCurrency,
+    supplier.TotalUnpaid,
+    "supplier",
+    supllierObject.id,
+    invoiceNumber,
+    dbName
+  );
+  if (paid === "paid") {
     await createPaymentHistory(
-      "invoice",
+      "payment",
       date + " " + formatteTime || formattedDate,
       totalPurchasePriceMainCurrency,
       supplier.TotalUnpaid,
       "supplier",
       supllierObject.id,
       invoiceNumber,
-      dbName
-    );
-    if (paid === "paid") {
-      await createPaymentHistory(
-        "payment",
-        date + " " + formatteTime || formattedDate,
-        totalPurchasePriceMainCurrency,
-        supplier.TotalUnpaid,
-        "supplier",
-        supllierObject.id,
-        invoiceNumber,
-        dbName,
-        nextCounterPayment
-      );
-    }
-    createInvoiceHistory(
       dbName,
-      newPurchaseInvoice._id,
-      "create",
-      req.user._id
+      nextCounterPayment
     );
-    res.status(201).json({
-      status: "success",
-      message: "Invoice created successfully",
-      data: newPurchaseInvoice,
-    });
-  } catch (error) {
-    return res.status(500).json({ status: "error", message: error.message });
   }
+  createInvoiceHistory(dbName, newPurchaseInvoice._id, "create", req.user._id);
+  res.status(201).json({
+    status: "success",
+    message: "Invoice created successfully",
+    data: newPurchaseInvoice,
+  });
 });
 
 exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
@@ -545,35 +539,39 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
 
   if (purchase.payments.length <= 0) {
     // Reverting the quantities of original items
-    originalItems.forEach((item) => {
-      bulkProductUpdatesOriginal.push({
-        updateOne: {
-          filter: { qr: item.qr, "stocks.stockId": item.stock._id },
-          update: {
-            $inc: {
-              quantity: -item.quantity,
-              "stocks.$.productQuantity": -item.quantity,
+    originalItems
+      .filter((item) => item.type !== "unTracedproduct")
+      .forEach((item) => {
+        bulkProductUpdatesOriginal.push({
+          updateOne: {
+            filter: { qr: item.qr, "stocks.stockId": item.stock._id },
+            update: {
+              $inc: {
+                quantity: -item.quantity,
+                "stocks.$.productQuantity": -item.quantity,
+              },
             },
           },
-        },
+        });
       });
-    });
 
     // Applying the quantities of updated items
-    updatedItems.forEach((item) => {
-      bulkProductUpdatesNew.push({
-        updateOne: {
-          filter: { qr: item.qr, "stocks.stockId": item.stock._id },
-          update: {
-            $inc: {
-              quantity: +item.quantity,
-              "stocks.$.productQuantity": +item.quantity,
+    updatedItems
+      .filter((item) => item.type !== "unTracedproduct")
+      .forEach((item) => {
+        bulkProductUpdatesNew.push({
+          updateOne: {
+            filter: { qr: item.qr, "stocks.stockId": item.stock._id },
+            update: {
+              $inc: {
+                quantity: +item.quantity,
+                "stocks.$.productQuantity": +item.quantity,
+              },
+              $set: { buyingprice: item.orginalBuyingPrice },
             },
-            $set: { buyingprice: item.orginalBuyingPrice },
           },
-        },
+        });
       });
-    });
 
     try {
       await productModel.bulkWrite(bulkProductUpdatesOriginal);
@@ -730,48 +728,50 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
       dbName
     );
 
-    invoicesItems.map(async (item, index) => {
-      const product = await productModel.findOne({ qr: item.qr });
+    invoicesItems
+      .filter((item) => item.type !== "unTracedproduct")
+      .map(async (item, index) => {
+        const product = await productModel.findOne({ qr: item.qr });
 
-      if (product && product.type !== "Service") {
-        const existingRecord = await ActiveProductsValue.findOne({
-          currency: product.currency._id,
-        });
-        if (existingRecord) {
-          const quantity = item.quantity || 0;
-          const quantityBefor = purchase.invoicesItems[index].quantity || 0;
-          const buyingPriceOriginal = item.orginalBuyingPrice || 0;
-          const buyingPriceOriginalBefor =
-            purchase.invoicesItems[index].orginalBuyingPrice || 0;
-          existingRecord.activeProductsCount += quantity - quantityBefor;
+        if (product && product.type !== "Service") {
+          const existingRecord = await ActiveProductsValue.findOne({
+            currency: product.currency._id,
+          });
+          if (existingRecord) {
+            const quantity = item.quantity || 0;
+            const quantityBefor = purchase.invoicesItems[index].quantity || 0;
+            const buyingPriceOriginal = item.orginalBuyingPrice || 0;
+            const buyingPriceOriginalBefor =
+              purchase.invoicesItems[index].orginalBuyingPrice || 0;
+            existingRecord.activeProductsCount += quantity - quantityBefor;
 
-          const currentValue =
-            buyingPriceOriginal * quantity -
-            buyingPriceOriginalBefor * quantityBefor;
+            const currentValue =
+              buyingPriceOriginal * quantity -
+              buyingPriceOriginalBefor * quantityBefor;
 
-          existingRecord.activeProductsValue += currentValue;
+            existingRecord.activeProductsValue += currentValue;
 
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(0, 0, product.currency._id, dbName);
+            await existingRecord.save();
+          } else {
+            await createActiveProductsValue(0, 0, product.currency._id, dbName);
+          }
+          const totalStockQuantity = product.stocks.reduce(
+            (total, stock) => total + stock.productQuantity,
+            0
+          );
+          createProductMovement(
+            product._id,
+            totalStockQuantity,
+            item.quantity,
+            0,
+            0,
+            "movement",
+            "out",
+            "Purchase Invoice",
+            dbName
+          );
         }
-        const totalStockQuantity = product.stocks.reduce(
-          (total, stock) => total + stock.productQuantity,
-          0
-        );
-        createProductMovement(
-          product._id,
-          totalStockQuantity,
-          item.quantity,
-          0,
-          0,
-          "movement",
-          "out",
-          "Purchase Invoice",
-          dbName
-        );
-      }
-    });
+      });
 
     if (paid === "paid") {
       await createPaymentHistory(
