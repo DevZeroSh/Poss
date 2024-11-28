@@ -35,6 +35,7 @@ const refundPosSalesSchema = require("../models/refundPosSales");
 const PaymentSchema = require("../models/paymentModel");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
+const UnTracedproductLogSchema = require("../models/unTracedproductLogModel");
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -78,7 +79,10 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   db.model("Stock", stockSchema);
   db.model("Currency", currencySchema);
   const paymentModel = db.model("Payment", PaymentSchema);
-
+  const unTracedproductLogModel = db.model(
+    "unTracedproductLog",
+    UnTracedproductLogSchema
+  );
   const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
   const cartItems = req.body.invoicesItems;
   console.log(req.body);
@@ -246,22 +250,23 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
   const productQRCodes = cartItems
     .filter((item) => item.type !== "unTracedproduct")
     .map((item) => item.qr);
+
   const products = await productModel.find({
     qr: { $in: productQRCodes },
   });
+
   const productMap = new Map(products.map((prod) => [prod.qr, prod]));
 
   const bulkOption = await Promise.all(
-    cartItems
-      .filter((item) => item.type !== "unTracedproduct")
-      .map(async (item) => {
+    cartItems.map(async (item) => {
+      if (item.type !== "unTracedproduct") {
         const product = productMap.get(item.qr);
+
         const totalStockQuantity = product.stocks.reduce(
           (total, stock) => total + stock.productQuantity,
           0
         );
 
-        // Ensure createProductMovement is awaited
         await createProductMovement(
           product._id,
           order.id,
@@ -275,7 +280,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           dbName
         );
 
-        // Find existing record and update it
         const existingRecord = await ActiveProductsValue.findOne({
           currency: product.currency._id,
         });
@@ -289,7 +293,6 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
           await createActiveProductsValue(0, 0, product.currency._id, dbName);
         }
 
-        // Return the update operation to be used in bulkWrite
         return {
           updateOne: {
             filter: {
@@ -304,10 +307,29 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
             },
           },
         };
-      })
+      } else if (item.type === "unTracedproduct") {
+        await unTracedproductLogModel.create({
+          name: item.name,
+          sellingPrice: item.sellingPrice || item.orginalBuyingPrice,
+          type: "sales",
+          quantity: item.soldQuantity,
+          tax: item.tax,
+          totalWithoutTax: item.totalWithoutTax,
+          total: item.total,
+        });
+
+        return null;
+      }
+    })
   );
 
-  await productModel.bulkWrite(bulkOption);
+  // Filter out any `null` values from `bulkOption`
+  const filteredBulkOption = bulkOption.filter(
+    (operation) => operation !== null
+  );
+
+  // Perform bulkWrite
+  await productModel.bulkWrite(filteredBulkOption);
 
   // Flatten the array of arrays and filter out any undefined values
   // const bulkOptionst2Flat = bulkOptionst2.flat().filter(Boolean);
@@ -502,7 +524,10 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const customersModel = db.model("Customar", customarSchema);
   const PaymentHistoryModel = db.model("PaymentHistory", PaymentHistorySchema);
   const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
-
+  const UnTracedproductLogModel = db.model(
+    "unTracedproductLog",
+    UnTracedproductLogSchema
+  );
   db.model("Currency", currencySchema);
   db.model("Variant", variantSchema);
   const { id } = req.params;
@@ -526,46 +551,57 @@ exports.editOrderInvoice = asyncHandler(async (req, res, next) => {
   const updatedItems = req.body.invoicesItems;
 
   //change the items
-  req.body.invoicesItems
-    .filter((item) => item.type !== "unTracedproduct")
-    .map(async (item, index) => {
-      const product = await productModel.findOne({ qr: item.qr });
-      if (product && product.type !== "Service") {
-        const existingRecord = await ActiveProductsValue.findOne({
-          currency: product.currency._id,
-        });
-        if (existingRecord) {
-          existingRecord.activeProductsCount -=
-            item.soldQuantity - originalItems[index].soldQuantity;
-          existingRecord.activeProductsValue -=
-            item.buyingpriceMainCurrence * item.soldQuantity -
-            originalItems[index].buyingpriceMainCurrence *
-              originalItems[index].soldQuantity;
-          await existingRecord.save();
-        } else {
-          await createActiveProductsValue(0, 0, product.currency._id, dbName);
-        }
-
-        // Create product movement for each item
-
-        const totalStockQuantity = product.stocks.reduce(
-          (total, stock) => total + stock.productQuantity,
-          0
-        );
-        createProductMovement(
-          product._id,
-          id,
-          totalStockQuantity,
-          item.soldQuantity,
-          0,
-          0,
-          "movement",
-          "out",
-          "Sales Invoice",
-          dbName
-        );
+  req.body.invoicesItems.map(async (item, index) => {
+    const product = await productModel.findOne({ qr: item.qr });
+    if (
+      (product && product.type !== "Service") ||
+      item.type !== "unTracedproduct"
+    ) {
+      const existingRecord = await ActiveProductsValue.findOne({
+        currency: product.currency._id,
+      });
+      if (existingRecord) {
+        existingRecord.activeProductsCount -=
+          item.soldQuantity - originalItems[index].soldQuantity;
+        existingRecord.activeProductsValue -=
+          item.buyingpriceMainCurrence * item.soldQuantity -
+          originalItems[index].buyingpriceMainCurrence *
+            originalItems[index].soldQuantity;
+        await existingRecord.save();
+      } else {
+        await createActiveProductsValue(0, 0, product.currency._id, dbName);
       }
-    });
+
+      // Create product movement for each item
+
+      const totalStockQuantity = product.stocks.reduce(
+        (total, stock) => total + stock.productQuantity,
+        0
+      );
+      createProductMovement(
+        product._id,
+        id,
+        totalStockQuantity,
+        item.soldQuantity,
+        0,
+        0,
+        "movement",
+        "out",
+        "Sales Invoice",
+        dbName
+      );
+    } else if (item.type === "unTracedproduct") {
+      await UnTracedproductLogModel.create({
+        name: item.name,
+        sellingPrice: item.sellingPrice,
+        type: "sales",
+        quantity: item.soldQuantity,
+        tax: item.tax,
+        totalWithoutTax: item.totalWithoutTax,
+        total: item.total,
+      });
+    }
+  });
 
   // Prepare bulk updates for products and stocks
   const bulkProductUpdatesOriginal = originalItems
