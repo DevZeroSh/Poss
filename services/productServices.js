@@ -1004,10 +1004,15 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
     const movementDescription =
       product.archives === "true" ? "archive" : "unarchive";
     const savedMovement = await createProductMovement(
-      id,
+      product._id,
+      product._id,
       product.quantity,
+      product.quantity,
+      0,
+      0,
+      "movement",
       movementType,
-      movementDescription,
+      "archive",
       dbName
     );
 
@@ -1017,12 +1022,12 @@ exports.archiveProduct = asyncHandler(async (req, res, next) => {
       await existingRecord.save();
     } else {
       const productValue = product.activeCount * product.buyingprice;
-      await createActiveProductsValue(
-        product.activeCount,
-        productValue,
-        product.currency,
-        dbName
-      );
+      // await createActiveProductsValue(
+      //   product.activeCount,
+      //   productValue,
+      //   product.currency,
+      //   dbName
+      // );
     }
 
     res.status(200).json({
