@@ -48,6 +48,32 @@ exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   const db = mongoose.connection.useDb(dbName);
   const AccountModel = db.model("account", AccountTransactionSchema);
   const accountingTreeModel = db.model("AccountingTree", AccountingTreeSchema);
+  function padZero(value) {
+    return value < 10 ? `0${value}` : value;
+  }
+  let ts = Date.now();
+  let date_ob = new Date(ts);
+  let date = padZero(date_ob.getDate());
+  let month = padZero(date_ob.getMonth() + 1);
+  let year = date_ob.getFullYear();
+  let hours = padZero(date_ob.getHours());
+  let minutes = padZero(date_ob.getMinutes());
+  let seconds = padZero(date_ob.getSeconds());
+
+  const formattedDate =
+    year +
+    "-" +
+    month +
+    "-" +
+    date +
+    " " +
+    hours +
+    ":" +
+    minutes +
+    ":" +
+    seconds;
+  req.body.date = formattedDate;
+  console.log(req.body.date);
 
   const account = await AccountModel.create(req.body);
   const accountingTree = await accountingTreeModel.findByIdAndUpdate(

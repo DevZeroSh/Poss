@@ -143,13 +143,13 @@ exports.importAccountingTree= asyncHandler(async (req, res, next) => {
     });
 
     res.status(200).json({
-      success: "success",
+      status: "success",
       message: "Tree imported successfully",
       data: insertedTree,
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
+      status: "faild",
       error: error.message,
     });
   }
