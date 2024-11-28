@@ -33,7 +33,7 @@ const orderSchema = new mongoose.Schema(
         tax: { _id: String, tax: Number },
         taxValue: Number,
         stock: {
-          _id: { type: mongoose.Schema.Types.ObjectId },
+          _id: String,
           stock: { type: String },
         },
         soldQuantity: Number,
@@ -78,7 +78,7 @@ const orderSchema = new mongoose.Schema(
         tax: { _id: String, tax: Number },
         taxValue: Number,
         stock: {
-          _id: { type: mongoose.Schema.Types.ObjectId },
+          _id: String,
           stock: { type: String },
         },
         soldQuantity: Number,
