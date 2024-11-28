@@ -43,10 +43,11 @@ const quotationSchema = new mongoose.Schema(
     taxSummary: [
       { taxRate: Number, totalTaxValue: Number, discountTaxValue: Number },
     ],
+    InvoiceDiscountType: String,
+
     manuallInvoiceDiscount: Number,
     manuallInvoiceDiscountValue: Number,
     invoiceDiscount: Number,
-    ManualInvoiceDiscountValue: Number,
     currencyExchangeRate: Number,
     currencyExchangeID: String,
     currencyExchangeCode: String,
