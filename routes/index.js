@@ -57,6 +57,7 @@ const ecommercePaymentMethodRoute = require("./ecommerce/ecommercePaymentMethodR
 const purchaseRequestRouter = require("./purchaseRequestRoute");
 const accountingRoute = require("./accountingRoute");
 const unTracedproductLogRout = require("./unTracedproductLogRout");
+const TagRoute = require("./tagsRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -75,6 +76,7 @@ const mountRoutes = (app) => {
   app.use("/api/paymenttype", paymentTypes);
 
   app.use("/api/label", LabelRout);
+  app.use("/api/tag", TagRoute);
   app.use("/api/auth", authRoute);
   app.use("/api/orders", OrderRout);
   app.use("/api/currency", currencyRoute);
