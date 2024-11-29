@@ -401,30 +401,30 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
 
         updates.push(
           createProductMovement(
-            product._id,
-            newPurchaseInvoice._id,
-            totalStockQuantity,
-            item.quantity,
-            0,
-            0,
-            "movement",
-            "in",
-            "purchase",
-            dbName
+            product._id, //productId
+            newPurchaseInvoice._id, //reference
+            totalStockQuantity + item.quantity, //newQuantity
+            item.quantity, //quantity
+            0, //newPrice
+            0, //oldPrice
+            "movement", //type
+            "in", //movementType
+            "purchase", //source
+            dbName //dbName
           )
         );
         if (item.orginalBuyingPrice !== product.buyingprice) {
           createProductMovement(
-            product._id,
-            newPurchaseInvoice._id,
-            0,
-            0,
-            item.orginalBuyingPrice,
-            product.buyingprice,
-            "price",
-            "in",
-            "purchase",
-            dbName
+            product._id, //productId
+            newPurchaseInvoice._id, //reference
+            0, //newQuantity
+            0, //quantity
+            item.orginalBuyingPrice, //newPrice
+            product.buyingprice, //oldPrice
+            "price", //type
+            "in", //movementType
+            "purchase", //source
+            dbName //dbName
           );
         }
       }
@@ -998,7 +998,6 @@ exports.returnPurchaseInvoiceOld = asyncHandler(async (req, res, next) => {
     const existingRecord = await ActiveProductsValue.findOne({
       currency: currencyId,
     });
-    console.log(totalValue);
     if (existingRecord) {
       existingRecord.activeProductsCount -= totalCount;
       existingRecord.activeProductsValue -= totalValue || 0;

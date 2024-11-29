@@ -13,7 +13,7 @@ exports.getTags = asyncHandler(async (req, res, next) => {
 
   const TagModel = db.model("Tags", tagsSchema);
   const Tag = await TagModel.find();
-  res.status(200).json({ status: "true", results: Tag.length, data: Tag });
+  res.status(200).json({ status: true, results: Tag.length, data: Tag });
 });
 
 // @desc Create tag
@@ -25,9 +25,9 @@ exports.createTag = asyncHandler(async (req, res, next) => {
 
   const TagModel = db.model("Tags", tagsSchema);
 
-  req.body.slug = slugify(req.body.name);
+  req.body.slug = slugify(req.body.tagName);
   const Tag = await TagModel.create(req.body);
-  res.status(200).json({ status: "true", message: "Tag inserted", data: Tag });
+  res.status(200).json({ status: true, message: "Tag inserted", data: Tag });
 });
 
 // @desc Get specific tag by ID
@@ -43,7 +43,7 @@ exports.getTag = asyncHandler(async (req, res, next) => {
   if (!Tag) {
     return next(new ApiError(`No Tag for this ID: ${id}`, 404));
   }
-  res.status(200).json({ status: "true", data: Tag });
+  res.status(200).json({ status: true, data: Tag });
 });
 
 // @desc Update specific tag
@@ -60,7 +60,7 @@ exports.updateTag = asyncHandler(async (req, res, next) => {
   if (!Tag) {
     return next(new ApiError(`No Tag for this ID ${req.params.id}`, 404));
   }
-  res.status(200).json({ status: "true", message: "Tag updated", data: Tag });
+  res.status(200).json({ status: true, message: "Tag updated", data: Tag });
 });
 
 // @desc Delete specific tag
@@ -76,5 +76,5 @@ exports.deleteTag = asyncHandler(async (req, res, next) => {
   if (!Tag) {
     return next(new ApiError(`No Tag for this ID ${id}`, 404));
   }
-  res.status(200).json({ status: "true", message: "Tag deleted" });
+  res.status(200).json({ status: true, message: "Tag deleted" });
 });

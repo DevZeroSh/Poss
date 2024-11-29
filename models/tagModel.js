@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
 const tagsSchema = new mongoose.Schema({
-  name: {
+  tagName: {
     type: String,
     require: true,
-    unique: [true, "tag must be unique"],
+    unique: [true, "Tag name must be unique"],
   },
   slug: {
     type: String,
