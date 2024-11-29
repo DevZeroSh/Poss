@@ -176,38 +176,38 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   });
 
   // Create Expense
-  const createExpensePromise =
-    financialFunds.fundPaymentType.haveRatio === "true"
-      ? (async () => {
-          const nextExpenseCounter = (await expensesModel.countDocuments()) + 1;
-          const expenseQuantityAfterKdv =
-            (totalPriceAfterDiscount / exchangeRate) *
-              (financialFunds.bankRatio / 100) ||
-            priceExchangeRate * (financialFunds.bankRatio / 100);
-          financialFunds.fundBalance -= expenseQuantityAfterKdv;
-          const expense = await expensesModel.create({
-            ...req.body,
-            expenseQuantityAfterKdv,
-            expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
-            expenseCategory: financialFunds.fundPaymentType.expenseCategory,
-            counter: nextExpenseCounter,
-            expenseDate: new Date().toISOString(),
-            expenseFinancialFund: financialFunds.fundName,
-            expenseTax: "0",
-            type: "paid",
-          });
+  // const createExpensePromise =
+  //   financialFunds.fundPaymentType.haveRatio === "true"
+  //     ? (async () => {
+  //         const nextExpenseCounter = (await expensesModel.countDocuments()) + 1;
+  //         const expenseQuantityAfterKdv =
+  //           (totalPriceAfterDiscount / exchangeRate) *
+  //             (financialFunds.bankRatio / 100) ||
+  //           priceExchangeRate * (financialFunds.bankRatio / 100);
+  //         financialFunds.fundBalance -= expenseQuantityAfterKdv;
+  //         const expense = await expensesModel.create({
+  //           ...req.body,
+  //           expenseQuantityAfterKdv,
+  //           expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
+  //           expenseCategory: financialFunds.fundPaymentType.expenseCategory,
+  //           counter: nextExpenseCounter,
+  //           expenseDate: new Date().toISOString(),
+  //           expenseFinancialFund: financialFunds.fundName,
+  //           expenseTax: "0",
+  //           type: "paid",
+  //         });
 
-          await ReportsFinancialFundsModel.create({
-            date: new Date().toISOString(),
-            amount: expenseQuantityAfterKdv,
-            order: expense._id,
-            type: "expense",
-            financialFundId: financialFundsId,
-            financialFundRest: financialFunds.fundBalance,
-            exchangeRate: expenseQuantityAfterKdv,
-          });
-        })()
-      : Promise.resolve();
+  //         await ReportsFinancialFundsModel.create({
+  //           date: new Date().toISOString(),
+  //           amount: expenseQuantityAfterKdv,
+  //           order: expense._id,
+  //           type: "expense",
+  //           financialFundId: financialFundsId,
+  //           financialFundRest: financialFunds.fundBalance,
+  //           exchangeRate: expenseQuantityAfterKdv,
+  //         });
+  //       })()
+  //     : Promise.resolve();
   const reportsSalesPromise = ReportsSalesModel.create({
     customer: req.body.customarName,
     orderId: order._id,
@@ -225,7 +225,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   await Promise.all([
     createReportsFinancialFundsPromise,
     ...productMovementPromises,
-    createExpensePromise,
+    // createExpensePromise,
     reportsSalesPromise,
     ...activeProductsValueUpdates,
   ]);
@@ -335,42 +335,42 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         exchangeRate,
       });
 
-      if (
-        financialFund.fundPaymentType &&
-        financialFund.fundPaymentType.haveRatio === "true"
-      ) {
-        const expenseQuantityAfterKdv =
-          parseFloat(amount) * (parseFloat(financialFund.bankRatio) / 100);
-        const finalFundBalance = updatedFundBalance - expenseQuantityAfterKdv;
+      // if (
+      //   financialFund.fundPaymentType &&
+      //   financialFund.fundPaymentType.haveRatio === "true"
+      // ) {
+      //   // const expenseQuantityAfterKdv =
+      //   //   parseFloat(amount) * (parseFloat(financialFund.bankRatio) / 100);
+      //   // const finalFundBalance = updatedFundBalance - expenseQuantityAfterKdv;
 
-        const expensee = await expensesModel.create({
-          ...req.body,
-          expenseQuantityAfterKdv,
-          expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
-          expenseCategory: financialFund.fundPaymentType.expenseCategory,
-          counter: ++expenseCounter,
-          expenseDate: timeIsoString,
-          expenseFinancialFund: financialFund.fundName,
-          expenseTax: "0",
-        });
+      //   // const expensee = await expensesModel.create({
+      //   //   ...req.body,
+      //   //   expenseQuantityAfterKdv,
+      //   //   expenseQuantityBeforeKdv: expenseQuantityAfterKdv,
+      //   //   expenseCategory: financialFund.fundPaymentType.expenseCategory,
+      //   //   counter: ++expenseCounter,
+      //   //   expenseDate: timeIsoString,
+      //   //   expenseFinancialFund: financialFund.fundName,
+      //   //   expenseTax: "0",
+      //   // });
 
-        await ReportsFinancialFundsModel.create({
-          date: timeIsoString,
-          amount: expenseQuantityAfterKdv,
-          order: expensee._id,
-          type: "expense",
-          financialFundId: fundId,
-          financialFundRest: finalFundBalance,
-          exchangeRate,
-        });
+      //   // await ReportsFinancialFundsModel.create({
+      //   //   date: timeIsoString,
+      //   //   amount: expenseQuantityAfterKdv,
+      //   //   order: expensee._id,
+      //   //   type: "expense",
+      //   //   financialFundId: fundId,
+      //   //   financialFundRest: finalFundBalance,
+      //   //   exchangeRate,
+      //   // });
 
-        bulkUpdates2.push({
-          updateOne: {
-            filter: { _id: fundId },
-            update: { $set: { fundBalance: finalFundBalance } },
-          },
-        });
-      }
+      //   // bulkUpdates2.push({
+      //   //   updateOne: {
+      //   //     filter: { _id: fundId },
+      //   //     update: { $set: { fundBalance: finalFundBalance } },
+      //   //   },
+      //   // });
+      // }
 
       financialFundsMap[fundId] = financialFund;
     });
