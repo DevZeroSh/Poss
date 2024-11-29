@@ -146,7 +146,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
           product._id,
           order.id,
           totalStockQuantity,
-          item.soldQuantity,
+          item.quantity,
           0,
           0,
           "movement",
@@ -412,7 +412,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
           product._id,
           order.id,
           totalStockQuantity,
-          item.soldQuantity,
+          item.quantity,
           0,
           0,
           "movement",
@@ -715,11 +715,19 @@ exports.editPosOrder = asyncHandler(async (req, res, next) => {
   }
 
   originalOrder.cartItems.map(async (item) => {
-    const { quantity } = await productModel.findOne({ qr: item.qr });
-    createProductMovement(
-      item.product,
-      quantity,
+    const product = await productModel.findOne({ qr: item.qr });
+    const totalStockQuantity = product.stocks.reduce(
+      (total, stock) => total + stock.productQuantity,
+      0
+    );
+    await createProductMovement(
+      product._id,
+      order.id,
+      totalStockQuantity,
       item.quantity,
+      0,
+      0,
+      "movement",
       "in",
       "Edit Sales",
       dbName
