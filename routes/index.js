@@ -58,6 +58,7 @@ const purchaseRequestRouter = require("./purchaseRequestRoute");
 const accountingRoute = require("./accountingRoute");
 const unTracedproductLogRout = require("./unTracedproductLogRout");
 const TagRoute = require("./tagsRoute");
+const SalesPointRout = require("./salesPointRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -105,6 +106,7 @@ const mountRoutes = (app) => {
   app.use("/api/purchaserequest", purchaseRequestRouter);
   app.use("/api/shippingCompany", shippingCompaniesRoute);
   app.use("/api/untracedproductlog", unTracedproductLogRout);
+  app.use("/api/salespoint", SalesPointRout);
 
   //Ecommerce routes
   app.use("/api/users", E_userRoute);

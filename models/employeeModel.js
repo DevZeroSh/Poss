@@ -43,6 +43,7 @@ const emoloyeeShcema = new mongoose.Schema(
     companySubscribtionId: {
       type: mongoose.Schema.ObjectId,
     },
+    salesPoint: String,
   },
   { timestamps: true }
 );
