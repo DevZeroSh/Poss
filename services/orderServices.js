@@ -192,14 +192,8 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
       financialFundsSavePromise,
       // createExpensePromise,
     ]);
-    order.payments.push({
-      payment: req.body.paymentInFundCurrency,
-      paymentMainCurrency: req.body.totalInMainCurrency,
-      financialFunds: financialFunds.fundName,
-      financialFundsCurrencyCode: financialFunds.fundCurrency.currencyCode,
-      date: req.body.date || formattedDate,
-    });
-    await paymentModel.create({
+
+    const payment = await paymentModel.create({
       customarId: req.body.customer.id,
       customarName: req.body.customer.name,
       total: req.body.paymentInFundCurrency,
@@ -217,6 +211,14 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
         paymentInFundCurrency: req.body.paymentInFundCurrency,
         paymentMainCurrency: req.body.totalInMainCurrency,
       },
+    });
+    order.payments.push({
+      payment: req.body.paymentInFundCurrency,
+      paymentMainCurrency: req.body.totalInMainCurrency,
+      financialFunds: financialFunds.fundName,
+      financialFundsCurrencyCode: financialFunds.fundCurrency.currencyCode,
+      date: req.body.date || formattedDate,
+      paymentID: payment._id,
     });
     customars.total += Number(req.body.totalInMainCurrency);
     await order.save();
