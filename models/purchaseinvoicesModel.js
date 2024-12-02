@@ -110,7 +110,7 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
     //Expens
     employeeID: String,
     employeeName: String,
-    expenseClarification: Number,
+    expenseClarification: String,
     expenseFile: String,
     expenseCategoryId: String,
     expenseCategory: String,
