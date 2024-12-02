@@ -119,7 +119,7 @@ const orderSchema = new mongoose.Schema(
     SiraNumber: String,
     paymentsStatus: String,
     paymentDate: Date,
-    paymentDescription: { type: Number, default: 0 },
+    paymentDescription: String,
     paymentInFundCurrency: Number,
     invoiceGrandTotal: Number,
     InvoiceDiscountType: String,
