@@ -40,7 +40,7 @@ exports.getExpenseCategories = asyncHandler(async (req, res, next) => {
 // Get one expense category
 // @route get /api/expenseCategories/:id
 exports.getOneExpenseCategory = asyncHandler(async (req, res, next) => {
-    try {
+
         const { id } = req.params;
         const dbName = req.query.databaseName;
         const db = mongoose.connection.useDb(dbName);
@@ -52,9 +52,7 @@ exports.getOneExpenseCategory = asyncHandler(async (req, res, next) => {
         } else {
             res.status(200).json({ status: "true", data: expenseCategory });
         }
-    } catch (error) {
-        return next(new ApiError(error, 404));
-    }
+
 });
 
 // Delete One expense category
