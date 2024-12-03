@@ -6,6 +6,7 @@ const {
   financialFund,
   deletefinancialFund,
   transfer,
+  getFinancialFundForSalesPoint,
 } = require("../services/financialFundsService");
 
 const authService = require("../services/authService");
@@ -24,5 +25,6 @@ financialFundsRoute
   .delete(deletefinancialFund);
 financialFundsRoute
   .route("/trans/:id")
-  .put(transfer);
+  .put(transfer)
+  .get(getFinancialFundForSalesPoint);
 module.exports = financialFundsRoute;

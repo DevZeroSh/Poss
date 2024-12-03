@@ -7,6 +7,7 @@ const paymentTypeSchema = require("../models/paymentTypesModel");
 const currencySchema = require("../models/currencyModel");
 const paymentTypesSchema = require("../models/paymentTypesModel");
 const reportsFinancialFundsSchema = require("../models/reportsFinancialFunds");
+const SalesPointSchema = require("../models/salesPointModel");
 
 //@desc Get list of Financial Funds
 //@route GET  /api/financialfunds
@@ -200,5 +201,42 @@ exports.transfer = asyncHandler(async (req, res, next) => {
     message: "Financial fund updated",
     data: financialFund,
     data2: funds,
+  });
+});
+
+exports.getFinancialFundForSalesPoint = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+
+  const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
+  const SalesPointModel = db.model("salesPoints", SalesPointSchema);
+  db.model("Currency", currencySchema);
+  db.model("PaymentType", paymentTypeSchema);
+
+  const { id } = req.params;
+
+  // Find the sales point by its ID
+  const salesPoint = await SalesPointModel.findById(id);
+
+  if (!salesPoint) {
+    return res.status(404).json({ message: "Sales point not found" });
+  }
+
+  // Fetch all funds by their IDs
+  const funds = await Promise.all(
+    salesPoint.funds.map(async (fundItem) => {
+      return FinancialFundsModel.findById(fundItem.id)
+        .populate({
+          path: "fundCurrency",
+          select: "_id currencyCode currencyName exchangeRate",
+        })
+        .populate({ path: "fundPaymentType" });
+    })
+  );
+
+  // Return the funds data
+  res.status(200).json({
+    success: true,
+    data: funds,
   });
 });
