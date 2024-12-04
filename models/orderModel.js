@@ -97,7 +97,12 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     taxSummary: [
-      { taxRate: Number, totalTaxValue: Number, discountTaxValue: Number },
+      {
+        taxRate: Number,
+        totalTaxValue: Number,
+        discountTaxValue: Number,
+        _id: false,
+      },
     ],
     currency: {
       value: String,
@@ -105,7 +110,14 @@ const orderSchema = new mongoose.Schema(
       exchangeRate: String,
       _id: false,
     },
-
+    tag: [
+      {
+        id: String,
+        tagName: String,
+        color: String,
+        _id: false,
+      },
+    ],
     totalInMainCurrency: Number,
     manuallInvoiceDiscount: Number,
     manuallInvoiceDiscountValue: Number,

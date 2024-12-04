@@ -62,6 +62,14 @@ const PurchaseInvoicesSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+    tag: [
+      {
+        id: String,
+        tagName: String,
+        color: String,
+        _id: false,
+      },
+    ],
     invoiceName: String,
 
     financailFund: { value: String, label: String },
