@@ -190,6 +190,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
     subtotalWithDiscount,
     paymentDate,
     invoiceTax,
+    tag,
   } = req.body;
 
   let supplier, invoicesItem, newPurchaseInvoice;
@@ -258,6 +259,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       paymentDate,
       invoiceTax,
       counter: nextCounterPurchaseInvoices,
+      tag,
     });
     // Use Promise.all for parallel database operations
     const [reports, payment] = await Promise.all([
@@ -352,6 +354,7 @@ exports.createPurchaseInvoice = asyncHandler(async (req, res, next) => {
       subtotalWithDiscount,
       paymentDate,
       invoiceTax,
+      tag,
     });
   }
 
@@ -542,6 +545,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
     paymentDate,
     invoiceTax,
     invoicesItems,
+    tag,
   } = req.body;
 
   const originalItems = purchase.invoicesItems;
@@ -629,6 +633,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         subtotalWithDiscount,
         paymentDate,
         invoiceTax,
+        tag,
       });
       newPurchaseInvoice = await PurchaseInvoicesModel.updateOne(
         { _id: id },
@@ -722,6 +727,7 @@ exports.updatePurchaseInvoices = asyncHandler(async (req, res, next) => {
         subtotalWithDiscount,
         paymentDate,
         invoiceTax,
+        tag,
       };
       newPurchaseInvoice = await PurchaseInvoicesModel.updateOne(
         { _id: id },
