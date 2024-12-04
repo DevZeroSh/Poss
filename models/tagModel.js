@@ -13,6 +13,7 @@ const tagsSchema = new mongoose.Schema({
   description: {
     type: String,
   },
+  color: String,
 });
 
 module.exports = tagsSchema;

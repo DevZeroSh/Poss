@@ -27,7 +27,7 @@ exports.createTag = asyncHandler(async (req, res, next) => {
 
   req.body.slug = slugify(req.body.tagName);
   const Tag = await TagModel.create(req.body);
-  res.status(200).json({ status: true, message: "Tag inserted", data: Tag });
+  res.status(200).json({ status: "success", message: "Tag inserted", data: Tag });
 });
 
 // @desc Get specific tag by ID
