@@ -95,11 +95,17 @@ exports.deleteAccountingTree = asyncHandler(async (req, res, next) => {
   if (!accountingTree) {
     return next(new ApiError(`not fund the account Tree for this code ${id}`));
   }
-  if (accountingTree.length === 1) {
+  console.log(accountingTree[0].balance);
+  
+  if (accountingTree.length === 1 && accountingTree[0].balance === 0) {
     const deleteAccountTree = await accountingTreeModel.deleteOne({ code: id });
   } else if (accountingTree.length > 1) {
     return next(new ApiError(`that have a chiled ${id}`));
-  } else {
+  }
+  else if (accountingTree.balance !== 0) {
+    return next(new ApiError(`that have a balance ${id}`));
+  }
+  else {
     return next(new ApiError(`not fund the account Tree for this code ${id}`));
   }
   res.status(200).json({
@@ -108,7 +114,7 @@ exports.deleteAccountingTree = asyncHandler(async (req, res, next) => {
   });
 });
 
-exports.importAccountingTree= asyncHandler(async (req, res, next) => {
+exports.importAccountingTree = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
   const accountingTree = db.model("AccountingTree", AccountingTree);

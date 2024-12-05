@@ -28,3 +28,14 @@ exports.getOneSalePoint = asyncHandler(async (req, res, next) => {
   const sales = await salsePointModel.findById(id);
   res.status(200).json({ status: "success", data: sales });
 });
+
+exports.openAndCloseSalePoint = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const salesPointModel = db.model("salesPoints", SalesPointSchema);
+  const { id } = req.params;
+  const open = await salesPointModel.findByIdAndUpdate(id, {
+    isOpen: req.body.isOpen,
+  });
+  res.status(200).json({ status: "success", data: open });
+});

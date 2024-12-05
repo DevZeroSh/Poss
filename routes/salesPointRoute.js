@@ -4,6 +4,8 @@ const {
   createSalesPoint,
   getSalesPoint,
   getOneSalePoint,
+
+  openAndCloseSalePoint,
 } = require("../services/salesPointServices");
 
 const SalesPointRout = express.Router();
@@ -11,6 +13,6 @@ const SalesPointRout = express.Router();
 SalesPointRout.use(authService.protect);
 
 SalesPointRout.route("/").get(getSalesPoint).post(createSalesPoint);
-SalesPointRout.route("/:id").get(getOneSalePoint);
+SalesPointRout.route("/:id").get(getOneSalePoint).put(openAndCloseSalePoint);
 
 module.exports = SalesPointRout;
