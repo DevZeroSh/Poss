@@ -72,8 +72,10 @@ exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
     minutes +
     ":" +
     seconds;
-  req.body.date = formattedDate;
-  console.log(req.body.date);
+
+  if (req.body.date) {
+    req.body.date = formattedDate;
+  }
 
   const account = await AccountModel.create(req.body);
   const accountingTree = await accountingTreeModel.findByIdAndUpdate(

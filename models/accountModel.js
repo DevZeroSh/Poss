@@ -19,7 +19,7 @@ const AccountTransactionSchema = new mongoose.Schema(
     ],
     totalAmount: Number,
     date: {
-      type: Date,
+      type: String,
       default: Date.now,
     },
     desc: String,
