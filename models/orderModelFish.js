@@ -92,6 +92,7 @@ const orderFishSchema = new mongoose.Schema(
     date: String,
     description: String,
     type: { type: String, default: "pos" },
+    salesPoint: String,
   },
 
   { timestamps: true }

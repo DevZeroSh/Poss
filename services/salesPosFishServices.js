@@ -59,6 +59,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     couponCount,
     totalPriceAfterDiscount,
     priceExchangeRate,
+    salesPointId,
   } = req.body;
 
   const financialFunds = await FinancialFundsModel.findById(
@@ -103,6 +104,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     paidAt: new Date().toISOString(),
     counter: nextCounter,
     exchangeRate,
+    salesPoint: salesPointId,
   });
 
   // Update financial funds
