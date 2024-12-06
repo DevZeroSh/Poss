@@ -36,6 +36,7 @@ const PaymentSchema = require("../models/paymentModel");
 const PaymentHistorySchema = require("../models/paymentHistoryModel");
 const invoiceHistorySchema = require("../models/invoiceHistoryModel");
 const UnTracedproductLogSchema = require("../models/unTracedproductLogModel");
+const SalesPointSchema = require("../models/salesPointModel");
 
 exports.filterOrderForLoggedUser = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
@@ -1277,6 +1278,7 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   db.model("ReportsSales", ReportsSalesSchema);
   const orderModel = db.model("Sales", orderSchema);
   const salsePos = db.model("orderFishPos", orderFishSchema);
+  const salsePointModel = db.model("salesPoints", SalesPointSchema);
 
   function padZero(value) {
     return value < 10 ? `0${value}` : value;
@@ -1305,83 +1307,93 @@ const margeOrderFish = asyncHandler(async (databaseName) => {
   const specificDate = new Date();
   const specificDateString = specificDate.toISOString().split("T")[0];
 
-  // Find orders where paidAt matches the specified date and type is 'pos'
-  const orders = await salsePos.find({
-    paidAt: {
-      $gte: specificDateString,
-    },
-    type: "pos",
-  });
-  const cartItems = [];
-  const fish = [];
-  let totalOrderPrice = 0;
+  const salesPoints = await salsePointModel.find();
 
-  const financialFundsMap = new Map();
+  for (const salesPoint of salesPoints) {
+    console.log(salesPoint);
 
-  for (const order of orders) {
-    order.cartItems.forEach((item) => {
-      cartItems.push({
-        qr: item.qr,
-        name: item.name,
-        sellingPrice: item.taxPrice,
-        soldQuantity: item.quantity,
-        orginalBuyingPrice: item.buyingPrice,
-        convertedBuyingPrice: item.buyingPrice,
-        total: item.taxPrice * item.quantity,
-        totalWithoutTax: item.price * item.quantity,
-        tax: { _id: "", tax: item.taxRate },
+    if (salesPoint.isOpen === true) {
+      // Find orders where paidAt matches the specified date and type is 'pos'
+
+      const orders = await salsePos.find({
+        paidAt: {
+          $gte: specificDateString,
+        },
+        type: "pos",
+        salesPoint: salesPoint._id,
       });
-      fish.push(order.counter);
-      totalOrderPrice += item.taxPrice * item.quantity;
-    });
-    // await order.financialFunds?.forEach((fund) => {
-    //   const fundId = fund.fundId.toString();
+      const cartItems = [];
+      const fish = [];
+      let totalOrderPrice = 0;
 
-    //   if (financialFundsMap.has(fundId)) {
-    //     financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
-    //   } else {
-    //     financialFundsMap.set(fundId, {
-    //       fundId: fund?.fundId,
-    //       allocatedAmount: fund?.allocatedAmount || 0,
-    //       exchangeRate: fund?.exchangeRate,
-    //       exchangeRateIcon: fund?.exchangeRateIcon,
-    //       fundName: fund?.fundName,
-    //     });
-    //   }
-    // });
+      const financialFundsMap = new Map();
 
-    if (order.onefinancialFunds) {
-      const fundId = order.onefinancialFunds.toString();
-      if (financialFundsMap.has(fundId)) {
-        financialFundsMap.get(fundId).allocatedAmount +=
-          order.priceExchangeRate;
-      } else {
-        financialFundsMap.set(fundId, {
-          fundId: fundId,
-          allocatedAmount: order.priceExchangeRate || 0,
+      for (const order of orders) {
+        order.cartItems.forEach((item) => {
+          cartItems.push({
+            qr: item.qr,
+            name: item.name,
+            sellingPrice: item.taxPrice,
+            soldQuantity: item.quantity,
+            orginalBuyingPrice: item.buyingPrice,
+            convertedBuyingPrice: item.buyingPrice,
+            total: item.taxPrice * item.quantity,
+            totalWithoutTax: item.price * item.quantity,
+            tax: { _id: "", tax: item.taxRate },
+          });
+          fish.push(order.counter);
+          totalOrderPrice += item.taxPrice * item.quantity;
         });
+        // await order.financialFunds?.forEach((fund) => {
+        //   const fundId = fund.fundId.toString();
+
+        //   if (financialFundsMap.has(fundId)) {
+        //     financialFundsMap.get(fundId).allocatedAmount += fund.allocatedAmount;
+        //   } else {
+        //     financialFundsMap.set(fundId, {
+        //       fundId: fund?.fundId,
+        //       allocatedAmount: fund?.allocatedAmount || 0,
+        //       exchangeRate: fund?.exchangeRate,
+        //       exchangeRateIcon: fund?.exchangeRateIcon,
+        //       fundName: fund?.fundName,
+        //     });
+        //   }
+        // });
+
+        if (order.onefinancialFunds) {
+          const fundId = order.onefinancialFunds.toString();
+          if (financialFundsMap.has(fundId)) {
+            financialFundsMap.get(fundId).allocatedAmount +=
+              order.priceExchangeRate;
+          } else {
+            financialFundsMap.set(fundId, {
+              fundId: fundId,
+              allocatedAmount: order.priceExchangeRate || 0,
+            });
+          }
+        }
       }
+      // Convert the map of financial funds to an array
+      const aggregatedFunds = Array.from(financialFundsMap.values());
+
+      const nextCounter = (await orderModel.countDocuments()) + 1;
+
+      const newOrderData = {
+        invoicesItems: cartItems,
+        invoiceGrandTotal: totalOrderPrice,
+        orderDate: formattedDate,
+        type: "bills",
+        totalInMainCurrency: totalOrderPrice,
+        counter: nextCounter,
+        paymentsStatus: "paid",
+        exchangeRate: 1,
+        fish: fish,
+        financialFunds: aggregatedFunds,
+      };
+
+      const newOrders = await orderModel.insertMany(newOrderData);
     }
   }
-  // Convert the map of financial funds to an array
-  const aggregatedFunds = Array.from(financialFundsMap.values());
-
-  const nextCounter = (await orderModel.countDocuments()) + 1;
-
-  const newOrderData = {
-    invoicesItems: cartItems,
-    invoiceGrandTotal: totalOrderPrice,
-    orderDate: formattedDate,
-    type: "bills",
-    totalInMainCurrency: totalOrderPrice,
-    counter: nextCounter,
-    paymentsStatus: "paid",
-    exchangeRate: 1,
-    fish: fish,
-    financialFunds: aggregatedFunds,
-  };
-
-  const newOrders = await orderModel.insertMany(newOrderData);
 });
 
 const fetchAllSubscriberDatabases = async () => {
