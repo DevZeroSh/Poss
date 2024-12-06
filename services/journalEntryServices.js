@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const asyncHandler = require("express-async-handler");
 const ApiError = require("../utils/apiError");
 const { Search } = require("../utils/search");
-const AccountTransactionSchema = require("../models/accountModel");
+const journalEntrySchema = require("../models/journalEntryModel");
 const AccountingTreeSchema = require("../models/accountingTreeModel");
 
 //@desc Get Account Transaction
@@ -10,7 +10,7 @@ const AccountingTreeSchema = require("../models/accountingTreeModel");
 exports.getAccountingTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("journalEntry", AccountTransactionSchema);
+  const AccountModel = db.model("journalEntry", journalEntrySchema);
 
   const { totalPages, mongooseQuery } = await Search(AccountModel, req);
 
@@ -29,7 +29,7 @@ exports.getAccountingTransaction = asyncHandler(async (req, res, next) => {
 exports.getOneAccountTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("journalEntry", AccountTransactionSchema);
+  const AccountModel = db.model("journalEntry", journalEntrySchema);
 
   const { id } = req.params;
 
@@ -46,7 +46,7 @@ exports.getOneAccountTransaction = asyncHandler(async (req, res, next) => {
 exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
-  const AccountModel = db.model("journalEntry", AccountTransactionSchema);
+  const AccountModel = db.model("journalEntry", journalEntrySchema);
   const accountingTreeModel = db.model("AccountingTree", AccountingTreeSchema);
   function padZero(value) {
     return value < 10 ? `0${value}` : value;

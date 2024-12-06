@@ -5,7 +5,7 @@ const {
   getAccountingTransaction,
   createAccountTransaction,
   getOneAccountTransaction,
-} = require("../services/accountServices");
+} = require("../services/journalEntryServices");
 
 const accountingRoute = express.Router();
 

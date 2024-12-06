@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const AccountTransactionSchema = new mongoose.Schema(
+const journalEntrySchema = new mongoose.Schema(
   {
     fromAccount: { id: String, name: String, amount: Number, _id: false },
 
@@ -26,4 +26,4 @@ const AccountTransactionSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-module.exports = AccountTransactionSchema;
+module.exports = journalEntrySchema;
