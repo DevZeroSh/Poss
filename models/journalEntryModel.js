@@ -23,6 +23,7 @@ const journalEntrySchema = new mongoose.Schema(
       default: Date.now,
     },
     desc: String,
+    counter: String,
   },
   { timestamps: true }
 );

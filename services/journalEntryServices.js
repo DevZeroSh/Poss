@@ -76,7 +76,8 @@ exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   if (req.body.date) {
     req.body.date = formattedDate;
   }
-
+  const nextCounterPayment = (await AccountModel.countDocuments()) + 1;
+  req.body.counter = nextCounterPayment;
   const account = await AccountModel.create(req.body);
   const accountingTree = await accountingTreeModel.findByIdAndUpdate(
     req.body.fromAccount.id,
