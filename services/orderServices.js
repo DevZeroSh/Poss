@@ -305,6 +305,9 @@ exports.DashBordSalse = asyncHandler(async (req, res, next) => {
               $inc: {
                 quantity: -item.soldQuantity,
                 "stocks.$.productQuantity": -item.soldQuantity,
+                soldByMonth: +item.soldQuantity,
+                soldByWeek: +item.soldQuantity,
+                sold: +item.soldQuantity,
               },
             },
           },
