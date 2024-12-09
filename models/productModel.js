@@ -25,7 +25,6 @@ const productSchema = new mongoose.Schema(
     shortDescription: {
       type: String,
       default: "Product short description",
-      default: " short Description AR",
     },
     shortDescriptionAR: {
       type: String,
@@ -38,7 +37,6 @@ const productSchema = new mongoose.Schema(
     description: {
       type: String,
       default: "Product description",
-      default: "Product description AR",
     },
     descriptionAR: {
       type: String,
@@ -154,6 +152,10 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    AdditionalInfo: {
+      type: String,
+      default: "Additional Info",
+    },
     customAttributes: [
       {
         key: String,
@@ -205,6 +207,8 @@ const productSchema = new mongoose.Schema(
     groupID: { type: String },
     importDate: Date,
     suppliers: [String],
+    soldByMonth: Number,
+    soldByWeek: Number,
   },
   {
     timestamps: true,
