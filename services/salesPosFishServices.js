@@ -24,6 +24,7 @@ const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const refundPosSalesSchema = require("../models/refundPosSales");
 const orderSchema = require("../models/orderModel");
+const SalesPointSchema = require("../models/salesPointModel");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/salse-pos
@@ -31,6 +32,7 @@ const orderSchema = require("../models/orderModel");
 exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  const salsePointModel = db.model("salesPoints", SalesPointSchema);
 
   const orderFishPosModel = db.model("orderFishPos", orderFishSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
@@ -175,6 +177,14 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       salesPoint: salesPointId,
     });
   }
+
+  await salsePointModel.findByIdAndUpdate(
+    { _id: salesPointId },
+    {
+      $inc: { sold: 1 },
+    },
+    { new: true }
+  );
   // Update financial funds
   financialFunds.fundBalance +=
     couponCount > 0
@@ -320,6 +330,7 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
 exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
   const dbName = req.query.databaseName;
   const db = mongoose.connection.useDb(dbName);
+  const salsePointModel = db.model("salesPoints", SalesPointSchema);
 
   const salsePos = db.model("orderFishPos", orderFishSchema);
   const FinancialFundsModel = db.model("FinancialFunds", financialFundsSchema);
@@ -363,6 +374,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     totalOrderPrice: 0,
     paidAt: date,
     counter: totalOrderCount,
+    salesPoint: req.body.salesPointId,
     financialFunds: financialFunds
       .filter((fund) => fund.amount !== 0)
       .map((fund) => ({
@@ -372,7 +384,13 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
         exchangeRate: fund.exchangeRate,
       })),
   });
-
+  await salsePointModel.findByIdAndUpdate(
+    { _id: req.body.salesPointId },
+    {
+      $inc: { sold: 1 },
+    },
+    { new: true }
+  );
   let totalAllocatedAmount = 0;
   const bulkUpdates = [];
   const bulkUpdates2 = [];
