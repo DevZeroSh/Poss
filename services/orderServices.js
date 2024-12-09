@@ -503,7 +503,7 @@ exports.findOneOrder = asyncHandler(async (req, res, next) => {
 
   res.status(200).json({
     status: "true",
-
+    history: invoiceHistory,
     data: order,
   });
 });

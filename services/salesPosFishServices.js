@@ -23,6 +23,7 @@ const paymentTypesSchema = require("../models/paymentTypesModel");
 const expensesSchema = require("../models/expensesModel");
 const orderFishSchema = require("../models/orderModelFish");
 const refundPosSalesSchema = require("../models/refundPosSales");
+const orderSchema = require("../models/orderModel");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/salse-pos
@@ -46,6 +47,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   );
   db.model("PaymentType", paymentTypesSchema);
   db.model("Currency", currencySchema);
+  const orderModel = db.model("Sales", orderSchema);
+
   const cartItems = req.body.cartItems;
 
   if (!cartItems || cartItems.length === 0) {
@@ -77,36 +80,101 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   const stockID = req.body.stock;
 
   // Get next counter
-  const nextCounter = (await orderFishPosModel.countDocuments()) + 1;
+  let nextCounter = 0;
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
-  // Create order
-  const order = await orderFishPosModel.create({
-    employee: req.user._id,
-    priceExchangeRate,
-    cartItems,
-    returnCartItem: cartItems,
-    currencyCode: req.body.currency,
-    totalOrderPrice,
-    totalPriceAfterDiscount,
-    taxs: req.body.taxs,
-    price: req.body.price,
-    taxRate: req.body.taxRate,
-    customarId: req.body.customarId,
-    customarName: req.body.customarName,
-    customarEmail: req.body.customarEmail,
-    customarPhone: req.body.customarPhone,
-    customaraddres: req.body.customaraddres,
-    coupon: req.body.coupon,
-    couponCount: req.body.couponCount,
-    couponType: req.body.couponType,
-    type: req.body.type,
-    onefinancialFunds: financialFundsId,
-    paidAt: new Date().toISOString(),
-    counter: nextCounter,
-    exchangeRate,
-    salesPoint: salesPointId,
-  });
+  let order;
+  if (req.body.customarId) {
+    nextCounter = (await orderModel.countDocuments()) + 1;
+    let subTotal = 0;
+    let taxTotal = 0;
+    const test = cartItems?.map(
+      (item) => (
+        (subTotal = item.price * item.quantity),
+        (taxTotal = item.taxs * item.quantity),
+        {
+          id: item.product,
+          qr: item.qr,
+          name: item.name,
+          sellingPrice: item.price,
+          orginalBuyingPrice: item.buyingPrice,
+          convertedBuyingPrice: item.buyingPrice,
+          buyingpriceMainCurrence: item.buyingPrice,
+          soldQuantity: item.quantity,
+          tax: { _id: "", tax: item.taxRate },
+          taxValue: item.taxs,
+          exchangeRate: item.currency.exchangeRate,
+          totalWithoutTax: item.price,
+          total: (item.price + item.taxs) * item.quantity,
+        }
+      )
+    );
 
+    order = await orderModel.create({
+      type: "sales",
+      invoiceType: "sales",
+      employee: req.user._id,
+      priceExchangeRate,
+      invoicesItems: test,
+      returnCartItem: test,
+      currencyCode: req.body.currency,
+      totalInMainCurrency: totalOrderPrice,
+      invoiceGrandTotal: totalOrderPrice,
+      totalPriceAfterDiscount,
+      taxs: req.body.taxs,
+      price: req.body.price,
+      taxRate: req.body.taxRate,
+      customer: {
+        id: req.body.customarId,
+        name: req.body.customarName,
+        phone: req.body.customarPhone,
+        email: req.body.customarEmail,
+        address: req.body.customaraddres,
+      },
+      totalRemainderMainCurrency: 0,
+      totalRemainder: 0,
+      coupon: req.body.coupon,
+      couponCount: req.body.couponCount,
+      InvoiceDiscountType: req.body.couponType,
+      onefinancialFunds: financialFundsId,
+      orderDate: new Date().toISOString(),
+      counter: nextCounter,
+      exchangeRate,
+      invoiceTax: taxTotal,
+      invoiceSubTotal: subTotal,
+      manuallInvoiceDiscountValue: 0,
+      manuallInvoiceDiscount: 0,
+      invoiceDiscount: 0,
+    });
+  } else {
+    nextCounter = (await orderFishPosModel.countDocuments()) + 1;
+    // Create order
+    order = await orderFishPosModel.create({
+      employee: req.user._id,
+      priceExchangeRate,
+      cartItems,
+      returnCartItem: cartItems,
+      currencyCode: req.body.currency,
+      totalOrderPrice,
+      totalPriceAfterDiscount,
+      taxs: req.body.taxs,
+      price: req.body.price,
+      taxRate: req.body.taxRate,
+      customarId: req.body.customarId,
+      customarName: req.body.customarName,
+      customarEmail: req.body.customarEmail,
+      customarPhone: req.body.customarPhone,
+      customaraddres: req.body.customaraddres,
+      coupon: req.body.coupon,
+      couponCount: req.body.couponCount,
+      couponType: req.body.couponType,
+      type: req.body.type,
+      onefinancialFunds: financialFundsId,
+      paidAt: new Date().toISOString(),
+      counter: nextCounter,
+      exchangeRate,
+      salesPoint: salesPointId,
+    });
+  }
   // Update financial funds
   financialFunds.fundBalance +=
     couponCount > 0
@@ -238,7 +306,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     dbName,
     order._id,
     "create",
-    req.user._id
+    req.user._id,
+    new Date().toISOString()
   );
   res.status(201).json({ status: "success", data: order, history });
 });
@@ -256,6 +325,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
     "ReportsFinancialFunds",
     reportsFinancialFundsSchema
   );
+  const orderModel = db.model("Sales", orderSchema);
+
   const expensesModel = db.model("Expenses", expensesSchema);
   const ReportsSalesModel = db.model("ReportsSales", ReportsSalesSchema);
   const productModel = db.model("Product", productSchema);
@@ -281,6 +352,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 
   const totalOrderCount = (await salsePos.countDocuments()) + 1;
   const reportsOrderCount = (await ReportsSalesModel.countDocuments()) + 1;
+  
+  
   const order = await salsePos.create({
     ...orderData,
     employee: req.user._id,

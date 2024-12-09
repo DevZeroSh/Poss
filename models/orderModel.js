@@ -17,6 +17,7 @@ const orderSchema = new mongoose.Schema(
         _id: false,
       },
     ],
+
     exchangeRate: Number,
     invoicesItems: [
       {
