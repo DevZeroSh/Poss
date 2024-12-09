@@ -3,6 +3,7 @@ const productSchema = require("../models/productModel");
 const slugify = require("slugify");
 const multer = require("multer");
 const ApiError = require("../utils/apiError");
+const cron = require("node-cron");
 const { v4: uuidv4 } = require("uuid");
 const sharp = require("sharp");
 const csvtojson = require("csvtojson");
@@ -23,6 +24,8 @@ const reviewSchema = require("../models/ecommerce/reviewModel");
 const getAllChildCategories = require("../utils/CategoriesChild");
 const E_user_Schema = require("../models/ecommerce/E_user_Modal");
 const ecommerceOrderSchema = require("../models/ecommerce/ecommerceOrderModel");
+const { default: axios } = require("axios");
+const soldReportSchema = require("../models/soldReportModel");
 
 // @desc Get list product
 // @route Get /api/product
@@ -572,7 +575,7 @@ exports.createProduct = asyncHandler(async (req, res, next) => {
 
     // Update stocks with product ID
     console.log(product);
-    
+
     await createProductMovement(
       product._id,
       product._id,
@@ -1602,4 +1605,97 @@ exports.getProductBySuppliers = asyncHandler(async (req, res) => {
     Pages: totalPages,
     data: products,
   });
+});
+
+const resetSold = asyncHandler(async (databaseName, field) => {
+  if (!["soldByMonth", "soldByWeek"].includes(field)) {
+    throw new Error("Invalid field to reset");
+  }
+
+  const db = mongoose.connection.useDb(databaseName);
+  const productModel = db.model("Product", productSchema);
+
+  try {
+    const result = await productModel.updateMany({}, { $set: { [field]: 0 } });
+    console.log(
+      `Reset ${field} for ${result.modifiedCount} products in ${databaseName}.`
+    );
+  } catch (error) {
+    console.error(`Error resetting ${field} in ${databaseName}:`, error);
+  }
+});
+
+const fetchAllSubscriberDatabases = async () => {
+  try {
+    console.log("Fetching subscriber databases...");
+
+    // Make a request to get all subscriber databases
+    const response = await axios.get(
+      "https://api2.smartinb.ai:4001/api/subscribers"
+    );
+
+    if (response.data.status === "success") {
+      const subscriberDatabases = response.data.data.map((user) => user.dbName);
+      return subscriberDatabases;
+    } else {
+      throw new Error("Failed to fetch subscriber databases.");
+    }
+  } catch (error) {
+    console.error("Error fetching subscriber databases:", error);
+    return [];
+  }
+};
+
+const createSoldReport = asyncHandler(async (type, databaseName) => {
+  const db = mongoose.connection.useDb(databaseName);
+  const productModel = db.model("Product", productSchema);
+  const reportModel = db.model("SoldReport", soldReportSchema);
+
+  const soldField = type === "weekly" ? "soldByWeek" : "soldByMonth";
+
+  try {
+    const topProducts = await productModel
+      .find({ [soldField]: { $gt: 0 } })
+      .sort({ [soldField]: -1 })
+      .limit(10)
+      .select("name " + soldField);
+
+    const reportData = topProducts.map((product) => ({
+      productId: product._id,
+      name: product.name,
+      sold: product[soldField],
+    }));
+
+    const report = new reportModel({
+      type,
+      products: reportData,
+    });
+    await report.save();
+
+    await resetSold(databaseName, soldField);
+  } catch (error) {
+    console.error(`Error creating ${type} report for ${databaseName}:`, error);
+  }
+});
+
+// Weekly task (every Sunday at 00:00)
+cron.schedule("0 0 * * 0", async () => {
+  //0 0 * * 0
+  console.log("Running weekly reports task for all databases...");
+  const subscriberDatabases = await fetchAllSubscriberDatabases();
+  for (const dbName of subscriberDatabases) {
+    await createSoldReport("weekly", dbName);
+    await resetSold(dbName, "soldByWeek");
+  }
+});
+
+// Monthly task (1st of each month at 00:00)
+cron.schedule("0 0 1 * *", async () => {
+  //0 0 1 * *
+  console.log("Running monthly reports task for all databases...");
+  const subscriberDatabases = await fetchAllSubscriberDatabases();
+  for (const dbName of subscriberDatabases) {
+    await createSoldReport("monthly", dbName);
+    await resetSold(dbName, "soldByMonth");
+  }
 });

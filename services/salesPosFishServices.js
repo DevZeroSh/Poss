@@ -206,6 +206,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       if (stockEntry) {
         stockEntry.productQuantity -= item.quantity;
         product.sold += item.quantity;
+        product.soldByMonth = +item.quantity;
+        product.soldByWeek = +item.quantity;
         const totalStockQuantity = product.stocks.reduce(
           (total, stock) => total + stock.productQuantity,
           0
@@ -352,8 +354,7 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
 
   const totalOrderCount = (await salsePos.countDocuments()) + 1;
   const reportsOrderCount = (await ReportsSalesModel.countDocuments()) + 1;
-  
-  
+
   const order = await salsePos.create({
     ...orderData,
     employee: req.user._id,
@@ -478,6 +479,8 @@ exports.createCashOrderMultipelFunds = asyncHandler(async (req, res, next) => {
       if (stockEntry) {
         stockEntry.productQuantity -= item.quantity;
         product.sold += item.quantity;
+        product.soldByMonth = +item.quantity;
+        product.soldByWeek = +item.quantity;
         const totalStockQuantity = product.stocks.reduce(
           (total, stock) => total + stock.productQuantity,
           0

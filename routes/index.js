@@ -59,6 +59,7 @@ const accountingRoute = require("./journalEntryRoute");
 const unTracedproductLogRout = require("./unTracedproductLogRout");
 const TagRoute = require("./tagsRoute");
 const SalesPointRout = require("./salesPointRoute");
+const SoldReportsRoute = require("./soldReportsRoute");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -89,6 +90,7 @@ const mountRoutes = (app) => {
   app.use("/api/pricingmethod", pricingMethodRoute);
   app.use("/api/financialfundsreports", reportsFinancialFundRoute);
   app.use("/api/salesreports", reportsSalesRoute);
+  app.use("/api/soldReports", SoldReportsRoute);
   app.use("/api/stockreconciliation", StockReconciliationRoute);
   app.use("/api/profitloss", profitLossRoute);
   app.use("/api/productmovements", productMovementsRoute);
