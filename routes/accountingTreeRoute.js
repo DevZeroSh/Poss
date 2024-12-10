@@ -7,6 +7,7 @@ const {
   deleteAccountingTree,
   getAccountingTreeNoBalance,
   importAccountingTree,
+  changeBalance,
 } = require("../services/accountingTreeServices");
 const authService = require("../services/authService");
 const multer = require("multer");
@@ -20,6 +21,7 @@ accountingTreeRout.route("/tree").get(getAccountingTreeNoBalance);
 accountingTreeRout
   .route("/import")
   .post(upload.single("file"), importAccountingTree);
+accountingTreeRout.route("/change/:id").put(changeBalance);
 accountingTreeRout
   .route("/:id")
   .put(updateAccountingTree)

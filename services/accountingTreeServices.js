@@ -96,16 +96,14 @@ exports.deleteAccountingTree = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`not fund the account Tree for this code ${id}`));
   }
   console.log(accountingTree[0].balance);
-  
+
   if (accountingTree.length === 1 && accountingTree[0].balance === 0) {
     const deleteAccountTree = await accountingTreeModel.deleteOne({ code: id });
   } else if (accountingTree.length > 1) {
     return next(new ApiError(`that have a chiled ${id}`));
-  }
-  else if (accountingTree.balance !== 0) {
+  } else if (accountingTree.balance !== 0) {
     return next(new ApiError(`that have a balance ${id}`));
-  }
-  else {
+  } else {
     return next(new ApiError(`not fund the account Tree for this code ${id}`));
   }
   res.status(200).json({
@@ -159,4 +157,24 @@ exports.importAccountingTree = asyncHandler(async (req, res, next) => {
       error: error.message,
     });
   }
+});
+
+exports.changeBalance = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const accountingTree = db.model("AccountingTree", AccountingTree);
+
+  const { id } = req.params;
+
+  const account = await accountingTree.findOneAndUpdate(
+    { _id: id },
+    {
+      $inc: { balance: req.body.balance },
+    },
+    { new: true }
+  );
+
+  res
+    .status(200)
+    .json({ status: "success", message: "balance Updated", data: account });
 });
