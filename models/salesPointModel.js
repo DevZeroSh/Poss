@@ -7,6 +7,7 @@ const SalesPointSchema = new mongoose.Schema(
     funds: [{ id: String, name: String, _id: false }],
     sold: Number,
     isOpen: { type: Boolean, default: false },
+    location: String,
   },
   { timestamps: true }
 );
