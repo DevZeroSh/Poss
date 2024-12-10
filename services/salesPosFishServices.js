@@ -25,6 +25,8 @@ const orderFishSchema = require("../models/orderModelFish");
 const refundPosSalesSchema = require("../models/refundPosSales");
 const orderSchema = require("../models/orderModel");
 const SalesPointSchema = require("../models/salesPointModel");
+const { createPaymentHistory } = require("./paymentHistoryService");
+const PaymentSchema = require("../models/paymentModel");
 
 // @desc    Create cash order from the POS page
 // @route   POST /api/salse-pos
@@ -47,6 +49,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
     "ActiveProductsValue",
     ActiveProductsValueModel
   );
+  const customersModel = db.model("Customar", customarSchema);
+  const paymentModel = db.model("Payment", PaymentSchema);
+
   db.model("PaymentType", paymentTypesSchema);
   db.model("Currency", currencySchema);
   const orderModel = db.model("Sales", orderSchema);
@@ -84,6 +89,8 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // Get next counter
   let nextCounter = 0;
   const nextCounterReports = (await ReportsSalesModel.countDocuments()) + 1;
+  const nextCounterPayment = (await paymentModel.countDocuments()) + 1;
+
   let order;
   if (req.body.customarId) {
     nextCounter = (await orderModel.countDocuments()) + 1;
@@ -146,7 +153,36 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
       manuallInvoiceDiscountValue: 0,
       manuallInvoiceDiscount: 0,
       invoiceDiscount: 0,
+      paymentsStatus: "paid",
     });
+    const customers = await customersModel.findByIdAndUpdate(
+      req.body.customarId,
+      { $inc: { total: totalOrderPrice } },
+      { new: true }
+    );
+
+    await createPaymentHistory(
+      "invoice",
+      new Date().toISOString(),
+      totalOrderPrice,
+      customers.TotalUnpaid,
+      "customer",
+      req.body.customarId,
+      nextCounter,
+      dbName
+    );
+    await createPaymentHistory(
+      "payment",
+      new Date().toISOString(),
+      totalOrderPrice,
+      customers.TotalUnpaid,
+      "customer",
+      req.body.customarId,
+      nextCounter,
+      dbName,
+      req.body.paymentDescription,
+      nextCounterPayment
+    );
   } else {
     nextCounter = (await orderFishPosModel.countDocuments()) + 1;
     // Create order
