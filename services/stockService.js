@@ -159,7 +159,7 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
         .json({ message: "Product quantity cannot be less than 0" });
     }
   }
-
+  req.body.counter = (await stockTransferModel.countDocuments()) + 1;
   // Create the stock transfer operation
   const transferStock = await stockTransferModel.create(req.body);
   const transferId = transferStock._id;

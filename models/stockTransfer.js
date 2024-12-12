@@ -14,6 +14,7 @@ const stockTransferSchema = new mongoose.Schema({
         productName: String,
         productQuantity: Number,
     }],
+    counter: String,
 
 }, { timestamps: true })
 
