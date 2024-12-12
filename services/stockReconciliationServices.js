@@ -80,6 +80,8 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
   await productModel.bulkWrite(bulkOption2, {});
   await newStockReconcil.save();
 
+  const reconciliationId = newStockReconcil._id;
+
   req.body.items.map(async (item) => {
     if (item.reconciled) {
       try {
@@ -144,12 +146,16 @@ exports.createStockReconciliation = asyncHandler(async (req, res, next) => {
       }
 
       createProductMovement(
-        item.productId,
-        item.realCount,
-        item.difference,
-        "edit",
-        "reconcile",
-        dbName
+        item.productId, //productId
+        reconciliationId, //reference
+        item.realCount, //newQuantity
+        item.difference, //quantity
+        0, //newPrice
+        0, //oldPrice
+        "movement", //type
+        "edit", //movementType
+        "reconcile", //source
+        dbName //dbName
       );
     }
   });

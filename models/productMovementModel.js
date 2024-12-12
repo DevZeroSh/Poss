@@ -34,6 +34,7 @@ const ProductMovementSchema = new mongoose.Schema(
       default: "",
       required: true,
     },
+    desc: String,
   },
   { timestamps: true }
 );

@@ -12,7 +12,8 @@ const createProductMovement = async (
   type,
   movementType,
   source,
-  dbName
+  dbName,
+  desc
 ) => {
   const db = mongoose.connection.useDb(dbName);
   const movementSchema = db.model("ProductMovement", ProductMovementSchema);
@@ -28,6 +29,7 @@ const createProductMovement = async (
       type,
       movementType,
       source,
+      desc,
     });
     const savedMovement = await newMovement.save();
 

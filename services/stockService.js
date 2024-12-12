@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 
+const { createProductMovement } = require("../utils/productMovement");
 const mongoose = require("mongoose");
 const StockSchema = require("../models/stockModel");
 const { default: slugify } = require("slugify");
@@ -158,6 +159,11 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
         .json({ message: "Product quantity cannot be less than 0" });
     }
   }
+
+  // Create the stock transfer operation
+  const transferStock = await stockTransferModel.create(req.body);
+  const transferId = transferStock._id;
+
   // Update stock quantities in product model
   const bulkOps = [];
   for (const product of products) {
@@ -181,11 +187,9 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
         },
       });
     } else {
-      return res
-        .status(400)
-        .json({
-          message: `Stock ID ${fromStockId} not found in product ${productId}`,
-        });
+      return res.status(400).json({
+        message: `Stock ID ${fromStockId} not found in product ${productId}`,
+      });
     }
     if (toStockExists) {
       // Increase quantity to the toStock
@@ -195,6 +199,27 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
           update: { $inc: { "stocks.$.productQuantity": quantity } },
         },
       });
+
+      // Safely calculate the total quantity of the product (sum of all stocks)
+      const totalProductQuantity = productDoc.stocks.reduce((sum, stock) => {
+        const quantity = parseInt(stock.productQuantity, 10); // Ensure it's a number
+        return sum + (isNaN(quantity) ? 0 : quantity); // Add only valid numbers
+      }, 0);
+
+      // Track the product movement to the destination stock
+      await createProductMovement(
+        productId, // productId
+        transferId, // reference
+        totalProductQuantity, // newQuantity
+        quantity, // quantity
+        0, // newPrice
+        0, // oldPrice
+        "movement", // type
+        "in", // movementType
+        "stockTransfer", // source
+        dbName, // databaseName
+        `${fromStock.name} -> ${toStock.name}` // desc
+      );
     } else {
       // If the toStockId does not exist in stocks array, add it
       bulkOps.push({
@@ -216,7 +241,6 @@ exports.transformQuantity = asyncHandler(async (req, res, next) => {
 
   // Execute bulk update operations
   await productModel.bulkWrite(bulkOps);
-  const transferStock = await stockTransferModel.create(req.body);
   res.status(200).json({
     status: "success",
     message: "Transfer successful",
