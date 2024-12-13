@@ -8,28 +8,20 @@ const {
   deleteOffer,
   uploadOfferImages,
   resizeOfferImages,
+  getOneOfferByProduct,
 } = require("../services/offerServices");
 
 const offersRouter = express.Router();
 
-// Create a new offer
-offersRouter.post("/", uploadOfferImages, resizeOfferImages, createOffer);
-
-// Get all offers
-offersRouter.get("/", getOffer);
-
-// Get a specific offer by ID
-offersRouter.get("/:id", getOneOffer);
-
-// Update an offer
-offersRouter.put("/:id", updateOffer);
-
-// Delete an offer
-offersRouter.delete("/:id", deleteOffer);
-
-// Schedule a cron job to deactivate expired offers
-
-// Start the cron job
-// No need to call start() method for node-cron 3.x and above
+offersRouter
+  .route("/")
+  .get(getOffer)
+  .post(uploadOfferImages, resizeOfferImages, createOffer);
+offersRouter.route("/winoffer/:id").get(getOneOfferByProduct);
+offersRouter
+  .route("/:id")
+  .get(getOneOffer)
+  .put(updateOffer)
+  .delete(deleteOffer);
 
 module.exports = offersRouter;

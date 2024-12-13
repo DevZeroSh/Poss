@@ -209,6 +209,8 @@ const productSchema = new mongoose.Schema(
     suppliers: [String],
     soldByMonth: Number,
     soldByWeek: Number,
+    haveGift: Boolean,
+    soldToWinGift: Number,
   },
   {
     timestamps: true,

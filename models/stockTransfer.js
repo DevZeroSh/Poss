@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
-const stockTransferSchema = new mongoose.Schema({
+const stockTransferSchema = new mongoose.Schema(
+  {
     fromStock: String,
     fromStockId: String,
     toStock: String,
@@ -9,13 +10,17 @@ const stockTransferSchema = new mongoose.Schema({
     sender: String,
     recipient: String,
 
-    products: [{
+    products: [
+      {
         productId: String,
         productName: String,
         productQuantity: Number,
-    }],
+        _id: false,
+      },
+    ],
     counter: String,
+  },
+  { timestamps: true }
+);
 
-}, { timestamps: true })
-
-module.exports = stockTransferSchema
+module.exports = stockTransferSchema;

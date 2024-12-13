@@ -9,6 +9,7 @@ const multer = require("multer");
 const sharp = require("sharp");
 const { v4: uuidv4 } = require("uuid");
 const getAllChildCategories = require("../utils/CategoriesChild");
+const currencySchema = require("../models/currencyModel");
 // @desc find the categors and what have a subCategor
 
 const multerStorage = multer.memoryStorage();
@@ -98,6 +99,16 @@ exports.createOffer = async (req, res) => {
       const products = await Product.find({ brand: offerData.brand });
       const applicableProducts = products.map((product) => product.id);
       offerData.applicableProducts = applicableProducts;
+    } else if (offerData.oneProduct !== "") {
+      console.log(offerData);
+      await Product.findByIdAndUpdate(
+        { _id: offerData.oneProduct },
+
+        { haveGift: false, soldToWinGift: offerData.soldToWinGift }
+      );
+      offerData.applicableProducts = offerData.oneProduct;
+      offerData.soldCountToWin = offerData.soldToWinGift;
+      offerData.type = "oneProduct";
     } else {
       // Find products by id
       const products = await Product.find({
@@ -154,15 +165,24 @@ const updateOfferStatusForDatabase = async (databaseName) => {
       );
       for (const offer of offersEndDate) {
         // Deactivate the offer
-        offer.isActive = false;
-        await offer.save();
-        console.log(`Offer deactivated in database ${databaseName}`);
+        if (offer.type === "poss") {
+          offer.isActive = false;
+          await offer.save();
+          console.log(`Offer deactivated in database ${databaseName}`);
 
-        // Update price in products
-        await Product.updateMany(
-          { _id: { $in: offer.applicableProducts } },
-          { $set: { priceAftereDiscount: 0 } }
-        );
+          // Update price in products
+          await Product.updateMany(
+            { _id: { $in: offer.applicableProducts } },
+            { $set: { priceAftereDiscount: 0 } }
+          );
+        } else if (offer.type === "oneProduct") {
+          offer.isActive = false;
+          await offer.save();
+          await Product.updateMany(
+            { _id: { $in: offer.applicableProducts } },
+            { $set: { haveGift: false, soldToWinGift: null } }
+          );
+        }
       }
     }
 
@@ -195,6 +215,22 @@ const updateOfferStatusForDatabase = async (databaseName) => {
               },
             },
           ]);
+        } else if (offer.type === "oneProduct") {
+          await Product.updateMany(
+            {
+              _id: {
+                $in: offer.applicableProducts,
+              },
+            },
+            [
+              {
+                $set: {
+                  haveGift: true,
+                  soldToWinGift: offer.soldCountToWin,
+                },
+              },
+            ]
+          );
         } else {
           await Product.updateMany({ _id: { $in: offer.applicableProducts } }, [
             {
@@ -380,5 +416,32 @@ exports.getOneOffer = async (req, res) => {
     res.status(200).json({ status: "success", data: offer });
   } catch (error) {
     res.status(500).send({ error: error.message });
+  }
+};
+
+exports.getOneOfferByProduct = async (req, res) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const offersModel = db.model("Offer", offerSchema);
+  db.model("Product", productSchema);
+  db.model("Currency", currencySchema);
+
+  const productId = req.params.id; // Replace this with your dynamic ID if necessary
+
+  try {
+    const findOffer = await offersModel
+      .findOne({
+        applicableProducts: new mongoose.Types.ObjectId(productId), // Use 'new'
+      })
+      .populate("winProduct")
+      .populate({
+        path: "winProduct",
+        populate: { path: "currency" },
+      });
+
+    res.status(200).json({ success: true, data: findOffer });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Error finding offer" });
   }
 };

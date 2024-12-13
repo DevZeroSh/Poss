@@ -9,7 +9,6 @@ const offerSchema = new mongoose.Schema(
     description: String,
     discountPercentage: {
       type: Number,
-      required: true,
     },
     startDate: {
       type: Date,
@@ -23,9 +22,11 @@ const offerSchema = new mongoose.Schema(
     applicableProducts: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     ],
+    winProduct: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+    soldCountToWin: Number,
     type: {
       type: String,
-      enum: ["poss", "ecommerce"],
+      enum: ["poss", "ecommerce", "oneProduct"],
       default: "poss",
     },
     imageTr: String,

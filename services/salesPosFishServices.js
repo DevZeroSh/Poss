@@ -245,21 +245,59 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // Product movements
   const productMovementPromises = cartItems.map(async (item) => {
     const product = await productModel.findOne({ qr: item.qr });
+
     if (product && product.type !== "Service") {
-      const stockEntry = product.stocks.find(
+      const stockEntryIndex = product.stocks.findIndex(
         (stock) => stock.stockId.toString() === stockID.toString()
       );
-      if (stockEntry) {
-        stockEntry.productQuantity -= item.quantity;
-        product.sold += item.quantity;
-        product.soldByMonth = +item.quantity;
-        product.soldByWeek = +item.quantity;
-        const totalStockQuantity = product.stocks.reduce(
+      if (stockEntryIndex !== -1) {
+        // Update product model
+        const updatedProduct = await productModel.findOneAndUpdate(
+          {
+            qr: item.qr,
+            "stocks.stockId": stockID,
+          },
+          {
+            $inc: {
+              "stocks.$.productQuantity": -item.quantity,
+              sold: item.quantity,
+              soldByMonth: item.quantity,
+              soldByWeek: item.quantity,
+            },
+          },
+          { new: true }
+        );
+        const totalStockQuantity = updatedProduct.stocks.reduce(
           (total, stock) => total + stock.productQuantity,
           0
         );
 
-        await product.save();
+        let existingRecord = await ActiveProductsValue.findOne({
+          currency: product.currency._id,
+        });
+
+        if (existingRecord) {
+          await ActiveProductsValue.findOneAndUpdate(
+            {
+              currency: product.currency._id,
+            },
+            {
+              $inc: {
+                activeProductsValue: item.buyingPrice * item.quantity,
+                activeProductsCount: item.quantity,
+              },
+            },
+            { new: true }
+          );
+        } else {
+          const newActiveProductValue = {
+            activeProductsValue: item.buyingPrice * item.quantity,
+            activeProductsCount: item.quantity,
+            currency: product.currency._id,
+          };
+          await ActiveProductsValue.create(newActiveProductValue);
+        }
+
         await createProductMovement(
           product._id,
           order.id,
@@ -277,21 +315,29 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   });
 
   // ActiveProductsValue updates
-  const activeProductsValueUpdates = cartItems.map(async (item) => {
-    const product = await productModel.findOne({ qr: item.qr });
-    if (product && product.type !== "Service") {
-      const existingRecord = await ActiveProductsValue.findOne({
-        currency: product.currency._id,
-      });
-      if (existingRecord) {
-        existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
-        existingRecord.activeProductsCount -= item.quantity;
-        await existingRecord.save();
-      } else {
-        await createActiveProductsValue(0, 0, product.currency._id, dbName);
-      }
-    }
-  });
+  // const activeProductsValueUpdates = cartItems.map(async (item) => {
+  //   // const product = await productModel.findOne({ qr: item.qr });
+  //   // if (product && product.type !== "Service") {
+  //   //   // Find the existing record for the product's currency
+  //   //   let existingRecord = await ActiveProductsValue.findOne({
+  //   //     currency: product.currency._id,
+  //   //   });
+  //   //   if (existingRecord) {
+  //   //     // Deduct the value and count for this product
+  //   //     existingRecord.activeProductsValue -= item.buyingPrice * item.quantity;
+  //   //     existingRecord.activeProductsCount -= item.quantity;
+  //   //     await existingRecord.save();
+  //   //   } else {
+  //   //     // Create a new record if it doesn't exist
+  //   //     const newActiveProductValue = {
+  //   //       activeProductsValue: 0,
+  //   //       activeProductsCount: 0,
+  //   //       currency: product.currency._id,
+  //   //     };
+  //   //     await ActiveProductsValue.create(newActiveProductValue);
+  //   //   }
+  //   // }
+  // });
 
   // Create Expense
   // const createExpensePromise =
@@ -342,10 +388,9 @@ exports.createCashOrder = asyncHandler(async (req, res, next) => {
   // Wait for all promises to resolve
   await Promise.all([
     createReportsFinancialFundsPromise,
-    ...productMovementPromises,
     // createExpensePromise,
     reportsSalesPromise,
-    ...activeProductsValueUpdates,
+    // ...activeProductsValueUpdates,
   ]);
 
   // Save financial funds and respond
