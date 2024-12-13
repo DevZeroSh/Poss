@@ -300,10 +300,12 @@ exports.getTransferForStock = asyncHandler(async (req, res, next) => {
   };
 
   if (req.query.keyword) {
-    query.$or.push(
-      { name: { $regex: req.query.keyword, $options: "i" } },
-      { date: { $regex: req.query.keyword, $options: "i" } }
-    );
+    query.$or = [
+      { fromStock: { $regex: req.query.keyword, $options: "i" } },
+      { toStock: { $regex: req.query.keyword, $options: "i" } },
+      { sender: { $regex: req.query.keyword, $options: "i" } },
+      { recipient: { $regex: req.query.keyword, $options: "i" } },
+    ];
   }
 
   const totalItems = await stockTransferModel.countDocuments(query);
@@ -333,10 +335,12 @@ exports.getAllStatementStock = asyncHandler(async (req, res, next) => {
   let query = {};
 
   if (req.query.keyword) {
-    query.$or.push(
-      { name: { $regex: req.query.keyword, $options: "i" } },
-      { date: { $regex: req.query.keyword, $options: "i" } }
-    );
+    query.$or = [
+      { fromStock: { $regex: req.query.keyword, $options: "i" } },
+      { toStock: { $regex: req.query.keyword, $options: "i" } },
+      { sender: { $regex: req.query.keyword, $options: "i" } },
+      { recipient: { $regex: req.query.keyword, $options: "i" } },
+    ];
   }
 
   const totalItems = await stockTransferModel.countDocuments(query);
