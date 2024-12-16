@@ -1532,3 +1532,33 @@ cron.schedule("59 23 * * *", async () => {
 
   // }
 });
+
+exports.findCustomer = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const orderModel = db.model("Sales", orderSchema);
+  const customerid = req.params.id;
+
+  const pageSize = 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  const filter = {
+    "customer.id": customerid,
+    paymentsStatus: "unpaid",
+    type: "sales",
+  };
+
+  const sales = await orderModel.find(filter).skip(skip).limit(pageSize);
+
+  const totalItems = await orderModel.countDocuments(filter);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  res.status(200).json({
+    results: sales.length,
+    Pages: totalPages,
+    totalItems,
+    data: sales,
+  });
+});
