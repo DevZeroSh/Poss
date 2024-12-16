@@ -640,23 +640,34 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
     db.model("Users", E_user_Schema);
 
     const { id } = req.params;
+    const pageSize = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page) || 1;
 
+    const skip = (page - 1) * pageSize;
     // Fetch product and movements concurrently
-    const [product, movements] = await Promise.all([
-      productModel
-        .findById(id)
-        .populate({ path: "alternateProducts" })
-        .populate({ path: "category" })
-        .populate({ path: "brand", select: "name _id" })
-        .populate({ path: "variant", select: "variant _id" })
-        .populate({ path: "unit", select: "name code _id" })
-        .populate({ path: "tax", select: "tax _id" })
-        .populate({ path: "label", select: "name _id" })
-        .populate({ path: "currency" })
-        .populate({ path: "review", options: { limit: 10 } }),
+    const product = await productModel
+      .findById(id)
+      .populate({ path: "alternateProducts" })
+      .populate({ path: "category" })
+      .populate({ path: "brand", select: "name _id" })
+      .populate({ path: "variant", select: "variant _id" })
+      .populate({ path: "unit", select: "name code _id" })
+      .populate({ path: "tax", select: "tax _id" })
+      .populate({ path: "label", select: "name _id" })
+      .populate({ path: "currency" })
+      .populate({ path: "review", options: { limit: 10 } });
 
-      movementsModel.find({ productId: id }),
-    ]);
+    const movements = await movementsModel
+      .find({
+        productId: id,
+      })
+      .skip(skip)
+      .limit(pageSize);
+
+    const totalMovements = await movementsModel.countDocuments({
+      productId: id,
+    });
+    const totalPages = Math.ceil(totalMovements / pageSize);
 
     // Check if product exists
     if (!product) {
@@ -674,12 +685,13 @@ exports.getOneProduct = asyncHandler(async (req, res, next) => {
           };
         });
         doc.imagesArray = imageList;
-        console.log(doc.imagesArray);
       }
     };
 
     setImageURL(product);
-    res.status(200).json({ data: product, movements });
+    res
+      .status(200)
+      .json({ data: product, movements: movements, Pages: totalPages });
   } catch (error) {
     next(error);
   }
