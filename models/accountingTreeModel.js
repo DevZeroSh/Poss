@@ -16,6 +16,8 @@ const AccountingTreeSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  creditor: Number,
+  debtor: Number,
   balance: { type: Number, default: 0 },
 });
 

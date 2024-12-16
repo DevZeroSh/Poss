@@ -81,13 +81,13 @@ exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   const account = await AccountModel.create(req.body);
   const accountingTree = await accountingTreeModel.findByIdAndUpdate(
     req.body.fromAccount.id,
-    { $inc: { balance: -req.body.fromAccount.amount } },
+    { $inc: { creditor: -req.body.fromAccount.amount } },
     { new: true }
   );
   req.body.toAccount.map(async (item) => {
     const accountingTree = await accountingTreeModel.findByIdAndUpdate(
       item.id,
-      { $inc: { balance: +item.amount } },
+      { $inc: { debtor: +item.amount } },
       { new: true }
     );
   });
