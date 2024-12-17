@@ -96,6 +96,7 @@ exports.createInvoiceExpenses = asyncHandler(async (req, res, next) => {
   req.body.employeeID = req.user.id;
   req.body.employeeName = req.user.name;
   req.body.date = req.body.date + " " + formatteTime;
+  req.body.tag = JSON.parse(req.body.tag);
 
   // Create the expense document
   const expense = await expensesModel.create(req.body);

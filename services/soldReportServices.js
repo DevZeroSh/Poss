@@ -11,7 +11,7 @@ exports.getSoldReports = asyncHandler(async (req, res, next) => {
 
   const soldReportModel = db.model("SoldReport", soldReportSchema);
 
-  const soldReports = await soldReportModel.find();
+  const soldReports = await soldReportModel.find().limit(10);
 
   res.status(200).json({ status: "true", data: soldReports });
 });
