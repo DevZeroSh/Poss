@@ -1526,3 +1526,37 @@ exports.cancelPurchaseInvoice = asyncHandler(async (req, res, next) => {
     );
   }
 });
+
+exports.findSupplier = asyncHandler(async (req, res, next) => {
+  const dbName = req.query.databaseName;
+  const db = mongoose.connection.useDb(dbName);
+  const PurchaseInvoicesModel = db.model(
+    "PurchaseInvoices",
+    PurchaseInvoicesSchema
+  );
+  const supplierid = req.params.id;
+
+  const pageSize = 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * pageSize;
+
+  const filter = {
+    "supllier.id": supplierid,
+    paid: "unpaid",
+    type: "normal",
+  };
+
+  const purchaseInvoices = await PurchaseInvoicesModel.find(filter)
+    .skip(skip)
+    .limit(pageSize);
+
+  const totalItems = await PurchaseInvoicesModel.countDocuments(filter);
+
+  const totalPages = Math.ceil(totalItems / pageSize);
+
+  res.status(200).json({
+    results: purchaseInvoices.length,
+    Pages: totalPages,
+    data: purchaseInvoices,
+  });
+});
