@@ -1163,7 +1163,7 @@ exports.ecommerceActiveProudct = asyncHandler(async (req, res) => {
   const productModel = db.model("Product", productSchema);
   db.model("Category", categorySchema);
 
-  const pageSize = req.query.limit || 15;
+  const pageSize = req.query.limit || 100;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * pageSize;
   let sortQuery = { importDate: -1 };
