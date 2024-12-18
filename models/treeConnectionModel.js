@@ -9,6 +9,7 @@ const treeConnectionSchema = new mongoose.Schema(
       accountCode: String,
       _id: false,
     },
+    link: String,
   },
   { timestamps: true }
 );
