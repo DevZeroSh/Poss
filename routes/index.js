@@ -60,7 +60,7 @@ const unTracedproductLogRout = require("./unTracedproductLogRout");
 const TagRoute = require("./tagsRoute");
 const SalesPointRout = require("./salesPointRoute");
 const SoldReportsRoute = require("./soldReportsRoute");
-const treeConnectionRoute = require("./treeConnectionRoute");
+const linkPanelRoute = require("./LinkPanelRout");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
@@ -110,7 +110,7 @@ const mountRoutes = (app) => {
   app.use("/api/shippingCompany", shippingCompaniesRoute);
   app.use("/api/untracedproductlog", unTracedproductLogRout);
   app.use("/api/salespoint", SalesPointRout);
-  app.use("/api/treeconnection", treeConnectionRoute);
+  app.use("/api/treeconnection", linkPanelRoute);
 
   //Ecommerce routes
   app.use("/api/users", E_userRoute);
