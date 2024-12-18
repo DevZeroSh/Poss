@@ -81,7 +81,7 @@ exports.createAccountTransaction = asyncHandler(async (req, res, next) => {
   const account = await AccountModel.create(req.body);
   const accountingTree = await accountingTreeModel.findByIdAndUpdate(
     req.body.fromAccount.id,
-    { $inc: { debtor: -req.body.fromAccount.amount } },
+    { $inc: { debtor: +req.body.fromAccount.amount } },
     { new: true }
   );
   req.body.toAccount.map(async (item) => {
