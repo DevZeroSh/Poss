@@ -432,7 +432,9 @@ exports.customarChangeOrderStatus = asyncHandler(async (req, res, next) => {
     db.model("Customar", customarSchema);
     const { id } = req.params;
     const updates = req.body; // Array of objects with _id and new orderStatus
-
+    function padZero(value) {
+      return value < 10 ? `0${value}` : value;
+    }
     // Find the order by ID
     const order = await orderModel.findById(id);
 
