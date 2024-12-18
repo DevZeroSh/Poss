@@ -60,7 +60,6 @@ const unTracedproductLogRout = require("./unTracedproductLogRout");
 const TagRoute = require("./tagsRoute");
 const SalesPointRout = require("./salesPointRoute");
 const SoldReportsRoute = require("./soldReportsRoute");
-const linkPanelRoute = require("./LinkPanelRout");
 
 const mountRoutes = (app) => {
   app.use("/api/product", productRout);
